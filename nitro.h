@@ -4,6 +4,6 @@
 #include <linux/ioctl.h>
 #include <linux/kvm.h>
 
-#define KVM_NITRO_NUM_VMS  	_IOR(KVMIO, 0xE0, __u64)
+#define KVM_NITRO_NUM_VMS  	_IO(KVMIO, 0xE0)
 
 #endif //NITRO_H_

@@ -11,6 +11,8 @@ int main(int argc, char **argv){
   
   num_vms = get_num_vms();
   
+  printf("get_num_vms() returned %d\n",num_vms);
+  
   close_kvm();
   return 0;
 }

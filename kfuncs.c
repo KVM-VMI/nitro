@@ -63,9 +63,9 @@ int close_kvm(){
 
 
 int get_num_vms(){
-  __u64 num_vms;
+  int num_vms;
   
-  kvm_ioctl(KVM_NITRO_NUM_VMS,&num_vms);
+  num_vms = kvm_ioctl(KVM_NITRO_NUM_VMS);
   
-  return (int) num_vms; 
+  return num_vms; 
 }
