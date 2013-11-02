@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <unistd.h>
 #include <stdarg.h>
 #include <sys/ioctl.h>
 #include <errno.h>
@@ -55,6 +56,7 @@ int init_kvm(){
 
 int close_kvm(){
   close(kvm_fd);
+  return 0;
 }
 
 
