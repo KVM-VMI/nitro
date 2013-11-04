@@ -47,6 +47,8 @@ int kvm_vm_ioctl(int type, ...)
 }
 
 int init_kvm(){
+  kvm_vmfd = 0;
+  
   if((kvm_fd = open(KVM_NODE, O_RDWR)) < 0){
     return -errno;
   }
@@ -64,8 +66,16 @@ int close_kvm(){
 
 int get_num_vms(){
   int num_vms;
-  
   num_vms = kvm_ioctl(KVM_NITRO_NUM_VMS);
-  
   return num_vms; 
+}
+
+int attach_vm(pid_t creator){
+  kvm_vmfd = kvm_ioctl(KVM_NITRO_ATTACH_VM,&creator);
+  return kvm_vmfd;
+}
+
+int deattach_vm(){
+  kvm_vm_ioctl(KVM_NITRO_DEATTACH_VM);
+  return 0;
 }
