@@ -4,6 +4,7 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
+#include "libnitro.h"
 #include "nitro.h"
 
 #define KVM_NODE "/dev/kvm"

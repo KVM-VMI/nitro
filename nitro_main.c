@@ -3,7 +3,7 @@
 #include <linux/types.h>
 #include <linux/kvm.h>
 
-#include "kfuncs.h"
+#include "libnitro.h"
 
 int main(int argc, char **argv){
   int num_vms;
