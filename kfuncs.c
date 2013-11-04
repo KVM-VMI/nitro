@@ -75,7 +75,7 @@ int attach_vm(pid_t creator){
   return kvm_vmfd;
 }
 
-int deattach_vm(){
-  kvm_vm_ioctl(KVM_NITRO_DEATTACH_VM);
+int detach_vm(){
+  kvm_vm_ioctl(KVM_NITRO_DETACH_VM);
   return 0;
 }

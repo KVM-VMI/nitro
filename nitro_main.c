@@ -30,7 +30,7 @@ int main(int argc, char **argv){
   
   c = (char)getc(stdin);
   
-  deattach_vm();
+  detach_vm();
   
   close_kvm();
   return 0;

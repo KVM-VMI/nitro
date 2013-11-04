@@ -11,7 +11,7 @@ int get_num_vms();
 int attach_vm(pid_t);
 
 
-int deattach_vm();
+int detach_vm();
 
 
 #endif //KFUNCS_H_
