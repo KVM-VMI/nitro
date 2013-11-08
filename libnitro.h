@@ -16,4 +16,5 @@ int attach_vcpus();
 
 //vcpu functions
 int get_regs(int, struct kvm_regs*);
+int get_sregs(int, struct kvm_sregs*);
 #endif //KFUNCS_H_

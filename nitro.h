@@ -20,6 +20,6 @@ struct nitro_vcpus{
 #define KVM_NITRO_ATTACH_VM  	_IOW(KVMIO, 0xE1, pid_t)
 
 //VM functions
-#define KVM_NITRO_ATTACH_VCPUS	_IOWR(KVMIO, 0xE2, struct nitro_vcpus)
+#define KVM_NITRO_ATTACH_VCPUS	_IOR(KVMIO, 0xE2, struct nitro_vcpus)
 
 #endif //NITRO_H_

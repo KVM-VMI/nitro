@@ -10,7 +10,6 @@
 
 #define KVM_NODE "/dev/kvm"
 
-pid_t creator_pid;
 int kvm_fd;
 int kvm_vmfd;
 struct nitro_vcpus vcpus;
@@ -67,7 +66,6 @@ int kvm_vcpu_ioctl(int vcpu_fd,int type, ...)
 }
 
 int init_kvm(){
-  creator_pid = 0;
   kvm_vmfd = 0;
   memset(&vcpus,0,sizeof(struct nitro_vcpus));
   
@@ -99,15 +97,17 @@ int close_kvm(){
 
 
 int get_num_vms(){
-  int num_vms;
-  num_vms = kvm_ioctl(KVM_NITRO_NUM_VMS);
-  return num_vms; 
+  return kvm_ioctl(KVM_NITRO_NUM_VMS);
 }
 
 int attach_vm(pid_t creator){
-  creator_pid = creator;
+  int rv=0;
+  
   kvm_vmfd = kvm_ioctl(KVM_NITRO_ATTACH_VM,&creator);
-  return kvm_vmfd;
+  
+  if(kvm_vmfd<0)
+    rv = kvm_vmfd;
+  return rv;
 }
 
 int attach_vcpus(){
@@ -122,7 +122,17 @@ int attach_vcpus(){
 }
 
 int get_regs(int vcpu_id, struct kvm_regs *regs){
+  if(vcpu_id >= vcpus.num_vcpus)
+    return -1;
+  
   return kvm_vcpu_ioctl(vcpus.fds[vcpu_id],KVM_GET_REGS,regs);
+}
+
+int get_sregs(int vcpu_id, struct kvm_sregs *sregs){
+  if(vcpu_id >= vcpus.num_vcpus)
+    return -1;
+  
+  return kvm_vcpu_ioctl(vcpus.fds[vcpu_id],KVM_GET_SREGS,sregs);
 }
 
 
