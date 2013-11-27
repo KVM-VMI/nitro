@@ -21,5 +21,7 @@ struct nitro_vcpus{
 
 //VM functions
 #define KVM_NITRO_ATTACH_VCPUS	_IOR(KVMIO, 0xE2, struct nitro_vcpus)
+#define KVM_NITRO_SET_SYSCALL_TRAP _IO(KVMIO, 0xE3)
+#define KVM_NITRO_UNSET_SYSCALL_TRAP _IO(KVMIO, 0xE4)
 
 #endif //NITRO_H_

@@ -10,6 +10,7 @@ int main(int argc, char **argv){
   int num_vcpus;
   pid_t creator;
   int vmfd;
+  int rv;
   struct kvm_regs regs;
   struct kvm_sregs sregs;
   
@@ -43,6 +44,7 @@ int main(int argc, char **argv){
   num_vcpus = attach_vcpus();
   printf("attach_vcpus() returned %d\n\n",num_vcpus);
   
+/*
   printf("calling get_regs()...\n");
   if(get_regs(0,&regs)){
     printf("Error getting regs, exiting\n");
@@ -56,6 +58,19 @@ int main(int argc, char **argv){
     return -1;
   }
   printf("get_sregs() returned cr0: 0x%llX\n\n",sregs.cr0);
+*/
+
+  
+  printf("calling set_syscall_trap()...\n");
+  rv = set_syscall_trap();
+  printf("set_syscall_trap() returned %d\n\n",rv);
+  
+  fgetc(stdin);
+
+  
+  printf("calling unset_syscall_trap()...\n");
+  rv = unset_syscall_trap();
+  printf("unset_syscall_trap() returned %d\n\n",rv);
   
   close_kvm();
   return 0;

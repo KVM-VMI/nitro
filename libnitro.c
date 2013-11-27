@@ -121,6 +121,15 @@ int attach_vcpus(){
   return rv;
 }
 
+
+int set_syscall_trap(){
+  return kvm_vm_ioctl(KVM_NITRO_SET_SYSCALL_TRAP);
+}
+
+int unset_syscall_trap(){
+  return kvm_vm_ioctl(KVM_NITRO_UNSET_SYSCALL_TRAP);
+}
+
 int get_regs(int vcpu_id, struct kvm_regs *regs){
   if(vcpu_id >= vcpus.num_vcpus)
     return -1;

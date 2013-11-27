@@ -11,6 +11,9 @@ int close_kvm();
 int get_num_vms();
 int attach_vm(pid_t);
 
+int set_syscall_trap();
+int unset_syscall_trap();
+
 //vm functions
 int attach_vcpus();
 
