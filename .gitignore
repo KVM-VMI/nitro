@@ -22,3 +22,6 @@
 
 #target
 nitro
+
+#KDevelop files
+*.kdev4

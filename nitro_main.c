@@ -11,8 +11,8 @@ int main(int argc, char **argv){
   pid_t creator;
   int vmfd;
   int rv;
-  struct kvm_regs regs;
-  struct kvm_sregs sregs;
+  //struct kvm_regs regs;
+  //struct kvm_sregs sregs;
   
   
   if (argc < 2){
