@@ -66,6 +66,22 @@ int main(int argc, char **argv){
   printf("set_syscall_trap() returned %d\n\n",rv);
   
   fgetc(stdin);
+  
+  while(1){
+    printf("calling get_event()...\n");
+    rv = get_event(0);
+    printf("get_event() returned %d\n\n",rv);
+    
+    printf("calling continue_vm()...\n");
+    rv = continue_vm(0);
+    printf("continue_vm() returned %d\n\n",rv);
+    
+  
+    rv = fgetc(stdin);
+    
+    if(rv == 'q')
+      break;
+  }
 
   
   printf("calling unset_syscall_trap()...\n");
