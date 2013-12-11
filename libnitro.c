@@ -1,12 +1,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <string.h>
 
 #include "libnitro.h"
 #include "nitro.h"
+#include "../nitro-kmod_build/linux/include/net/irda/parameters.h"
 
 #define KVM_NODE "/dev/kvm"
 
@@ -122,8 +124,13 @@ int attach_vcpus(){
 }
 
 
-int set_syscall_trap(){
-  return kvm_vm_ioctl(KVM_NITRO_SET_SYSCALL_TRAP);
+int set_syscall_trap(int *sc, int sc_size){
+  struct nitro_syscall_trap sct;
+  
+  sct.size = sc_size;
+  sct.syscalls = sc;
+  
+  return kvm_vm_ioctl(KVM_NITRO_SET_SYSCALL_TRAP,&sct);
 }
 
 int unset_syscall_trap(){

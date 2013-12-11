@@ -11,7 +11,7 @@ int close_kvm();
 int get_num_vms();
 int attach_vm(pid_t);
 
-int set_syscall_trap();
+int set_syscall_trap(int*,int);
 int unset_syscall_trap();
 
 //vm functions

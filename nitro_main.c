@@ -2,8 +2,23 @@
 #include <stdio.h>
 #include <linux/types.h>
 #include <linux/kvm.h>
+#include <signal.h>
 
 #include "libnitro.h"
+
+void sig_handler(int signum){
+  int rv;
+  printf("calling unset_syscall_trap()...\n");
+  rv = unset_syscall_trap();
+  printf("unset_syscall_trap() returned %d\n\n",rv);
+  
+  close_kvm();
+  
+  printf("recieved sigint, exiting...\n");
+  exit(0);
+}
+  
+  
 
 int main(int argc, char **argv){
   //int num_vms;
@@ -11,8 +26,11 @@ int main(int argc, char **argv){
   pid_t creator;
   int vmfd;
   int rv;
+  int sc[3];
   //struct kvm_regs regs;
   //struct kvm_sregs sregs;
+  
+  signal(SIGINT, sig_handler);
   
   
   if (argc < 2){
@@ -62,10 +80,11 @@ int main(int argc, char **argv){
 
   
   printf("calling set_syscall_trap()...\n");
-  rv = set_syscall_trap();
+  sc[0] = 88;
+  sc[1] = 1;
+  sc[2] = 2;
+  rv = set_syscall_trap(sc,3);
   printf("set_syscall_trap() returned %d\n\n",rv);
-  
-  fgetc(stdin);
   
   while(1){
     printf("calling get_event()...\n");
@@ -75,12 +94,6 @@ int main(int argc, char **argv){
     printf("calling continue_vm()...\n");
     rv = continue_vm(0);
     printf("continue_vm() returned %d\n\n",rv);
-    
-  
-    rv = fgetc(stdin);
-    
-    if(rv == 'q')
-      break;
   }
 
   
@@ -89,5 +102,6 @@ int main(int argc, char **argv){
   printf("unset_syscall_trap() returned %d\n\n",rv);
   
   close_kvm();
+  
   return 0;
 }
