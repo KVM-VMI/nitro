@@ -6,7 +6,10 @@
 
 #include "libnitro.h"
 
+int go;
+
 void sig_handler(int signum){
+  /*
   int rv;
   printf("calling unset_syscall_trap()...\n");
   rv = unset_syscall_trap();
@@ -16,6 +19,9 @@ void sig_handler(int signum){
   
   printf("recieved sigint, exiting...\n");
   exit(0);
+  */
+  
+  go = 0;
 }
   
   
@@ -29,6 +35,8 @@ int main(int argc, char **argv){
   int sc[3];
   //struct kvm_regs regs;
   //struct kvm_sregs sregs;
+  
+  go = 1;
   
   signal(SIGINT, sig_handler);
   
@@ -86,14 +94,14 @@ int main(int argc, char **argv){
   rv = set_syscall_trap(sc,3);
   printf("set_syscall_trap() returned %d\n\n",rv);
   
-  while(1){
-    printf("calling get_event()...\n");
+  while(go){
+    //printf("calling get_event()...\n");
     rv = get_event(0);
-    printf("get_event() returned %d\n\n",rv);
+    //printf("get_event() returned %d\n\n",rv);
     
-    printf("calling continue_vm()...\n");
+    //printf("calling continue_vm()...\n");
     rv = continue_vm(0);
-    printf("continue_vm() returned %d\n\n",rv);
+    //printf("continue_vm() returned %d\n\n",rv);
   }
 
   
