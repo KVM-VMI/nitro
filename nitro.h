@@ -18,10 +18,9 @@ struct nitro_syscall_trap{
   int size;
 };
 
-//return reasons
-#define KVM_NITRO_ERROR			0
-#define KVM_NITRO_TIMEOUT		1
-#define KVM_NITRO_SYSCALL_TRAPPED	2
+//events
+#define KVM_NITRO_EVENT_ERROR			1
+#define KVM_NITRO_EVENT_SYSCALL			2
 
 //KVM functions
 #define KVM_NITRO_NUM_VMS  	_IO(KVMIO, 0xE0)

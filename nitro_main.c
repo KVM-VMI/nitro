@@ -84,9 +84,9 @@ int main(int argc, char **argv){
 
   
   printf("calling set_syscall_trap()...\n");
-  sc[0] = 88;
-  sc[1] = 1;
-  sc[2] = 2;
+  sc[0] = 0x9f;
+  sc[1] = 0x4a;
+  sc[2] = 0xaa;
   rv = set_syscall_trap(sc,3);
   printf("set_syscall_trap() returned %d\n\n",rv);
   
