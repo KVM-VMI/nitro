@@ -36,4 +36,9 @@ struct nitro_syscall_trap{
 #define KVM_NITRO_GET_EVENT	_IO(KVMIO, 0xE5)
 #define KVM_NITRO_CONTINUE	_IO(KVMIO, 0xE6)
 
+#define KVM_NITRO_GET_REGS              _IOR(KVMIO,  0xE7, struct kvm_regs)
+#define KVM_NITRO_SET_REGS              _IOW(KVMIO,  0xE8, struct kvm_regs)
+#define KVM_NITRO_GET_SREGS             _IOR(KVMIO,  0xE9, struct kvm_sregs)
+#define KVM_NITRO_SET_SREGS             _IOW(KVMIO,  0xEA, struct kvm_sregs)
+
 #endif //NITRO_H_

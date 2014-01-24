@@ -33,8 +33,8 @@ int main(int argc, char **argv){
   int vmfd;
   int rv;
   int sc[3];
-  //struct kvm_regs regs;
-  //struct kvm_sregs sregs;
+  struct kvm_regs regs;
+  struct kvm_sregs sregs;
   
   go = 1;
   
@@ -52,10 +52,6 @@ int main(int argc, char **argv){
     return -1;
   }
   printf("Initialized\n\n");
-  
-//   printf("calling get_num_vms()...\n");
-//   num_vms = get_num_vms();
-//   printf("get_num_vms() returned %d\n\n",num_vms);
   
   creator = (pid_t)atoi(argv[1]);
   printf("calling attach_vm() with creator pid: %d...\n",creator);
@@ -95,13 +91,20 @@ int main(int argc, char **argv){
   printf("set_syscall_trap() returned %d\n\n",rv);
   
   while(go){
-    //printf("calling get_event()...\n");
     rv = get_event(0);
-    //printf("get_event() returned %d\n\n",rv);
     
-    //printf("calling continue_vm()...\n");
+    if(get_regs(0,&regs)){
+      printf("Error getting regs, exiting\n");
+      continue_vm(0);
+      break;
+    }
+    if(get_sregs(0,&sregs)){
+      printf("Error getting sregs, exiting\n");
+      continue_vm(0);
+      break;
+    }
+    printf("Syscall trapped cr3: 0x%llX rax: 0x%llX\n",sregs.cr0,regs.rax);
     rv = continue_vm(0);
-    //printf("continue_vm() returned %d\n\n",rv);
   }
 
   

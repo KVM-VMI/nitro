@@ -141,14 +141,14 @@ int get_regs(int vcpu_id, struct kvm_regs *regs){
   if(vcpu_id >= vcpus.num_vcpus)
     return -1;
   
-  return kvm_vcpu_ioctl(vcpus.fds[vcpu_id],KVM_GET_REGS,regs);
+  return kvm_vcpu_ioctl(vcpus.fds[vcpu_id],KVM_NITRO_GET_REGS,regs);
 }
 
 int get_sregs(int vcpu_id, struct kvm_sregs *sregs){
   if(vcpu_id >= vcpus.num_vcpus)
     return -1;
   
-  return kvm_vcpu_ioctl(vcpus.fds[vcpu_id],KVM_GET_SREGS,sregs);
+  return kvm_vcpu_ioctl(vcpus.fds[vcpu_id],KVM_NITRO_GET_SREGS,sregs);
 }
 
 int get_event(int vcpu_id){
