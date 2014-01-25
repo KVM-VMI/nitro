@@ -5,6 +5,7 @@
 #include <signal.h>
 
 #include "libnitro.h"
+#include "nitro.h"
 
 int go;
 
@@ -35,6 +36,7 @@ int main(int argc, char **argv){
   int sc[3];
   struct kvm_regs regs;
   struct kvm_sregs sregs;
+  union event_data event_data;
   
   go = 1;
   
@@ -91,7 +93,7 @@ int main(int argc, char **argv){
   printf("set_syscall_trap() returned %d\n\n",rv);
   
   while(go){
-    rv = get_event(0);
+    rv = get_event(0,&event_data);
     
     if(get_regs(0,&regs)){
       printf("Error getting regs, exiting\n");
@@ -103,7 +105,10 @@ int main(int argc, char **argv){
       continue_vm(0);
       break;
     }
-    printf("Syscall trapped cr3: 0x%llX rax: 0x%llX\n",sregs.cr0,regs.rax);
+    if(rv == KVM_NITRO_EVENT_SYSCALL)
+      printf("Syscall trapped key: 0x%lX cr3: 0x%llX rax: 0x%llX\n",event_data.syscall,sregs.cr3,regs.rax);
+    else if(rv == KVM_NITRO_EVENT_SYSRET)
+      printf("Sysret trapped key: 0x%lX cr3: 0x%llX\n",event_data.syscall,sregs.cr3);
     rv = continue_vm(0);
   }
 

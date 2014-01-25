@@ -8,7 +8,6 @@
 
 #include "libnitro.h"
 #include "nitro.h"
-#include "../nitro-kmod_build/linux/include/net/irda/parameters.h"
 
 #define KVM_NODE "/dev/kvm"
 
@@ -151,10 +150,10 @@ int get_sregs(int vcpu_id, struct kvm_sregs *sregs){
   return kvm_vcpu_ioctl(vcpus.fds[vcpu_id],KVM_NITRO_GET_SREGS,sregs);
 }
 
-int get_event(int vcpu_id){
+int get_event(int vcpu_id, union event_data *ed){
   if(vcpu_id >= vcpus.num_vcpus)
     return -1;
-  return kvm_vcpu_ioctl(vcpus.fds[vcpu_id],KVM_NITRO_GET_EVENT);
+  return kvm_vcpu_ioctl(vcpus.fds[vcpu_id],KVM_NITRO_GET_EVENT,ed);
 }
 
 int continue_vm(int vcpu_id){
