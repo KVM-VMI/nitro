@@ -115,7 +115,7 @@ int main(int argc, char **argv){
 
   
   printf("calling unset_syscall_trap()...\n");
-  rv = unset_syscall_trap();
+  rv = set_syscall_trap(false);
   printf("unset_syscall_trap() returned %d\n\n",rv);
   
   close_kvm();
