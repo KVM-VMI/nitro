@@ -33,9 +33,6 @@ void sig_handler(int signum){
   
 
 int main(int argc, char **argv){
-  int ram_fd;
-  char *ram, *ram_filename;
-  struct stat ram_fs;
   //int num_vms;
   int num_vcpus;
   pid_t creator;
@@ -51,31 +48,10 @@ int main(int argc, char **argv){
   signal(SIGINT, sig_handler);
   
   
-  if (argc < 3){
-    printf("Usage: [qemu pid] [guest ram filename]\n");
+  if (argc < 2){
+    printf("Usage: [qemu pid]\n");
     return -1;
   }
-  
-  ram_filename = argv[2];
-  
-  printf("Mapping Guest Memory...\n");
-  if (stat(ram_filename, &ram_fs) == -1){
-    perror("stat");
-    return -1;
-  }
-  
-  if ((ram_fd = open(ram_filename,O_RDWR)) == -1){
-    perror("open");
-    return -1;
-  }
-  
-  if((ram = mmap(NULL, ram_fs.st_size, (PROT_READ | PROT_WRITE), MAP_SHARED, ram_fd, 0)) == (void*)-1){
-    perror("mmap");
-    close(ram_fd);
-    return -1;
-  }
-  
-  
   
   printf("Initializing KVM...\n");
   if(init_kvm()){
@@ -147,9 +123,6 @@ int main(int argc, char **argv){
   printf("unset_syscall_trap() returned %d\n\n",rv);
   
   close_kvm();
-  
-  munmap(ram,ram_fs.st_size);
-  close(ram_fd);
   
   return 0;
 }
