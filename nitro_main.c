@@ -38,7 +38,6 @@ int main(int argc, char **argv){
   pid_t creator;
   int vmfd;
   int rv;
-  int sc[3];
   struct kvm_regs regs;
   struct kvm_sregs sregs;
   union event_data event_data;
@@ -91,10 +90,7 @@ int main(int argc, char **argv){
 
   
   printf("calling set_syscall_trap()...\n");
-  sc[0] = 0x9f;
-  sc[1] = 0x4a;
-  sc[2] = 0xaa;
-  rv = set_syscall_trap(sc,3);
+  rv = set_syscall_trap(true);
   printf("set_syscall_trap() returned %d\n\n",rv);
   
   while(go){

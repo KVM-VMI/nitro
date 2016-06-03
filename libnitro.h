@@ -3,6 +3,7 @@
 
 #include <linux/types.h>
 #include <linux/kvm.h>
+#include <stdbool.h>
 #include "nitro.h"
 
 int init_kvm();
@@ -12,7 +13,7 @@ int close_kvm();
 int get_num_vms();
 int attach_vm(pid_t);
 
-int set_syscall_trap(int*,int);
+int set_syscall_trap(bool enabled);
 int unset_syscall_trap();
 
 //vm functions

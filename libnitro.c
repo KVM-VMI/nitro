@@ -123,13 +123,8 @@ int attach_vcpus(){
 }
 
 
-int set_syscall_trap(int *sc, int sc_size){
-  struct nitro_syscall_trap sct;
-  
-  sct.size = sc_size;
-  sct.syscalls = sc;
-  
-  return kvm_vm_ioctl(KVM_NITRO_SET_SYSCALL_TRAP,&sct);
+int set_syscall_trap(bool enabled){
+  return kvm_vm_ioctl(KVM_NITRO_SET_SYSCALL_TRAP,&enabled);
 }
 
 int unset_syscall_trap(){
