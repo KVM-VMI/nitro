@@ -18,9 +18,24 @@ from ctypes import *
 
 from docopt import docopt
 
-KVM_NITRO_EVENT_ERROR = 1
-KVM_NITRO_EVENT_SYSCALL = 2
-KVM_NITRO_EVENT_SYSRET = 3
+
+class Event:
+
+    KVM_NITRO_EVENT_ERROR = 1
+    KVM_NITRO_EVENT_SYSCALL = 2
+    KVM_NITRO_EVENT_SYSRET = 3
+
+    def __init__(self, event_type):
+        if event_type == self.KVM_NITRO_EVENT_ERROR:
+            raise RuntimeError()
+        self.event_type = event_type
+
+    def __str__(self):
+        if self.event_type == self.KVM_NITRO_EVENT_SYSCALL:
+            return "SYSCALL"
+        else:
+            return "SYSRET"
+
 
 
 class Nitro:
@@ -53,12 +68,9 @@ class Nitro:
         while 1:
             try:
                 event = self.libnitro.get_event(0)
-                if event == KVM_NITRO_EVENT_SYSCALL:
-                    logging.debug('SYSCALL')
-                elif event == KVM_NITRO_EVENT_SYSRET:
-                    logging.debug('SYSRET')
+                e = Event(event)
 
-                yield(event)
+                yield(e)
                 self.libnitro.continue_vm(0)
             except KeyboardInterrupt:
                 break
