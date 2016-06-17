@@ -22,8 +22,12 @@ KVM_NITRO_EVENT_ERROR = 1
 KVM_NITRO_EVENT_SYSCALL = 2
 KVM_NITRO_EVENT_SYSRET = 3
 
+def init_logger():
+    logger = logging.getLogger()
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.DEBUG)
+
 def main(args):
-    logging.basicConfig(level=logging.DEBUG)
     pid = int(args['<pid>'])
     logging.debug('pid = {}'.format(pid))
     logging.debug('Loading libnitro.so')
@@ -53,4 +57,5 @@ def main(args):
             break
 
 if __name__ == '__main__':
+    init_logger()
     main(docopt(__doc__))
