@@ -142,7 +142,7 @@ class Nitro:
                 regs = Regs()
                 sregs = SRegs()
                 self.libnitro.get_regs(0, byref(regs))
-                self.libnitro.get_regs(0, byref(sregs))
+                self.libnitro.get_sregs(0, byref(sregs))
 
                 e = Event(event, regs, sregs)
 
