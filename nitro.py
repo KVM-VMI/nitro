@@ -21,7 +21,7 @@ from docopt import docopt
 class DTable(Structure):
     _fields_ = [
                 ('base', c_ulonglong),
-                ('limit', c_uint),
+                ('limit', c_ushort),
                 ('padding', c_ushort * 3),
             ]
 
