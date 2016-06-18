@@ -107,7 +107,7 @@ int main(int argc, char **argv){
     }
     if(rv == KVM_NITRO_EVENT_SYSCALL)
       // printf("Syscall trapped key: 0x%lX cr3: 0x%llX rax: 0x%llX\n",event_data.syscall,sregs.cr3,regs.rax);
-      printf("Syscall trapped\n");
+      printf("Syscall trapped RAX = 0x%llx | CR3 = 0x%llx\n", regs.rax, sregs.cr3);
     else if(rv == KVM_NITRO_EVENT_SYSRET)
       //printf("Sysret trapped key: 0x%lX cr3: 0x%llX\n",event_data.syscall,sregs.cr3);
       printf("Sysret trapped\n"); 
