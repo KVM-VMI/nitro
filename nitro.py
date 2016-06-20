@@ -13,10 +13,56 @@ Options:
 
 import os
 import sys
+import re
+import struct
 import logging
+from pprint import pprint
 from ctypes import *
 
 from docopt import docopt
+import libvirt
+
+
+class Process:
+
+    def __init__(self, cr3, cr3_vaddr):
+        self.cr3 = cr3
+        self.cr3_vaddr = cr3_vaddr
+
+class Backend:
+
+    def __init__(self):
+        self.con = libvirt.open('qemu:///session')
+        self.vm = self.con.lookupByName('winxp64') # hardcoded for now
+        self.processes = {}
+
+    def new_event(self, event):
+        logging.debug(event)
+        # get process
+        p = None
+        cr3 = event.sregs.cr3
+        try:
+            p = self.processes[cr3]
+        except KeyError:
+            p = self.search_process(cr3)
+
+    def search_process(self, cr3):
+        logging.debug('Searching for CR3 = {}'.format(hex(cr3)))
+        start = 0
+        size = 1024 * 1024
+        while True:
+            logging.debug('Searching at {}'.format(hex(start)))
+            content = self.vm.memoryPeek(start, size, libvirt.VIR_MEMORY_VIRTUAL)
+            b_cr3 = struct.pack('@P', cr3)
+            m = re.search(b_cr3, content)
+            if m:
+                cr3_vaddr = start + m.start()
+                logging.debug('Found CR3 at {} ({})'.format(hex(cr3_vaddr), m.start()))
+                p = Process(cr3, cr3_vaddr)
+                self.processes[cr3] = p
+                return p
+            start += size
+
 
 class DTable(Structure):
     _fields_ = [
@@ -160,9 +206,11 @@ def main(args):
     pid = int(args['<pid>'])
     logging.debug('pid = {}'.format(pid))
 
+    backend = Backend()
     with Nitro(pid) as nitro:
         for event in nitro.listen():
-            logging.debug(event)
+            pass
+            backend.new_event(event)
 
 if __name__ == '__main__':
     init_logger()
