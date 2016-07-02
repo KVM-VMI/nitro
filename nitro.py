@@ -16,6 +16,8 @@ import sys
 import re
 import struct
 import logging
+import subprocess
+import json
 from pprint import pprint
 from ctypes import *
 
@@ -36,15 +38,57 @@ class Backend:
         self.vm = self.con.lookupByName('winxp64') # hardcoded for now
         self.processes = {}
 
+        # dump memory
+        logging.debug('Taking Physical Memory dump ...')
+        self.dump_path = 'winxp64.raw'
+        flags = libvirt.VIR_DUMP_MEMORY_ONLY
+        dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
+        self.vm.coreDumpWithFormat(self.dump_path, dumpformat, flags)
+
+        # call helper
+        logging.debug('Getting symbols ...')
+        subprocess.getoutput('python2 symbol_helper.py {}'.format(self.dump_path))
+        with open('output.json') as f:
+            jdata = json.load(f)
+            self.nt_ssdt = {}
+            self.win32k_ssdt = {}
+            self.sdt = [self.nt_ssdt, self.win32k_ssdt]
+            cur = None
+            for e in jdata:
+                if e[0] == 'r':
+                    if e[1]["divider"] is not None:
+                        # new table
+                        m = re.match(r'Table ([0-9]) @ .*', e[1]["divider"])
+                        idx = int(m.group(1))
+                        cur_ssdt = self.sdt[idx]
+                    else:
+                        entry = e[1]["entry"]
+                        full_name = e[1]["symbol"]["symbol"]
+                        m = re.match(r'.*!(\w*)(\+.*)?', full_name)
+                        name = m.group(1)
+                        # add entry  to our ssdt
+                        logging.debug('SSDT [{}] -> [{}]'.format(entry, name))
+                        cur_ssdt[entry] = name
+
+
+
     def new_event(self, event):
-        logging.debug(event)
+        if event.event_type == Event.KVM_NITRO_EVENT_SYSCALL:
+            self.new_syscall(event)
         # get process
-        p = None
-        cr3 = event.sregs.cr3
-        try:
-            p = self.processes[cr3]
-        except KeyError:
-            p = self.search_process(cr3)
+        #p = None
+        #cr3 = event.sregs.cr3
+        #try:
+        #    p = self.processes[cr3]
+        #except KeyError:
+        #    p = self.search_process(cr3)
+
+    def new_syscall(self, event):
+        logging.debug(event)
+        ssn = event.regs.rax & 0xFFF
+        idx = (event.regs.rax & 0x3000) >> 12
+        logging.debug(self.sdt[idx][ssn])
+
 
     def search_process(self, cr3):
         logging.debug('Searching for CR3 = {}'.format(hex(cr3)))
@@ -209,7 +253,6 @@ def main(args):
     backend = Backend()
     with Nitro(pid) as nitro:
         for event in nitro.listen():
-            pass
             backend.new_event(event)
 
 if __name__ == '__main__':
