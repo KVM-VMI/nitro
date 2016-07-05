@@ -11,12 +11,12 @@ Options:
 """
 
 import logging
+import re
+import StringIO 
+import json
 
 # logging.basicConfig(level=logging.DEBUG)
 
-import ipdb
-import StringIO 
-import json
 
 from docopt import docopt
 from rekall import session
@@ -43,9 +43,14 @@ def main(args):
     s.RunPlugin("ssdt", output=output)
 
     jdata = json.loads(output.getvalue())
-
-    addr = pshead.Flink.GetData()
-    # jdata.append({"PsActiveProcessHead" :})
+    
+    pshead_links = {}
+    # '<_LIST_ENTRY Pointer to [0xFADFF410D120] (Flink)>'
+    m = re.match(r'<_LIST_ENTRY Pointer to \[0x(.*)\] \(Flink\)>', repr(pshead.Flink))
+    pshead_links['Flink'] = m.group(1)
+    m = re.match(r'<_LIST_ENTRY Pointer to \[0x(.*)\] \(Blink\)>', repr(pshead.Blink))
+    pshead_links['Blink'] = m.group(1)
+    jdata.append({"PsActiveProcessHead" : pshead_links})
 
     with open('output.json', 'w') as f:
         json.dump(jdata, f)
