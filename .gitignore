@@ -25,3 +25,12 @@ nitro
 
 #KDevelop files
 *.kdev4
+
+# python
+__pycache__
+
+# memory dump
+*.raw
+
+# libnitro cmake build dir
+libnitro/_build
