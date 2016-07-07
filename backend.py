@@ -4,6 +4,7 @@ import re
 import subprocess
 import json
 import logging
+import struct
 
 import libvirt
 
@@ -59,22 +60,20 @@ class Backend:
             self.pshead_flink = int(pshead['Flink'], 16)
             self.pshead_blink = int(pshead['Blink'], 16)
             logging.debug(pshead)
-        # remove output.json
-        os.remove('output.json')
 
     def new_event(self, event):
+        logging.debug(event)
         if event.event_type == Event.KVM_NITRO_EVENT_SYSCALL:
             self.new_syscall(event)
         # get process
-        # p = None
-        # cr3 = event.sregs.cr3
-        # try:
-        #     p = self.processes[cr3]
-        # except KeyError:
-        #     p = self.search_process_memory(cr3)
+        p = None
+        cr3 = event.sregs.cr3
+        try:
+            p = self.processes[cr3]
+        except KeyError:
+            p = self.search_process_memory(cr3)
 
     def new_syscall(self, event):
-        # logging.debug(event)
         ssn = event.regs.rax & 0xFFF
         idx = (event.regs.rax & 0x3000) >> 12
         logging.debug(self.sdt[idx][ssn])
@@ -86,7 +85,9 @@ class Backend:
         while flink != self.pshead_blink:
             logging.debug('Walking EProcess {}'.format(hex(flink)))
             # read new flink
-            flink = self.vm.memoryPeek(flink, 8, libvirt.VIR_MEMORY_VIRTUAL)
+            content = self.vm.memoryPeek(flink, 8, libvirt.VIR_MEMORY_VIRTUAL)
+            logging.debug(content)
+            flink, *rest = struct.unpack('@P', content)
 
 
     def search_process_memory(self, cr3):
