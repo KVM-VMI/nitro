@@ -18,48 +18,50 @@ class Process:
 
 class Backend:
 
-    def __init__(self):
+    def __init__(self, symbols=True):
         self.con = libvirt.open('qemu:///session')
-        self.vm = self.con.lookupByName('winxp64') # hardcoded for now
+        self.vm = self.con.lookupByName('win7x64') # hardcoded for now
         self.processes = {}
 
-        # dump memory
-        logging.debug('Taking Physical Memory dump ...')
-        self.dump_path = 'winxp64.raw'
-        flags = libvirt.VIR_DUMP_MEMORY_ONLY
-        dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
-        self.vm.coreDumpWithFormat(self.dump_path, dumpformat, flags)
+        self.symbols = symbols
+        if self.symbols:
+            # dump memory
+            logging.debug('Taking Physical Memory dump ...')
+            self.dump_path = 'dump.raw'
+            flags = libvirt.VIR_DUMP_MEMORY_ONLY
+            dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
+            self.vm.coreDumpWithFormat(self.dump_path, dumpformat, flags)
 
-        # call helper
-        logging.debug('Getting symbols ...')
-        subprocess.getoutput('python2 symbols.py {}'.format(self.dump_path))
-        with open('output.json') as f:
-            jdata = json.load(f)
-            # loading ssdt entries
-            self.nt_ssdt = {}
-            self.win32k_ssdt = {}
-            self.sdt = [self.nt_ssdt, self.win32k_ssdt]
-            cur = None
-            for e in jdata:
-                if isinstance(e, list) and e[0] == 'r':
-                    if e[1]["divider"] is not None:
-                        # new table
-                        m = re.match(r'Table ([0-9]) @ .*', e[1]["divider"])
-                        idx = int(m.group(1))
-                        cur_ssdt = self.sdt[idx]
-                    else:
-                        entry = e[1]["entry"]
-                        full_name = e[1]["symbol"]["symbol"]
-                        m = re.match(r'(.*)(\+.*)?', full_name)
-                        name = m.group(1)
-                        # add entry  to our ssdt
-                        logging.debug('SSDT [{}] -> [{}]'.format(entry, name))
-                        cur_ssdt[entry] = name
-            # loading pshead (last entry)
-            pshead = jdata[-1]['PsActiveProcessHead']
-            self.pshead_flink = int(pshead['Flink'], 16)
-            self.pshead_blink = int(pshead['Blink'], 16)
-            logging.debug(pshead)
+            # call helper
+            logging.debug('Getting symbols ...')
+            subprocess.getoutput('python2 symbols.py {}'.format(self.dump_path))
+            with open('output.json') as f:
+                jdata = json.load(f)
+                # loading ssdt entries
+                self.nt_ssdt = {}
+                self.win32k_ssdt = {}
+                self.sdt = [self.nt_ssdt, self.win32k_ssdt]
+                cur = None
+                for e in jdata:
+                    if isinstance(e, list) and e[0] == 'r':
+                        if e[1]["divider"] is not None:
+                            # new table
+                            m = re.match(r'Table ([0-9]) @ .*', e[1]["divider"])
+                            idx = int(m.group(1))
+                            cur_ssdt = self.sdt[idx]
+                        else:
+                            entry = e[1]["entry"]
+                            full_name = e[1]["symbol"]["symbol"]
+                            m = re.match(r'(.*)(\+.*)?', full_name)
+                            name = m.group(1)
+                            # add entry  to our ssdt
+                            logging.debug('SSDT [{}] -> [{}]'.format(entry, name))
+                            cur_ssdt[entry] = name
+                # loading pshead (last entry)
+                pshead = jdata[-1]['PsActiveProcessHead']
+                self.pshead_flink = int(pshead['Flink'], 16)
+                self.pshead_blink = int(pshead['Blink'], 16)
+                logging.debug(pshead)
 
     def new_event(self, event):
         logging.debug(event)
@@ -71,12 +73,13 @@ class Backend:
         try:
             p = self.processes[cr3]
         except KeyError:
-            p = self.search_process_memory(cr3)
+            p = self.walk_eprocess(cr3)
 
     def new_syscall(self, event):
         ssn = event.regs.rax & 0xFFF
         idx = (event.regs.rax & 0x3000) >> 12
-        logging.debug(self.sdt[idx][ssn])
+        if self.symbols:
+            logging.debug(self.sdt[idx][ssn])
 
 
     def walk_eprocess(self, cr3):
