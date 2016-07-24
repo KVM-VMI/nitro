@@ -59,7 +59,12 @@ class Backend:
             self.vm.pmem_dump(self.dump_path)
             # call helper
             logging.debug('Getting symbols ...')
-            subprocess.getoutput('python2 symbols.py {}'.format(self.dump_path))
+            # check virtualenv
+            venv_python = os.path.join('venv', 'bin', 'python')
+            if not os.path.isfile(venv_python):
+                logging.debug('Please install a virtualenv "venv" with rekall')
+                sys.exit(1)
+            subprocess.getoutput('{} symbols.py {}'.format(venv_python, self.dump_path))
             with open('output.json') as f:
                 jdata = json.load(f)
                 # loading ssdt entries

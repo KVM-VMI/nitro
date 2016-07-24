@@ -34,3 +34,6 @@ __pycache__
 
 # libnitro cmake build dir
 libnitro/_build
+
+# virtualenv
+venv/
