@@ -24,9 +24,9 @@ class SyscallContext:
 
 class VM:
 
-    def __init__(self):
+    def __init__(self, vm_name):
         self.con = libvirt.open('qemu:///session')
-        self.domain = self.con.lookupByName('winxp') # hardcoded for now
+        self.domain = self.con.lookupByName(vm_name)
 
     def pmem_dump(self, path):
         flags = libvirt.VIR_DUMP_MEMORY_ONLY
@@ -46,11 +46,11 @@ class Process:
 
 class Backend:
 
-    def __init__(self, symbols=True):
+    def __init__(self, vm_name, symbols=True):
         self.symbols = symbols
         self.processes = {}
         self.sys_stack = []
-        self.vm = VM()
+        self.vm = VM(vm_name)
         self.hooks = Hooks(self.vm)
         if self.symbols:
             # dump memory
