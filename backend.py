@@ -10,6 +10,20 @@ import libvirt
 
 from event import Event
 
+class VM:
+
+    def __init__(self):
+        self.con = libvirt.open('qemu:///session')
+        self.domain = self.con.lookupByName('winxp64') # hardcoded for now
+
+    def pmem_dump(self, path):
+        flags = libvirt.VIR_DUMP_MEMORY_ONLY
+        dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
+        self.domain.coreDumpWithFormat(path, dumpformat, flags)
+
+    def vmem_read(self, addr, size):
+        content = self.domain.memoryPeek(addr, size, libvirt.VIR_MEMORY_VIRTUAL)
+
 class Process:
 
     def __init__(self, cr3, cr3_vaddr):
@@ -19,19 +33,14 @@ class Process:
 class Backend:
 
     def __init__(self, symbols=True):
-        self.con = libvirt.open('qemu:///session')
-        self.vm = self.con.lookupByName('win7x64') # hardcoded for now
-        self.processes = {}
-
         self.symbols = symbols
+        self.processes = {}
+        self.vm = VM()
         if self.symbols:
             # dump memory
             logging.debug('Taking Physical Memory dump ...')
             self.dump_path = 'dump.raw'
-            flags = libvirt.VIR_DUMP_MEMORY_ONLY
-            dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
-            self.vm.coreDumpWithFormat(self.dump_path, dumpformat, flags)
-
+            self.vm.pmem_dump(self.dump_path)
             # call helper
             logging.debug('Getting symbols ...')
             subprocess.getoutput('python2 symbols.py {}'.format(self.dump_path))
@@ -88,7 +97,7 @@ class Backend:
         while flink != self.pshead_blink:
             logging.debug('Walking EProcess {}'.format(hex(flink)))
             # read new flink
-            content = self.vm.memoryPeek(flink, 8, libvirt.VIR_MEMORY_VIRTUAL)
+            content = self.vm.vmem_read(flink, 8)
             logging.debug(content)
             flink, *rest = struct.unpack('@P', content)
 
@@ -99,7 +108,7 @@ class Backend:
         size = 1024 * 1024
         while True:
             logging.debug('Searching at {}'.format(hex(start)))
-            content = self.vm.memoryPeek(start, size, libvirt.VIR_MEMORY_VIRTUAL)
+            content = self.vm.vmem_read(start, size)
             b_cr3 = struct.pack('@P', cr3)
             m = re.search(b_cr3, content)
             if m:
@@ -109,6 +118,4 @@ class Backend:
                 self.processes[cr3] = p
                 return p
             start += size
-
-
 
