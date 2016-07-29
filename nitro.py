@@ -79,10 +79,9 @@ def main(args):
     pid = int(args['<pid>'])
     logging.debug('pid = {}'.format(pid))
 
-    backend = Backend()
     with Nitro(pid) as nitro:
         for event in nitro.listen():
-            backend.new_event(event)
+            logging.debug(event)
 
 if __name__ == '__main__':
     init_logger()
