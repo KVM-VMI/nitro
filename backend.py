@@ -14,7 +14,7 @@ class VM:
 
     def __init__(self):
         self.con = libvirt.open('qemu:///session')
-        self.domain = self.con.lookupByName('winxp64') # hardcoded for now
+        self.domain = self.con.lookupByName('winxp') # hardcoded for now
 
     def pmem_dump(self, path):
         flags = libvirt.VIR_DUMP_MEMORY_ONLY
@@ -23,6 +23,7 @@ class VM:
 
     def vmem_read(self, addr, size):
         content = self.domain.memoryPeek(addr, size, libvirt.VIR_MEMORY_VIRTUAL)
+        return content
 
 class Process:
 
@@ -97,9 +98,9 @@ class Backend:
         while flink != self.pshead_blink:
             logging.debug('Walking EProcess {}'.format(hex(flink)))
             # read new flink
-            content = self.vm.vmem_read(flink, 8)
+            content = self.vm.vmem_read(flink, 4)
             logging.debug(content)
-            flink, *rest = struct.unpack('@P', content)
+            flink, *rest = struct.unpack('@I', content)
 
 
     def search_process_memory(self, cr3):
