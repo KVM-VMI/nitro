@@ -27,9 +27,10 @@ class VM:
 
 class Process:
 
-    def __init__(self, cr3, cr3_vaddr):
+    def __init__(self, cr3, start_eproc, name):
         self.cr3 = cr3
-        self.cr3_vaddr = cr3_vaddr
+        self.start_eproc = start_eproc
+        self.name = name
 
 class Backend:
 
@@ -68,15 +69,12 @@ class Backend:
                             logging.debug('SSDT [{}] -> [{}]'.format(entry, name))
                             cur_ssdt[entry] = name
                 # loading pshead (last entry)
-                pshead = jdata[-1]['PsActiveProcessHead']
-                self.pshead_flink = int(pshead['Flink'], 16)
-                self.pshead_blink = int(pshead['Blink'], 16)
-                logging.debug(pshead)
+                self.pshead = int(jdata[-1]['PsActiveProcessHead'], 16)
+                logging.debug(hex(self.pshead))
+
 
     def new_event(self, event):
         logging.debug(event)
-        if event.event_type == Event.KVM_NITRO_EVENT_SYSCALL:
-            self.new_syscall(event)
         # get process
         p = None
         cr3 = event.sregs.cr3
@@ -84,6 +82,10 @@ class Backend:
             p = self.processes[cr3]
         except KeyError:
             p = self.walk_eprocess(cr3)
+            self.processes[cr3] = p
+        logging.debug(p.name)
+        if event.event_type == Event.KVM_NITRO_EVENT_SYSCALL:
+            self.new_syscall(event)
 
     def new_syscall(self, event):
         ssn = event.regs.rax & 0xFFF
@@ -93,14 +95,33 @@ class Backend:
 
 
     def walk_eprocess(self, cr3):
-        flink = self.pshead_flink
+        # read pshead list_entry
+        content = self.vm.vmem_read(self.pshead, 4)
+        flink, *rest = struct.unpack('@I', content)
+        
+        while flink != self.pshead:
+            # get start of EProcess
+            start_eproc = flink - 0x88 # hardcoded winxp
+            # move to start of DirectoryTableBase
+            directory_table_base_off = start_eproc + 0x18
+            # read directory_table_base
+            content = self.vm.vmem_read(directory_table_base_off, 4)
+            directory_table_base, *rest = struct.unpack('@I', content)
+            # compare to our cr3
+            logging.debug(hex(directory_table_base))
+            logging.debug(hex(cr3))
+            if cr3 == directory_table_base:
+                # get name
+                image_file_name_off = start_eproc + 0x174
+                content = self.vm.vmem_read(image_file_name_off, 16)
+                image_file_name = content.rstrip(b'\0').decode('utf-8')
+                eprocess = Process(cr3, start_eproc, image_file_name)
+                return eprocess
 
-        while flink != self.pshead_blink:
-            logging.debug('Walking EProcess {}'.format(hex(flink)))
             # read new flink
             content = self.vm.vmem_read(flink, 4)
-            logging.debug(content)
             flink, *rest = struct.unpack('@I', content)
+
 
 
     def search_process_memory(self, cr3):
