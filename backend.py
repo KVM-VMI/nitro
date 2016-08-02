@@ -10,6 +10,17 @@ import libvirt
 
 from event import Event
 
+class SyscallContext:
+
+    def __init__(self, event, process, syscall_name):
+        self.event = event
+        self.process = process
+        self.syscall_name = syscall_name
+
+    def __str__(self):
+        return '[{}] {} -> {}'.format(self.event, self.process.name, self.syscall_name)
+
+
 class VM:
 
     def __init__(self):
@@ -37,6 +48,7 @@ class Backend:
     def __init__(self, symbols=True):
         self.symbols = symbols
         self.processes = {}
+        self.sys_stack = []
         self.vm = VM()
         if self.symbols:
             # dump memory
@@ -74,27 +86,41 @@ class Backend:
 
 
     def new_event(self, event):
-        logging.debug(event)
-        # get process
+        ctxt = None
+        if event.event_type == Event.KVM_NITRO_EVENT_SYSRET:
+            # check syscall stack
+            try:
+                ctxt = self.sys_stack.pop()
+                ctxt.event = event
+            except IndexError:
+                logging.debug(event)
+                return
+        else:
+            # create syscall context
+            cr3 = event.sregs.cr3
+            # get process
+            process = self.associate_process(cr3)
+            # get syscall name
+            ssn = event.regs.rax & 0xFFF
+            idx = (event.regs.rax & 0x3000) >> 12
+            syscall_name = self.sdt[idx][ssn]
+            ctxt = SyscallContext(event, process, syscall_name)
+            # push on stack
+            self.sys_stack.append(ctxt)
+
+        logging.debug(ctxt)
+
+
+    def associate_process(self, cr3):
         p = None
-        cr3 = event.sregs.cr3
         try:
             p = self.processes[cr3]
         except KeyError:
-            p = self.walk_eprocess(cr3)
+            p = self.find_eprocess(cr3)
             self.processes[cr3] = p
-        logging.debug(p.name)
-        if event.event_type == Event.KVM_NITRO_EVENT_SYSCALL:
-            self.new_syscall(event)
+        return p
 
-    def new_syscall(self, event):
-        ssn = event.regs.rax & 0xFFF
-        idx = (event.regs.rax & 0x3000) >> 12
-        if self.symbols:
-            logging.debug(self.sdt[idx][ssn])
-
-
-    def walk_eprocess(self, cr3):
+    def find_eprocess(self, cr3):
         # read pshead list_entry
         content = self.vm.vmem_read(self.pshead, 4)
         flink, *rest = struct.unpack('@I', content)
@@ -108,8 +134,6 @@ class Backend:
             content = self.vm.vmem_read(directory_table_base_off, 4)
             directory_table_base, *rest = struct.unpack('@I', content)
             # compare to our cr3
-            logging.debug(hex(directory_table_base))
-            logging.debug(hex(cr3))
             if cr3 == directory_table_base:
                 # get name
                 image_file_name_off = start_eproc + 0x174

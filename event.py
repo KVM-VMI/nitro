@@ -84,9 +84,8 @@ class Event:
 
     def __str__(self):
         if self.event_type == self.KVM_NITRO_EVENT_SYSCALL:
-            return "SYSCALL rax = {}, cr3 = {}".format(hex(self.regs.rax),
-                    hex(self.sregs.cr3))
+            return "SYSCALL"
         else:
-            return "SYSRET"
+            return "SYSRET "
 
 
