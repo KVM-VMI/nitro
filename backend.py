@@ -9,6 +9,7 @@ import struct
 import libvirt
 
 from event import Event
+from hooks import Hooks
 
 class SyscallContext:
 
@@ -50,6 +51,7 @@ class Backend:
         self.processes = {}
         self.sys_stack = []
         self.vm = VM()
+        self.hooks = Hooks(self.vm)
         if self.symbols:
             # dump memory
             logging.debug('Taking Physical Memory dump ...')
@@ -103,12 +105,14 @@ class Backend:
             # get syscall name
             ssn = event.regs.rax & 0xFFF
             idx = (event.regs.rax & 0x3000) >> 12
-            syscall_name = self.sdt[idx][ssn]
+            syscall = self.sdt[idx][ssn]
+            m = re.match(r'.*!(.*)', syscall)
+            syscall_name = m.group(1)
             ctxt = SyscallContext(event, process, syscall_name)
             # push on stack
             self.sys_stack.append(ctxt)
 
-        logging.debug(ctxt)
+        self.hooks.dispatch(ctxt)
 
 
     def associate_process(self, cr3):
