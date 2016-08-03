@@ -17,6 +17,7 @@ class SyscallContext:
         self.event = event
         self.process = process
         self.syscall_name = syscall_name
+        self.args = args
 
     def __str__(self):
         return '[{}] {} -> {}'.format(self.event, self.process.name, self.syscall_name)
@@ -66,8 +67,8 @@ class Backend:
         with open('output.json') as f:
             jdata = json.load(f)
             # loading ssdt entries
-            self.nt_ssdt = {}
-            self.win32k_ssdt = {}
+            self.nt_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
+            self.win32k_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
             self.sdt = [self.nt_ssdt, self.win32k_ssdt]
             cur = None
             for e in jdata:
@@ -76,19 +77,32 @@ class Backend:
                         # new table
                         m = re.match(r'Table ([0-9]) @ .*', e[1]["divider"])
                         idx = int(m.group(1))
-                        cur_ssdt = self.sdt[idx]
+                        cur_ssdt = self.sdt[idx]['ServiceTable']
                     else:
                         entry = e[1]["entry"]
                         full_name = e[1]["symbol"]["symbol"]
                         m = re.match(r'(.*)(\+.*)?', full_name)
                         name = m.group(1)
                         # add entry  to our ssdt
-                        logging.debug('SSDT [{}] -> [{}]'.format(entry, name))
                         cur_ssdt[entry] = name
             # loading kernel symbols addresses
             kernel_symbols = jdata[-1]
+            logging.debug(kernel_symbols)
             self.pshead = int(kernel_symbols['PsActiveProcessHead'], 16)
-            logging.debug(hex(self.pshead))
+            self.kiargs = int(kernel_symbols['KiArgumentTable'], 16)
+            self.w32pargs = int(kernel_symbols['W32pArgumentTable'], 16)
+
+            # load argument tables
+            argument_tables = [(0, self.kiargs), (1, self.w32pargs)]
+            for table in argument_tables:
+                idx = table[0]
+                addr = table[1]
+                nb_entries = len(self.sdt[idx]['ServiceTable'].keys())
+                content = self.vm.vmem_read(addr, nb_entries)
+                for i in range(nb_entries):
+                    nb_arg = int(content[i] / 4)
+                    self.sdt[idx]['ArgumentTable'][i] = nb_arg
+
         # remove dump and json file
         os.remove('dump.raw')
         os.remove('output.json')
@@ -112,15 +126,29 @@ class Backend:
             # get syscall name
             ssn = event.regs.rax & 0xFFF
             idx = (event.regs.rax & 0x3000) >> 12
-            syscall = self.sdt[idx][ssn]
+            syscall = self.sdt[idx]['ServiceTable'][ssn]
             m = re.match(r'.*!(.*)', syscall)
             syscall_name = m.group(1)
-            ctxt = SyscallContext(event, process, syscall_name)
+            # get args
+            args = self.collect_args(event, idx, ssn)
+            ctxt = SyscallContext(event, process, syscall_name, args)
             # push on stack
             self.sys_stack.append(ctxt)
 
         self.hooks.dispatch(ctxt)
 
+    def collect_args(self, event, idx, ssn):
+        args = []
+        nb_args = self.sdt[idx]['ArgumentTable'][ssn]
+        # hardcoded
+        # Windows SYSENTER convention
+        # args are in the user mode stack
+        # from edx
+        content = self.vm.vmem_read(event.regs.rdx, nb_args * 4)
+        for i in nb_args:
+            args.append(content[i*4:4])
+        print(args)
+        return args
 
     def associate_process(self, cr3):
         p = None
