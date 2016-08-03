@@ -46,50 +46,52 @@ class Process:
 
 class Backend:
 
-    def __init__(self, vm_name, symbols=True):
-        self.symbols = symbols
+    def __init__(self, vm_name):
         self.processes = {}
         self.sys_stack = []
         self.vm = VM(vm_name)
         self.hooks = Hooks(self.vm)
-        if self.symbols:
-            # dump memory
-            logging.debug('Taking Physical Memory dump ...')
-            self.dump_path = 'dump.raw'
-            self.vm.pmem_dump(self.dump_path)
-            # call helper
-            logging.debug('Getting symbols ...')
-            # check virtualenv
-            venv_python = os.path.join('venv', 'bin', 'python')
-            if not os.path.isfile(venv_python):
-                logging.debug('Please install a virtualenv "venv" with rekall')
-                sys.exit(1)
-            subprocess.getoutput('{} symbols.py {}'.format(venv_python, self.dump_path))
-            with open('output.json') as f:
-                jdata = json.load(f)
-                # loading ssdt entries
-                self.nt_ssdt = {}
-                self.win32k_ssdt = {}
-                self.sdt = [self.nt_ssdt, self.win32k_ssdt]
-                cur = None
-                for e in jdata:
-                    if isinstance(e, list) and e[0] == 'r':
-                        if e[1]["divider"] is not None:
-                            # new table
-                            m = re.match(r'Table ([0-9]) @ .*', e[1]["divider"])
-                            idx = int(m.group(1))
-                            cur_ssdt = self.sdt[idx]
-                        else:
-                            entry = e[1]["entry"]
-                            full_name = e[1]["symbol"]["symbol"]
-                            m = re.match(r'(.*)(\+.*)?', full_name)
-                            name = m.group(1)
-                            # add entry  to our ssdt
-                            logging.debug('SSDT [{}] -> [{}]'.format(entry, name))
-                            cur_ssdt[entry] = name
-                # loading pshead (last entry)
-                self.pshead = int(jdata[-1]['PsActiveProcessHead'], 16)
-                logging.debug(hex(self.pshead))
+        # dump memory
+        logging.debug('Taking Physical Memory dump ...')
+        self.dump_path = 'dump.raw'
+        self.vm.pmem_dump(self.dump_path)
+        # call helper
+        logging.debug('Getting symbols ...')
+        # check virtualenv
+        venv_python = os.path.join('venv', 'bin', 'python')
+        if not os.path.isfile(venv_python):
+            logging.debug('Please install a virtualenv "venv" with rekall')
+            sys.exit(1)
+        subprocess.getoutput('{} symbols.py {}'.format(venv_python, self.dump_path))
+        with open('output.json') as f:
+            jdata = json.load(f)
+            # loading ssdt entries
+            self.nt_ssdt = {}
+            self.win32k_ssdt = {}
+            self.sdt = [self.nt_ssdt, self.win32k_ssdt]
+            cur = None
+            for e in jdata:
+                if isinstance(e, list) and e[0] == 'r':
+                    if e[1]["divider"] is not None:
+                        # new table
+                        m = re.match(r'Table ([0-9]) @ .*', e[1]["divider"])
+                        idx = int(m.group(1))
+                        cur_ssdt = self.sdt[idx]
+                    else:
+                        entry = e[1]["entry"]
+                        full_name = e[1]["symbol"]["symbol"]
+                        m = re.match(r'(.*)(\+.*)?', full_name)
+                        name = m.group(1)
+                        # add entry  to our ssdt
+                        logging.debug('SSDT [{}] -> [{}]'.format(entry, name))
+                        cur_ssdt[entry] = name
+            # loading kernel symbols addresses
+            kernel_symbols = jdata[-1]
+            self.pshead = int(kernel_symbols['PsActiveProcessHead'], 16)
+            logging.debug(hex(self.pshead))
+        # remove dump and json file
+        os.remove('dump.raw')
+        os.remove('output.json')
 
 
     def new_event(self, event):

@@ -10,6 +10,7 @@ Options:
 
 """
 
+from sys import maxint
 import logging
 import re
 import StringIO 
@@ -29,23 +30,27 @@ def main(args):
             filename=ram_dump,
             autodetect=["rsds"],
             logger=logging.getLogger(),
-            autodetect_scan_length=18446744073709551616,
+            autodetect_scan_length=maxint,
             format='data',
             profile_path=[
                 "/home/developer/.rekall_cache",
                 "http://profiles.rekall-forensic.com"   
             ])
 
-    pshead = s.GetParameter("PsActiveProcessHead")
 
+    # get ssdt
     output = StringIO.StringIO()
-
     s.RunPlugin("ssdt", output=output)
-
     jdata = json.loads(output.getvalue())
-    
-    m = re.match(r'\[_LIST_ENTRY _LIST_ENTRY\] @ 0x(.*)', repr(pshead))
-    jdata.append({"PsActiveProcessHead" : m.group(1)})
+
+    # get PsActiveProcessHead address
+    pshead_addr = hex(s.address_resolver.get_constant_object('nt!PsActiveProcessHead',
+            "unsigned int").obj_offset)
+
+    # add to json
+    kernel_symbols = {'PsActiveProcessHead' : pshead_addr}
+
+    jdata.append(kernel_symbols)
 
     with open('output.json', 'w') as f:
         json.dump(jdata, f)
