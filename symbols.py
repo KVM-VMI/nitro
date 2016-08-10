@@ -23,6 +23,10 @@ from docopt import docopt
 from rekall import session
 from rekall import plugins
 
+def get_symbol_addr(session, symbol):
+    return hex(session.address_resolver.get_constant_object(symbol,
+            "unsigned int").obj_offset)
+
 
 def main(args):
     ram_dump = args['<ram_dump>']
@@ -44,11 +48,11 @@ def main(args):
     jdata = json.loads(output.getvalue())
 
     # get PsActiveProcessHead address
-    pshead_addr = hex(s.address_resolver.get_constant_object('nt!PsActiveProcessHead',
-            "unsigned int").obj_offset)
+    pshead_addr = get_symbol_addr(s, 'nt!PsActiveProcessHead')
 
     # add to json
-    kernel_symbols = {'PsActiveProcessHead' : pshead_addr}
+    kernel_symbols = {}
+    kernel_symbols['PsActiveProcessHead'] = pshead_addr
 
     jdata.append(kernel_symbols)
 
