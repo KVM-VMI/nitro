@@ -88,7 +88,7 @@ class Backend:
             # loading kernel symbols addresses
             kernel_symbols = jdata[-1]
             self.pshead = int(kernel_symbols['PsActiveProcessHead'], 16)
-            logging.debug(hex(self.pshead))
+            logging.debug(kernel_symbols)
         # remove dump and json file
         os.remove('dump.raw')
         os.remove('output.json')
