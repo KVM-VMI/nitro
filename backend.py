@@ -83,7 +83,6 @@ class Backend:
                         m = re.match(r'(.*)(\+.*)?', full_name)
                         name = m.group(1)
                         # add entry  to our ssdt
-                        logging.debug('SSDT [{}] -> [{}]'.format(entry, name))
                         cur_ssdt[entry] = name
             # loading kernel symbols addresses
             kernel_symbols = jdata[-1]
