@@ -146,7 +146,7 @@ class Backend:
             if cr3 == directory_table_base:
                 # get name
                 image_file_name_off = start_eproc + self.kernel_symbols['ImageFileName_off']
-                content = self.vm.vmem_read(image_file_name_off, 16)
+                content = self.vm.vmem_read(image_file_name_off, 15)
                 image_file_name = content.rstrip(b'\0').decode('utf-8')
                 eprocess = Process(cr3, start_eproc, image_file_name)
                 return eprocess
