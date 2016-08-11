@@ -24,8 +24,8 @@ from rekall import session
 from rekall import plugins
 
 def get_symbol_addr(session, symbol):
-    return hex(session.address_resolver.get_constant_object(symbol,
-            "unsigned int").obj_offset)
+    return session.address_resolver.get_constant_object(symbol,
+            "unsigned int").obj_offset
 
 
 def main(args):
@@ -49,10 +49,19 @@ def main(args):
 
     # get PsActiveProcessHead address
     pshead_addr = get_symbol_addr(s, 'nt!PsActiveProcessHead')
+    # get eprocess ActiveProcessLinks offset
+    activeprocesslinks_off = s.profile.get_obj_offset('_EPROCESS', 'ActiveProcessLinks')
+    # get kprocess DirectoryTableBase offset
+    directorytablebase_off = s.profile.get_obj_offset('_KPROCESS', 'DirectoryTableBase')
+    # get eprocess ImageFileName offset
+    imagefilename_off = s.profile.get_obj_offset('_EPROCESS', 'ImageFileName')
 
     # add to json
     kernel_symbols = {}
     kernel_symbols['PsActiveProcessHead'] = pshead_addr
+    kernel_symbols['ActiveProcessLinks_off'] = activeprocesslinks_off
+    kernel_symbols['DirectoryTableBase_off'] = directorytablebase_off
+    kernel_symbols['ImageFileName_off'] = imagefilename_off
 
     jdata.append(kernel_symbols)
 
