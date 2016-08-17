@@ -3,10 +3,11 @@
 """Nitro.
 
 Usage:
-  nitro.py <vm_name>
+  nitro.py [options] <vm_name>
 
 Options:
   -h --help     Show this screen.
+  --nobackend   Dont analyze events
 
 """
 
@@ -82,10 +83,14 @@ def main(args):
     pid = int(output)
     logging.debug('pid = {}'.format(pid))
 
-    backend = Backend(vm_name)
+    if not args['--nobackend']:
+        backend = Backend(vm_name)
     with Nitro(pid) as nitro:
         for event in nitro.listen():
-            backend.new_event(event)
+            if not args['--nobackend']:
+                backend.new_event(event)
+            else:
+                logging.debug(event)
 
 if __name__ == '__main__':
     init_logger()
