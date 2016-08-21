@@ -88,4 +88,12 @@ class Event:
         else:
             return "SYSRET "
 
+    def display(self):
+        cr3 = hex(self.sregs.cr3)
+        rax = hex(self.regs.rax)
+        if self.event_type == self.KVM_NITRO_EVENT_SYSCALL:
+            return "SYSCALL cr3 {} - rax {}".format(cr3, rax)
+        else:
+            return "SYSRET  cr3 {} - rax {}".format(cr3, rax)
+
 
