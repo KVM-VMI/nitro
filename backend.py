@@ -17,7 +17,6 @@ class SyscallContext:
         self.event = event
         self.process = process
         self.syscall_name = syscall_name
-        self.args = args
 
     def __str__(self):
         return '[{}] {} -> {}'.format(self.event, self.process.name, self.syscall_name)
@@ -114,26 +113,11 @@ class Backend:
             syscall = self.sdt[idx]['ServiceTable'][ssn]
             m = re.match(r'.*!(.*)', syscall)
             syscall_name = m.group(1)
-            # get args
-            args = self.collect_args(event, idx, ssn)
-            ctxt = SyscallContext(event, process, syscall_name, args)
+            ctxt = SyscallContext(event, process, syscall_name)
             # push on stack
             self.sys_stack.append(ctxt)
 
         self.hooks.dispatch(ctxt)
-
-    def collect_args(self, event, idx, ssn):
-        args = []
-        nb_args = self.sdt[idx]['ArgumentTable'][ssn]
-        # hardcoded
-        # Windows SYSENTER convention
-        # args are in the user mode stack
-        # from edx
-        content = self.vm.vmem_read(event.regs.rdx, nb_args * 4)
-        for i in nb_args:
-            args.append(content[i*4:4])
-        print(args)
-        return args
 
     def associate_process(self, cr3):
         p = None
