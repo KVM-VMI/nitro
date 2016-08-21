@@ -86,23 +86,8 @@ class Backend:
                         # add entry  to our ssdt
                         cur_ssdt[entry] = name
             # loading kernel symbols addresses
-            kernel_symbols = jdata[-1]
-            logging.debug(kernel_symbols)
-            self.pshead = int(kernel_symbols['PsActiveProcessHead'], 16)
-            self.kiargs = int(kernel_symbols['KiArgumentTable'], 16)
-            self.w32pargs = int(kernel_symbols['W32pArgumentTable'], 16)
-
-            # load argument tables
-            argument_tables = [(0, self.kiargs), (1, self.w32pargs)]
-            for table in argument_tables:
-                idx = table[0]
-                addr = table[1]
-                nb_entries = len(self.sdt[idx]['ServiceTable'].keys())
-                content = self.vm.vmem_read(addr, nb_entries)
-                for i in range(nb_entries):
-                    nb_arg = int(content[i] / 4)
-                    self.sdt[idx]['ArgumentTable'][i] = nb_arg
-
+            self.kernel_symbols = jdata[-1]
+            logging.debug(self.kernel_symbols)
         # remove dump and json file
         os.remove('dump.raw')
         os.remove('output.json')
@@ -160,23 +145,23 @@ class Backend:
         return p
 
     def find_eprocess(self, cr3):
-        # read pshead list_entry
-        content = self.vm.vmem_read(self.pshead, 4)
+        # read PsActiveProcessHead list_entry
+        content = self.vm.vmem_read(self.kernel_symbols['PsActiveProcessHead'], 4)
         flink, *rest = struct.unpack('@I', content)
         
-        while flink != self.pshead:
+        while flink != self.kernel_symbols['PsActiveProcessHead']:
             # get start of EProcess
-            start_eproc = flink - 0x88 # hardcoded winxp
+            start_eproc = flink - self.kernel_symbols['ActiveProcessLinks_off']
             # move to start of DirectoryTableBase
-            directory_table_base_off = start_eproc + 0x18
+            directory_table_base_off = start_eproc + self.kernel_symbols['DirectoryTableBase_off']
             # read directory_table_base
             content = self.vm.vmem_read(directory_table_base_off, 4)
             directory_table_base, *rest = struct.unpack('@I', content)
             # compare to our cr3
             if cr3 == directory_table_base:
                 # get name
-                image_file_name_off = start_eproc + 0x174
-                content = self.vm.vmem_read(image_file_name_off, 16)
+                image_file_name_off = start_eproc + self.kernel_symbols['ImageFileName_off']
+                content = self.vm.vmem_read(image_file_name_off, 15)
                 image_file_name = content.rstrip(b'\0').decode('utf-8')
                 eprocess = Process(cr3, start_eproc, image_file_name)
                 return eprocess
