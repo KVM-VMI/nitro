@@ -66,8 +66,8 @@ class Backend:
         with open('output.json') as f:
             jdata = json.load(f)
             # loading ssdt entries
-            self.nt_ssdt = {}
-            self.win32k_ssdt = {}
+            self.nt_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
+            self.win32k_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
             self.sdt = [self.nt_ssdt, self.win32k_ssdt]
             cur = None
             for e in jdata:
@@ -76,7 +76,7 @@ class Backend:
                         # new table
                         m = re.match(r'Table ([0-9]) @ .*', e[1]["divider"])
                         idx = int(m.group(1))
-                        cur_ssdt = self.sdt[idx]
+                        cur_ssdt = self.sdt[idx]['ServiceTable']
                     else:
                         entry = e[1]["entry"]
                         full_name = e[1]["symbol"]["symbol"]
@@ -110,7 +110,7 @@ class Backend:
             # get syscall name
             ssn = event.regs.rax & 0xFFF
             idx = (event.regs.rax & 0x3000) >> 12
-            syscall = self.sdt[idx][ssn]
+            syscall = self.sdt[idx]['ServiceTable'][ssn]
             m = re.match(r'.*!(.*)', syscall)
             syscall_name = m.group(1)
             ctxt = SyscallContext(event, process, syscall_name)
@@ -118,7 +118,6 @@ class Backend:
             self.sys_stack.append(ctxt)
 
         self.hooks.dispatch(ctxt)
-
 
     def associate_process(self, cr3):
         p = None

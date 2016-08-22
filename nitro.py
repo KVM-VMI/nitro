@@ -90,7 +90,7 @@ def main(args):
             if not args['--nobackend']:
                 backend.new_event(event)
             else:
-                logging.debug(event)
+                logging.debug(event.display())
 
 if __name__ == '__main__':
     init_logger()
