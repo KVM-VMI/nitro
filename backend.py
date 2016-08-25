@@ -46,7 +46,8 @@ class Process:
 
 class Backend:
 
-    def __init__(self, vm_name):
+    def __init__(self, vm_name, arch):
+        self.ptr_size = int(arch / 8)
         self.processes = {}
         self.sys_stack = []
         self.vm = VM(vm_name)
@@ -130,7 +131,7 @@ class Backend:
 
     def find_eprocess(self, cr3):
         # read PsActiveProcessHead list_entry
-        content = self.vm.vmem_read(self.kernel_symbols['PsActiveProcessHead'], 4)
+        content = self.vm.vmem_read(self.kernel_symbols['PsActiveProcessHead'], self.ptr_size)
         flink, *rest = struct.unpack('@I', content)
         
         while flink != self.kernel_symbols['PsActiveProcessHead']:
@@ -139,7 +140,7 @@ class Backend:
             # move to start of DirectoryTableBase
             directory_table_base_off = start_eproc + self.kernel_symbols['DirectoryTableBase_off']
             # read directory_table_base
-            content = self.vm.vmem_read(directory_table_base_off, 4)
+            content = self.vm.vmem_read(directory_table_base_off, self.ptr_size)
             directory_table_base, *rest = struct.unpack('@I', content)
             # compare to our cr3
             if cr3 == directory_table_base:
@@ -151,7 +152,7 @@ class Backend:
                 return eprocess
 
             # read new flink
-            content = self.vm.vmem_read(flink, 4)
+            content = self.vm.vmem_read(flink, self.ptr_size)
             flink, *rest = struct.unpack('@I', content)
 
 

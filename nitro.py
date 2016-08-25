@@ -3,7 +3,7 @@
 """Nitro.
 
 Usage:
-  nitro.py [options] <vm_name>
+  nitro.py [options] <vm_name> <architecture>
 
 Options:
   -h --help     Show this screen.
@@ -78,13 +78,14 @@ def init_logger():
 
 def main(args):
     vm_name = args['<vm_name>']
+    arch = int(args['<architecture>'])
     logging.debug('Finding PID of VM {}'.format(vm_name))
     output = subprocess.getoutput("pgrep -f -o 'qemu.*-name {}'".format(vm_name))
     pid = int(output)
     logging.debug('pid = {}'.format(pid))
 
     if not args['--nobackend']:
-        backend = Backend(vm_name)
+        backend = Backend(vm_name, arch)
     with Nitro(pid) as nitro:
         for event in nitro.listen():
             if not args['--nobackend']:
