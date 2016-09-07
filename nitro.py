@@ -3,7 +3,7 @@
 """Nitro.
 
 Usage:
-  nitro.py [options] <vm_name> <architecture>
+  nitro.py [options] <vm_name> (32 | 64)
 
 Options:
   -h --help     Show this screen.
@@ -78,7 +78,10 @@ def init_logger():
 
 def main(args):
     vm_name = args['<vm_name>']
-    arch = int(args['<architecture>'])
+    if args['32']:
+        arch = 32
+    else:
+        arch = 64
     logging.debug('Finding PID of VM {}'.format(vm_name))
     output = subprocess.getoutput("pgrep -f -o 'qemu.*-name {}'".format(vm_name))
     pid = int(output)
