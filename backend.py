@@ -2,11 +2,13 @@ import sys
 import os
 import re
 import subprocess
+import commands
 import json
 import logging
 import struct
 
 import libvirt
+import pyvmi
 
 from event import Event
 from hooks import Hooks
@@ -25,7 +27,7 @@ class SyscallContext:
 class VM:
 
     def __init__(self, vm_name):
-        self.con = libvirt.open('qemu:///session')
+        self.con = libvirt.open('qemu:///system')
         self.domain = self.con.lookupByName(vm_name)
 
     def pmem_dump(self, path):
@@ -39,10 +41,11 @@ class VM:
 
 class Process:
 
-    def __init__(self, cr3, start_eproc, name):
+    def __init__(self, cr3, start_eproc, name, pid):
         self.cr3 = cr3
         self.start_eproc = start_eproc
         self.name = name
+        self.pid = pid
 
 class Backend:
 
@@ -51,7 +54,8 @@ class Backend:
         self.processes = {}
         self.sys_stack = []
         self.vm = VM(vm_name)
-        self.hooks = Hooks(self.vm)
+        self.vmi = pyvmi.init(vm_name, "complete")
+        self.hooks = Hooks(self.vmi)
         # dump memory
         logging.debug('Taking Physical Memory dump ...')
         self.dump_path = 'dump.raw'
@@ -63,7 +67,7 @@ class Backend:
         if not os.path.isfile(venv_python):
             logging.debug('Please install a virtualenv "venv" with rekall')
             sys.exit(1)
-        subprocess.getoutput('{} symbols.py {}'.format(venv_python, self.dump_path))
+        commands.getoutput('{} symbols.py {}'.format(venv_python, self.dump_path))
         with open('output.json') as f:
             jdata = json.load(f)
             # loading ssdt entries
@@ -101,7 +105,7 @@ class Backend:
                 ctxt = self.sys_stack.pop()
                 ctxt.event = event
             except IndexError:
-                logging.debug(event)
+                # logging.debug(event)
                 return
         else:
             # create syscall context
@@ -131,8 +135,7 @@ class Backend:
 
     def find_eprocess(self, cr3):
         # read PsActiveProcessHead list_entry
-        content = self.vm.vmem_read(self.kernel_symbols['PsActiveProcessHead'], self.ptr_size)
-        flink, *rest = struct.unpack('@I', content)
+        flink = self.vmi.read_addr_va(self.kernel_symbols['PsActiveProcessHead'], 0)
         
         while flink != self.kernel_symbols['PsActiveProcessHead']:
             # get start of EProcess
@@ -140,20 +143,22 @@ class Backend:
             # move to start of DirectoryTableBase
             directory_table_base_off = start_eproc + self.kernel_symbols['DirectoryTableBase_off']
             # read directory_table_base
-            content = self.vm.vmem_read(directory_table_base_off, self.ptr_size)
-            directory_table_base, *rest = struct.unpack('@I', content)
+            directory_table_base = self.vmi.read_addr_va(directory_table_base_off, 0)
             # compare to our cr3
             if cr3 == directory_table_base:
                 # get name
                 image_file_name_off = start_eproc + self.kernel_symbols['ImageFileName_off']
                 content = self.vm.vmem_read(image_file_name_off, 15)
                 image_file_name = content.rstrip(b'\0').decode('utf-8')
-                eprocess = Process(cr3, start_eproc, image_file_name)
+                # get pid
+                unique_processid_off = start_eproc + 0x84
+                pid = self.vmi.read_addr_va(unique_processid_off, 0)
+                print(pid)
+                eprocess = Process(cr3, start_eproc, image_file_name, pid)
                 return eprocess
 
             # read new flink
-            content = self.vm.vmem_read(flink, self.ptr_size)
-            flink, *rest = struct.unpack('@I', content)
+            flink = self.vmi.read_addr_va(flink, 0)
 
 
 

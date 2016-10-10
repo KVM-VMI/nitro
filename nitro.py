@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """Nitro.
 
@@ -18,6 +18,7 @@ import re
 import struct
 import logging
 import subprocess
+import commands
 import json
 from pprint import pprint
 from ctypes import *
@@ -83,7 +84,7 @@ def main(args):
     else:
         arch = 64
     logging.debug('Finding PID of VM {}'.format(vm_name))
-    output = subprocess.getoutput("pgrep -f -o 'qemu.*-name {}'".format(vm_name))
+    output = commands.getoutput("pgrep -f -o 'qemu.*-name {}'".format(vm_name))
     pid = int(output)
     logging.debug('pid = {}'.format(pid))
 
