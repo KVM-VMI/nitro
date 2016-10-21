@@ -151,7 +151,7 @@ class Backend:
                 content = self.vmi.read_va(image_file_name_off, 0, 15)
                 image_file_name = content.rstrip(b'\0').decode('utf-8')
                 # get pid
-                unique_processid_off = start_eproc + 0x84
+                unique_processid_off = start_eproc + self.kernel_symbols['UniqueProcessId_off']
                 pid = self.vmi.read_addr_va(unique_processid_off, 0)
                 eprocess = Process(cr3, start_eproc, image_file_name, pid)
                 return eprocess
