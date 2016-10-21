@@ -1,5 +1,11 @@
+import sys
+import time
 import logging
+import struct
+
+
 from event import Event
+from win_types import ObjectAttributes
 
 class Hooks:
 
@@ -17,21 +23,21 @@ class Hooks:
         try:
             # if hook is defined
             hook = getattr(self, '{}_{}'.format(prefix, ctxt.syscall_name))
-            hook()
         except AttributeError:
             # else just log syscall
-            logging.debug(ctxt)
+            #logging.debug(ctxt)
+            pass
+        else:
+            hook()
 
-    # def enter_NtOpenKey(self):
-    #     logging.debug("NtOpenKey")
-    #     stack = self.ctxt.event.regs.rdx
-    #     pid = self.ctxt.process.pid
-    #     print(pid)
-    #     paddr = self.vmi.translate_kv2p(stack)
-    #     print(hex(paddr))
-    #     #handle = self.vmi.read_addr_va(stack, 0)
-    #     #mask = self.vmi.read_addr_va(stack + 4, 0)
-    #     #obj_attr = self.vmi.read_addr_va(stack + 8, 0)
-    #     #logging.debug("handle = {}", hex(handle))
-    #     #logging.debug("mask = {}", hex(mask))
-    #     #logging.debug("obj_attr = {}", hex(obj_attr))
+    def enter_NtOpenFile(self):
+        logging.debug("NtOpenFile")
+        pid = self.ctxt.process.pid
+        handle = self.ctxt.event.regs.rcx
+        access_mask = self.ctxt.event.regs.rdx
+        pobj_attr = self.ctxt.event.regs.r8
+        logging.debug('pid : {}'.format(pid))
+        logging.debug('handle : {}'.format(hex(handle)))
+        logging.debug('access mask : {}'.format(hex(access_mask)))
+        logging.debug('pobj_attr : {}'.format(hex(pobj_attr)))
+        obj = ObjectAttributes(pobj_attr, self.ctxt, self.vmi)
