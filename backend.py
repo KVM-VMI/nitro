@@ -92,6 +92,18 @@ class Backend:
             # loading kernel symbols addresses
             self.kernel_symbols = jdata[-1]
             logging.debug(self.kernel_symbols)
+
+            # # load argument tables
+            # argument_tables = [(0, self.kernel_symbols['KiArgumentTable']), (1, self.kernel_symbols['W32pArgumentTable'])]
+            # for table in argument_tables:
+            #     idx = table[0]
+            #     arg_table_addr = table[1]
+            #     nb_entries = len(self.sdt[idx]['ServiceTable'].keys())
+            #     for i in range(nb_entries):
+            #         addr = arg_table_addr + (4 * i)
+            #         content = self.vmi.read_va(addr, 0, 4)
+            #         nb_arg = struct.unpack(">I", content)[0] / 4
+            #         self.sdt[idx]['ArgumentTable'][i] = nb_arg
         # remove dump and json file
         os.remove('dump.raw')
         os.remove('output.json')
