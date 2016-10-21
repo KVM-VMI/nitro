@@ -135,7 +135,7 @@ class Backend:
 
     def find_eprocess(self, cr3):
         # read PsActiveProcessHead list_entry
-        flink = self.vmi.read_addr_va(self.kernel_symbols['PsActiveProcessHead'], 0)
+        flink = self.vmi.read_addr_ksym('PsActiveProcessHead')
         
         while flink != self.kernel_symbols['PsActiveProcessHead']:
             # get start of EProcess
@@ -148,12 +148,11 @@ class Backend:
             if cr3 == directory_table_base:
                 # get name
                 image_file_name_off = start_eproc + self.kernel_symbols['ImageFileName_off']
-                content = self.vm.vmem_read(image_file_name_off, 15)
+                content = self.vmi.read_va(image_file_name_off, 0, 15)
                 image_file_name = content.rstrip(b'\0').decode('utf-8')
                 # get pid
                 unique_processid_off = start_eproc + 0x84
                 pid = self.vmi.read_addr_va(unique_processid_off, 0)
-                print(pid)
                 eprocess = Process(cr3, start_eproc, image_file_name, pid)
                 return eprocess
 
