@@ -171,22 +171,3 @@ class Backend:
             # read new flink
             flink = self.vmi.read_addr_va(flink, 0)
 
-
-
-    def search_process_memory(self, cr3):
-        logging.debug('Searching for CR3 = {}'.format(hex(cr3)))
-        start = 0
-        size = 1024 * 1024
-        while True:
-            logging.debug('Searching at {}'.format(hex(start)))
-            content = self.vm.vmem_read(start, size)
-            b_cr3 = struct.pack('@P', cr3)
-            m = re.search(b_cr3, content)
-            if m:
-                cr3_vaddr = start + m.start()
-                logging.debug('Found CR3 at {} ({})'.format(hex(cr3_vaddr), m.start()))
-                p = Process(cr3, cr3_vaddr)
-                self.processes[cr3] = p
-                return p
-            start += size
-
