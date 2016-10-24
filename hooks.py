@@ -15,7 +15,7 @@ class Hooks:
     def dispatch(self, ctxt):
         prefix = None
         self.ctxt = ctxt
-        if ctxt.event.event_type == Event.KVM_NITRO_EVENT_SYSCALL:
+        if ctxt.event.nitro_event.direction == Event.DIRECTION_ENTER:
             prefix = 'enter'
         else:
             prefix = 'exit'
@@ -28,16 +28,42 @@ class Hooks:
             #logging.debug(ctxt)
             pass
         else:
-            hook()
+            try:
+                data = hook()
+            except ValueError as e:
+                data = "Page Fault"
+            except Exception as e:
+                logging.debug(e)
+            try:
+                logging.info('[{}][{}][{}] {}'.format(
+                        self.ctxt.process.pid,
+                        self.ctxt.process.name,
+                        self.ctxt.syscall_name,
+                        data))
+            except UnicodeEncodeError:
+                #logging.debug('UnicodeEncodeError')
+                pass
 
     def enter_NtOpenFile(self):
-        logging.debug("NtOpenFile")
         pid = self.ctxt.process.pid
-        handle = self.ctxt.event.regs.rcx
-        access_mask = self.ctxt.event.regs.rdx
         pobj_attr = self.ctxt.event.regs.r8
-        logging.debug('pid : {}'.format(pid))
-        logging.debug('handle : {}'.format(hex(handle)))
-        logging.debug('access mask : {}'.format(hex(access_mask)))
-        logging.debug('pobj_attr : {}'.format(hex(pobj_attr)))
         obj = ObjectAttributes(pobj_attr, self.ctxt, self.vmi)
+        return obj.PUnicodeString.Buffer
+
+    def enter_NtOpenKey(self):
+        pid = self.ctxt.process.pid
+        pobj_attr = self.ctxt.event.regs.r8
+        obj = ObjectAttributes(pobj_attr, self.ctxt, self.vmi)
+        return obj.PUnicodeString.Buffer
+
+    def enter_NtOpenEvent(self):
+        pid = self.ctxt.process.pid
+        pobj_attr = self.ctxt.event.regs.r8
+        obj = ObjectAttributes(pobj_attr, self.ctxt, self.vmi)
+        return obj.PUnicodeString.Buffer
+
+    def enter_NtOpenProcess(self):
+        pid = self.ctxt.process.pid
+        pobj_attr = self.ctxt.event.regs.r8
+        obj = ObjectAttributes(pobj_attr, self.ctxt, self.vmi)
+        return obj.PUnicodeString.Buffer
