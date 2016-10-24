@@ -68,22 +68,28 @@ class Regs(Structure):
                 ('rflags', c_ulonglong),
             ]
 
+class NitroEvent(Structure):
+    _fields_ = [
+                ('present', c_bool),
+                ('direction', c_uint),
+                ('type', c_uint),
+            ]
+
 
 class Event:
 
-    KVM_NITRO_EVENT_ERROR = 1
-    KVM_NITRO_EVENT_SYSCALL = 2
-    KVM_NITRO_EVENT_SYSRET = 3
+    DIRECTION_ENTER = 0
+    DIRECTION_EXIT = 1
+    TYPE_SYSENTER = 0
+    TYPE_SYSCALL = 1
 
-    def __init__(self, event_type, regs, sregs):
-        if event_type == self.KVM_NITRO_EVENT_ERROR:
-            raise RuntimeError()
-        self.event_type = event_type
+    def __init__(self, nitro_event, regs, sregs):
+        self.nitro_event = nitro_event
         self.regs = regs
         self.sregs = sregs
 
     def __str__(self):
-        if self.event_type == self.KVM_NITRO_EVENT_SYSCALL:
+        if self.nitro_event.direction == self.DIRECTION_ENTER:
             return "SYSCALL"
         else:
             return "SYSRET "
@@ -91,7 +97,7 @@ class Event:
     def display(self):
         cr3 = hex(self.sregs.cr3)
         rax = hex(self.regs.rax)
-        if self.event_type == self.KVM_NITRO_EVENT_SYSCALL:
+        if self.nitro_event.direction == self.DIRECTION_ENTER:
             return "SYSCALL cr3 {} - rax {}".format(cr3, rax)
         else:
             return "SYSRET  cr3 {} - rax {}".format(cr3, rax)

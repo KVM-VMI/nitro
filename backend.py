@@ -111,7 +111,7 @@ class Backend:
 
     def new_event(self, event):
         ctxt = None
-        if event.event_type == Event.KVM_NITRO_EVENT_SYSRET:
+        if event.nitro_event.direction == Event.DIRECTION_EXIT:
             # check syscall stack
             try:
                 ctxt = self.sys_stack.pop()

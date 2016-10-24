@@ -26,7 +26,7 @@ from ctypes import *
 from docopt import docopt
 import libvirt
 
-from event import Event, Regs, SRegs
+from event import Event, Regs, SRegs, NitroEvent
 from backend import Backend
 
 
@@ -59,13 +59,14 @@ class Nitro:
     def listen(self):
         while 1:
             try:
-                event = self.libnitro.get_event(0)
+                nitro_ev = NitroEvent()
+                self.libnitro.get_event(0, byref(nitro_ev))
                 regs = Regs()
                 sregs = SRegs()
                 self.libnitro.get_regs(0, byref(regs))
                 self.libnitro.get_sregs(0, byref(sregs))
 
-                e = Event(event, regs, sregs)
+                e = Event(nitro_ev, regs, sregs)
 
                 yield(e)
                 self.libnitro.continue_vm(0)
