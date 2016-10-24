@@ -19,6 +19,7 @@ int main(int argc, char **argv){
   int rv;
   struct kvm_regs regs;
   struct kvm_sregs sregs;
+  struct event ev;
   
   
   if (argc < 2){
@@ -51,7 +52,7 @@ int main(int argc, char **argv){
   printf("set_syscall_trap() returned %d\n\n",rv);
   
   while(true){
-    rv = get_event(0);
+    rv = get_event(0, &ev);
     
     if(get_regs(0,&regs)){
       printf("Error getting regs, exiting\n");
@@ -63,11 +64,11 @@ int main(int argc, char **argv){
       continue_vm(0);
       break;
     }
-    if(rv == KVM_NITRO_EVENT_SYSCALL) {
+    if(ev.direction == ENTER) {
       printf("Syscall trapped RAX = 0x%llx | CR3 = 0x%llx\n", regs.rax, sregs.cr3);
     }
-    else if(rv == KVM_NITRO_EVENT_SYSRET) {
-      printf("Sysret trapped"); 
+    else if(ev.direction == EXIT) {
+      printf("Sysret trapped\n"); 
     }
     rv = continue_vm(0);
   }
