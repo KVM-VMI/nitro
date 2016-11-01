@@ -15,6 +15,7 @@ import logging
 import re
 import StringIO 
 import json
+from os.path import expanduser
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -30,6 +31,7 @@ def get_symbol_addr(session, symbol):
 
 def main(args):
     ram_dump = args['<ram_dump>']
+    home = expanduser("~")
     s = session.Session(
             filename=ram_dump,
             autodetect=["rsds"],
@@ -37,7 +39,7 @@ def main(args):
             autodetect_scan_length=maxint,
             format='data',
             profile_path=[
-                "/home/developer/.rekall_cache",
+                "{}/.rekall_cache".format(home),
                 "http://profiles.rekall-forensic.com"   
             ])
 
