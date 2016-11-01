@@ -28,6 +28,7 @@ nitro
 
 # python
 __pycache__
+*.pyc
 
 # memory dump
 *.raw
