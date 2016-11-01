@@ -10,12 +10,11 @@ Options:
 
 """
 
-from sys import maxint
+import os
 import logging
 import re
 import StringIO 
 import json
-from os.path import expanduser
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -31,15 +30,14 @@ def get_symbol_addr(session, symbol):
 
 def main(args):
     ram_dump = args['<ram_dump>']
-    home = expanduser("~")
     s = session.Session(
             filename=ram_dump,
             autodetect=["rsds"],
             logger=logging.getLogger(),
-            autodetect_scan_length=maxint,
+            cache_dir='{}/rekall_cache'.format(os.getcwd()),
+            autodetect_build_local='basic',
             format='data',
             profile_path=[
-                "{}/.rekall_cache".format(home),
                 "http://profiles.rekall-forensic.com"   
             ])
 
