@@ -54,6 +54,7 @@ class Backend:
         self.processes = {}
         self.sys_stack = []
         self.vm = VM(vm_name)
+        logging.debug('Initializing libvmi ...')
         self.vmi = pyvmi.init(vm_name, "complete")
         self.hooks = Hooks(self.vmi)
         # dump memory
