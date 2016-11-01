@@ -10,6 +10,7 @@ Options:
 
 """
 
+import os
 import logging
 import re
 import StringIO 
@@ -22,6 +23,10 @@ from docopt import docopt
 from rekall import session
 from rekall import plugins
 
+def get_symbol_addr(session, symbol):
+    return session.address_resolver.get_constant_object(symbol,
+            "unsigned int").obj_offset
+
 
 def main(args):
     ram_dump = args['<ram_dump>']
@@ -29,28 +34,45 @@ def main(args):
             filename=ram_dump,
             autodetect=["rsds"],
             logger=logging.getLogger(),
-            autodetect_scan_length=18446744073709551616,
+            cache_dir='{}/rekall_cache'.format(os.getcwd()),
+            autodetect_build_local='basic',
             format='data',
             profile_path=[
-                "/home/developer/.rekall_cache",
                 "http://profiles.rekall-forensic.com"   
             ])
 
-    pshead = s.GetParameter("PsActiveProcessHead")
 
+    # get ssdt
     output = StringIO.StringIO()
-
     s.RunPlugin("ssdt", output=output)
-
     jdata = json.loads(output.getvalue())
-    
-    pshead_links = {}
-    # '<_LIST_ENTRY Pointer to [0xFADFF410D120] (Flink)>'
-    m = re.match(r'<_LIST_ENTRY Pointer to \[0x(.*)\] \(Flink\)>', repr(pshead.Flink))
-    pshead_links['Flink'] = m.group(1)
-    m = re.match(r'<_LIST_ENTRY Pointer to \[0x(.*)\] \(Blink\)>', repr(pshead.Blink))
-    pshead_links['Blink'] = m.group(1)
-    jdata.append({"PsActiveProcessHead" : pshead_links})
+
+    # get PsActiveProcessHead address
+    pshead_addr = get_symbol_addr(s, 'nt!PsActiveProcessHead')
+    # get eprocess ActiveProcessLinks offset
+    activeprocesslinks_off = s.profile.get_obj_offset('_EPROCESS', 'ActiveProcessLinks')
+    # get kprocess DirectoryTableBase offset
+    directorytablebase_off = s.profile.get_obj_offset('_KPROCESS', 'DirectoryTableBase')
+    # get eprocess ImageFileName offset
+    imagefilename_off = s.profile.get_obj_offset('_EPROCESS', 'ImageFileName')
+    # get eprocess UniqueProcessId offset
+    uniqueprocessid_off = s.profile.get_obj_offset('_EPROCESS', 'UniqueProcessId')
+    # # get KiArgumentTable
+    # kiargs_addr = get_symbol_addr(s, 'nt!KiArgumentTable')
+    # # get W32pArgumentTable
+    # w32pargs_addr = get_symbol_addr(s, 'win32k!W32pArgumentTable')
+
+    # add to json
+    kernel_symbols = {}
+    kernel_symbols['PsActiveProcessHead'] = pshead_addr
+    kernel_symbols['ActiveProcessLinks_off'] = activeprocesslinks_off
+    kernel_symbols['DirectoryTableBase_off'] = directorytablebase_off
+    kernel_symbols['ImageFileName_off'] = imagefilename_off
+    kernel_symbols['UniqueProcessId_off'] = uniqueprocessid_off
+    # kernel_symbols['KiArgumentTable'] = kiargs_addr
+    # kernel_symbols['W32pArgumentTable'] = w32pargs_addr
+
+    jdata.append(kernel_symbols)
 
     with open('output.json', 'w') as f:
         json.dump(jdata, f)

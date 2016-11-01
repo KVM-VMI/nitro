@@ -28,9 +28,16 @@ nitro
 
 # python
 __pycache__
+*.pyc
 
 # memory dump
 *.raw
 
 # libnitro cmake build dir
 libnitro/_build
+
+# virtualenv
+venv/
+
+# rekall cache
+rekall_cache/

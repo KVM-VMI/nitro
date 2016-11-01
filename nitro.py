@@ -1,12 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """Nitro.
 
 Usage:
-  nitro.py <pid>
+  nitro.py [options] <vm_name> (32 | 64)
 
 Options:
   -h --help     Show this screen.
+  --nobackend   Dont analyze events
 
 """
 
@@ -17,6 +18,7 @@ import re
 import struct
 import logging
 import subprocess
+import commands
 import json
 from pprint import pprint
 from ctypes import *
@@ -24,7 +26,7 @@ from ctypes import *
 from docopt import docopt
 import libvirt
 
-from event import Event, Regs, SRegs
+from event import Event, Regs, SRegs, NitroEvent
 from backend import Backend
 
 
@@ -57,13 +59,14 @@ class Nitro:
     def listen(self):
         while 1:
             try:
-                event = self.libnitro.get_event(0)
+                nitro_ev = NitroEvent()
+                self.libnitro.get_event(0, byref(nitro_ev))
                 regs = Regs()
                 sregs = SRegs()
                 self.libnitro.get_regs(0, byref(regs))
                 self.libnitro.get_sregs(0, byref(sregs))
 
-                e = Event(event, regs, sregs)
+                e = Event(nitro_ev, regs, sregs)
 
                 yield(e)
                 self.libnitro.continue_vm(0)
@@ -76,12 +79,24 @@ def init_logger():
     logger.setLevel(logging.DEBUG)
 
 def main(args):
-    pid = int(args['<pid>'])
+    vm_name = args['<vm_name>']
+    if args['32']:
+        arch = 32
+    else:
+        arch = 64
+    logging.debug('Finding PID of VM {}'.format(vm_name))
+    output = commands.getoutput("pgrep -f -o 'qemu.*-name {}'".format(vm_name))
+    pid = int(output)
     logging.debug('pid = {}'.format(pid))
 
+    if not args['--nobackend']:
+        backend = Backend(vm_name, arch)
     with Nitro(pid) as nitro:
         for event in nitro.listen():
-            logging.debug(event)
+            if not args['--nobackend']:
+                backend.new_event(event)
+            else:
+                logging.debug(event.display())
 
 if __name__ == '__main__':
     init_logger()
