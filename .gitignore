@@ -38,3 +38,6 @@ libnitro/_build
 
 # virtualenv
 venv/
+
+# rekall cache
+rekall_cache/
