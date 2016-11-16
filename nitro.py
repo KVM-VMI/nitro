@@ -32,13 +32,17 @@ from backend import Backend
 
 class Nitro:
 
-    def __init__(self, pid):
+    def __init__(self, pid, vm_name):
         self.pid = pid
         logging.debug('Loading libnitro.so')
         self.libnitro = cdll.LoadLibrary('./libnitro/libnitro.so')
+        con = libvirt.open('qemu:///system')
+        self.domain = con.lookupByName(vm_name)
 
 
     def __enter__(self):
+        logging.debug('Suspending the Guest')
+        self.domain.suspend()
         logging.debug('Initializing KVM')
         self.libnitro.init_kvm()
         logging.debug('Attaching to the VM')
@@ -47,13 +51,19 @@ class Nitro:
         self.libnitro.attach_vcpus()
         logging.debug('Setting Traps')
         self.libnitro.set_syscall_trap(True)
+        logging.debug('Resuming the Guest')
+        self.domain.resume()
         return self
 
     def __exit__(self, type, value, traceback):
+        logging.debug('Suspending the Guest')
+        self.domain.suspend()
         logging.debug('Unsetting Traps')
         self.libnitro.set_syscall_trap(False)
         logging.debug('Closing KVM')
         self.libnitro.close_kvm()
+        logging.debug('Resuming the Guest')
+        self.domain.resume()
 
 
     def listen(self):
@@ -91,7 +101,7 @@ def main(args):
 
     if not args['--nobackend']:
         backend = Backend(vm_name, arch)
-    with Nitro(pid) as nitro:
+    with Nitro(pid, vm_name) as nitro:
         for event in nitro.listen():
             if not args['--nobackend']:
                 backend.new_event(event)
