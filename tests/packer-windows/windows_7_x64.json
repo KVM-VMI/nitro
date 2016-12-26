@@ -1,0 +1,41 @@
+{
+  "builders": [
+    {
+      "type": "qemu",
+      "vm_name": "windows_7_x64",
+      "iso_url": "{{user `iso_url`}}",
+      "iso_checksum_type": "{{user `iso_checksum_type`}}",
+      "iso_checksum": "{{user `iso_checksum`}}",
+      "headless": true,
+      "skip_compaction": true,
+      "boot_wait": "2m",
+      "communicator": "winrm",
+      "winrm_username": "vagrant",
+      "winrm_password": "vagrant",
+      "winrm_timeout": "8h",
+      "shutdown_command": "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\"",
+      "disk_size": 61440,
+      "disk_interface": "ide",
+      "net_device": "e1000",
+      "floppy_files": [
+          "{{user `autounattend`}}"
+      ]
+    }
+  ],
+  "provisioners": [
+      {
+          "type": "windows-shell",
+          "inline": [
+            "reg ADD HKLM\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU /v NoAutoUpdate /d 1 /t REG_DWORD /f",
+            "reg ADD HKLM\\SYSTEM\\CurrentControlSet\\services\\WinRM /v DelayedAutoStart /d 0 /t REG_DWORD /f"
+          ]
+      }
+
+  ],
+  "variables": {
+    "iso_url": "http://care.dlservice.microsoft.com/dl/download/evalx/win7/x64/EN/7600.16385.090713-1255_x64fre_enterprise_en-us_EVAL_Eval_Enterprise-GRMCENXEVAL_EN_DVD.iso",
+    "iso_checksum_type": "md5",
+    "iso_checksum": "1d0d239a252cb53e466d39e752b17c28",
+    "autounattend": "./answer_files/7/Autounattend.xml"
+  }
+}
