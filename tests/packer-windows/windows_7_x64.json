@@ -27,7 +27,9 @@
           "type": "windows-shell",
           "inline": [
             "reg ADD HKLM\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU /v NoAutoUpdate /d 1 /t REG_DWORD /f",
-            "reg ADD HKLM\\SYSTEM\\CurrentControlSet\\services\\WinRM /v DelayedAutoStart /d 0 /t REG_DWORD /f"
+            "reg ADD HKLM\\SYSTEM\\CurrentControlSet\\services\\WinRM /v DelayedAutoStart /d 0 /t REG_DWORD /f",
+            "reg ADD HKLM\\System\\CurrentControlSet\\Control\\Network\\NewNetworkWindowOff /f",
+            "netsh advfirewall firewall add rule name=\"WinRM Public\" dir=in action=allow profile=any protocol=TCP localport=5985"
           ]
       }
 
