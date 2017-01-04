@@ -2,7 +2,6 @@ import sys
 import os
 import re
 import subprocess
-import commands
 import json
 import logging
 import struct
@@ -68,7 +67,12 @@ class Backend:
         if not os.path.isfile(venv_python):
             logging.debug('Please install a virtualenv "venv" with rekall')
             sys.exit(1)
-        commands.getoutput('{} symbols.py {}'.format(venv_python, self.dump_path))
+        cmd = [venv_python, 'symbols.py', self.dump_path]
+        proc = subprocess.Popen(cmd)
+        proc.communicate()
+        if proc.returncode != 0:
+            logging.critical('Unable to extract Windows symbols from RAM dump !')
+            sys.exit(1)
         with open('output.json') as f:
             jdata = json.load(f)
             # loading ssdt entries
