@@ -20,6 +20,7 @@ from docopt import docopt
 NITRO_POOL_NAME = 'nitro'
 
 def main(args):
+    logging.basicConfig(level=logging.DEBUG, format='%(message)s')
     qemu_image = args['<qemu_image>']
     # check root
     if os.geteuid() != 0:
