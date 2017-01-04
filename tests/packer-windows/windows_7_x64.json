@@ -2,7 +2,7 @@
   "builders": [
     {
       "type": "qemu",
-      "vm_name": "windows_7_x64",
+      "vm_name": "win7x64",
       "iso_url": "{{user `iso_url`}}",
       "iso_checksum_type": "{{user `iso_checksum_type`}}",
       "iso_checksum": "{{user `iso_checksum`}}",
