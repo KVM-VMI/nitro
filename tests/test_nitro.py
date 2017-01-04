@@ -33,9 +33,12 @@ def test_domain(domain):
     logging.info('IP address : {}'.format(ip))
     logging.info('Establishing a WinRM session')
     s = winrm.Session(ip, auth=('vagrant', 'vagrant'))
-    #args = ["-accepteula", "-s", "-i", "0", "c:\\windows\\system32\\calc.exe"]
-    #s.run_cmd('c:\\pstools\\PsExec64.exe', args)
     s.run_cmd('ipconfig')
+    logging.info('Starting test')
+    # run test command
+    args = ["-accepteula", "-s", "-i", "0", "c:\\windows\\system32\\calc.exe"]
+    s.run_cmd('c:\\pstools\\PsExec64.exe', args)
+    logging.info('Test done')
     domain.shutdown()
     logging.info('Waiting for shutdown')
     while domain.state()[0] != libvirt.VIR_DOMAIN_SHUTOFF:
@@ -51,6 +54,7 @@ def main():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG, format='%(message)s')
+    logging.getLogger("requests").setLevel(logging.WARNING)
     main()
 
