@@ -94,6 +94,12 @@ class Event:
         else:
             return "SYSRET "
 
+    def direction(self):
+        if self.nitro_event.direction == self.DIRECTION_ENTER:
+            return 'ENTER'
+        else:
+            return 'EXIT'
+
     def display(self):
         cr3 = hex(self.sregs.cr3)
         rax = hex(self.regs.rax)

@@ -34,7 +34,9 @@ class Nitro:
     def __init__(self, pid, vm_name):
         self.pid = pid
         logging.debug('Loading libnitro.so')
-        self.libnitro = cdll.LoadLibrary('./libnitro/libnitro.so')
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        libnitro_so_path = os.path.join(script_dir, 'libnitro', 'libnitro.so')
+        self.libnitro = cdll.LoadLibrary(libnitro_so_path)
         con = libvirt.open('qemu:///system')
         self.domain = con.lookupByName(vm_name)
 
