@@ -18,6 +18,31 @@ limitations:
 - arch must be `x64`
 - only 1 VCPU allowed
 
+Execution output:
+
+~~~
+Testing nitro_win7x64
+MAC address : 52:54:00:a3:92:b6
+IP address : 192.168.122.71
+Establishing a WinRM session
+Running test command
+Loading libnitro.so
+Suspending the Guest
+Initializing KVM
+Attaching to the VM
+Attaching to VCPUs
+Setting Traps
+Resuming the Guest
+Counting syscalls...
+Total execution time 0:02:04.146711
+Suspending the Guest
+Unsetting Traps
+Closing KVM
+Resuming the Guest
+Nb Syscalls : 514502
+Waiting for shutdown
+~~~
+
 # Building Test VMs
 
 In the `packer-windows` directory you will find a `packer` binary and 2 templates
@@ -42,4 +67,5 @@ in an `images` directory.
 Also, it will take care of setting the name of the vm to `nitro_<vm_name>`,
 and configure the emulator to `kvm-vmi/qemu/x86_64-softmmu/qemu-system-x86_64`,
 which is a fork of QEMU already patched with libvmi memory access modifications.
-Don't forget to build QEMU though. (`./configure --target-list=x86-64-softmmu`)
+
+Don't forget to build QEMU. (`./configure --target-list=x86-64-softmmu`)
