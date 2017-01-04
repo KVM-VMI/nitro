@@ -36,7 +36,7 @@ def test_domain(domain):
     s.run_cmd('ipconfig')
     logging.info('Starting test')
     # run test command
-    args = ["-accepteula", "-s", "-i", "0", "c:\\windows\\system32\\calc.exe"]
+    args = ["-accepteula", "-s", "-i", "1", "c:\\windows\\system32\\calc.exe"]
     s.run_cmd('c:\\pstools\\PsExec64.exe', args)
     logging.info('Test done')
     domain.shutdown()
