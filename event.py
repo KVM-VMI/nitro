@@ -83,16 +83,20 @@ class Event:
     TYPE_SYSENTER = 0
     TYPE_SYSCALL = 1
 
-    def __init__(self, nitro_event, regs, sregs):
+    def __init__(self, nitro_event, regs, sregs, vcpu_nb=0):
         self.nitro_event = nitro_event
         self.regs = regs
         self.sregs = sregs
+        self.vcpu_nb = vcpu_nb
 
     def __str__(self):
-        if self.nitro_event.direction == self.DIRECTION_ENTER:
-            return "SYSCALL"
-        else:
-            return "SYSRET "
+        type_msg = 'SYSENTER' if self.nitro_event.type == self.TYPE_SYSENTER else 'SYSCALL'
+        dir_msg = 'ENTER' if self.nitro_event.direction == self.DIRECTION_ENTER else 'EXIT'
+        cr3 = hex(self.sregs.cr3)
+        rax = hex(self.regs.rax)
+        msg = 'vcpu: {} - type: {} - direction: {} - cr3: {} - rax: {}'.format(self.vcpu_nb, type_msg, dir_msg, cr3, rax)
+        return msg
+        
 
     def direction(self):
         if self.nitro_event.direction == self.DIRECTION_ENTER:
