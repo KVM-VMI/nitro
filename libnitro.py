@@ -131,7 +131,6 @@ class Nitro:
         self.queue_list.remove(self.current_queue)
         # wait for other queue to be have a item
         while [q for q in self.queue_list if q.qsize() == 0]:
-            logging.debug('waiting...')
             time.sleep(1)
         # ack other queue
         [q.task_done() for q in self.queue_list]
