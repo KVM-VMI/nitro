@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -14,13 +14,13 @@ import libvirt
 import winrm
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from nitro import Nitro
+from libnitro import Nitro
 
 def get_ip(mac_addr):
     while True:
         output = subprocess.check_output(["ip", "neigh"])
         for line in output.splitlines():
-            m = re.match('(.*) dev [^ ]+ lladdr {} STALE'.format(mac_addr), line)
+            m = re.match('(.*) dev [^ ]+ lladdr {} STALE'.format(mac_addr), line.decode('utf-8'))
             if m:
                 ip_addr = m.group(1)
                 return ip_addr
@@ -46,11 +46,8 @@ def run_nitro(func):
 
         stop_request = threading.Event()
         def run_nitro_thread(stop_request):
-            arch = 64
-            output = subprocess.check_output("pgrep -f -o 'qemu.*-name {}'".format(domain.name()), shell=True)
-            pid = int(output)
             nb_syscalls = 0
-            with Nitro(pid, domain.name()) as nitro:
+            with Nitro(domain) as nitro:
                 logging.info('Counting syscalls...')
                 for event in nitro.listen():
                     if event.direction() == 'ENTER':
