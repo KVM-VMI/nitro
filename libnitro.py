@@ -17,10 +17,12 @@ import logging
 import subprocess
 import json
 import libvirt
+import time
+import threading
 from docopt import docopt
 from queue import Queue
 from pebble import waitforqueues
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from ctypes import *
 
 from event import Event, Regs, SRegs, NitroEvent
@@ -74,52 +76,69 @@ class Nitro:
 
     def __exit__(self, type, value, traceback):
         self.set_traps(False)
+        self.stop_listen()
         logging.debug('Closing KVM')
         self.libnitro.close_kvm()
 
 
     def listen(self):
-        with ThreadPoolExecutor(max_workers=self.nb_vcpu) as pool:
-            futures = []
-            queue_list = []
-            for vcpu_nb in range(self.nb_vcpu):
-                # create queue for this vcpu
-                q = Queue()
-                queue_list.append(q)
-                # start to listen on this vcpu and report events in the queue
-                f = pool.submit(self.listen_vcpu, vcpu_nb, q)
-                futures.append(f)
+        self.stop_request = threading.Event()
+        pool = ThreadPoolExecutor(max_workers=self.nb_vcpu)
+        self.futures = []
+        self.queue_list = []
+        for vcpu_nb in range(self.nb_vcpu):
+            # create queue for this vcpu
+            q = Queue(maxsize=1)
+            self.queue_list.append(q)
+            # start to listen on this vcpu and report events in the queue
+            f = pool.submit(self.listen_vcpu, vcpu_nb, q)
+            self.futures.append(f)
 
-            # while a thread is still running
-            while len([True for f in futures if f.running()]) > 0:
-                modified_queues = waitforqueues(queue_list)
-                for q in modified_queues:
-                    event = q.get()
-                    yield event
-                    q.task_done()
+        # while a thread is still running
+        while len([True for f in self.futures if f.running()]) > 0:
+            modified_queues = waitforqueues(self.queue_list)
+            for q in modified_queues:
+                event = q.get()
+                self.current_queue = q
+                yield event
+                q.task_done()
             
 
     def listen_vcpu(self, vcpu_nb, queue):
         logging.debug('Start listening on VCPU {}'.format(vcpu_nb))
-        while True:
-            try:
-                nitro_ev = NitroEvent()
-                self.libnitro.get_event(vcpu_nb, byref(nitro_ev))
-                regs = Regs()
-                sregs = SRegs()
-                self.libnitro.get_regs(vcpu_nb, byref(regs))
-                self.libnitro.get_sregs(vcpu_nb, byref(sregs))
+        while not self.stop_request.is_set():
+            nitro_ev = NitroEvent()
+            self.libnitro.get_event(vcpu_nb, byref(nitro_ev))
 
-                e = Event(nitro_ev, regs, sregs, vcpu_nb)
+            regs = Regs()
+            sregs = SRegs()
+            self.libnitro.get_regs(vcpu_nb, byref(regs))
+            self.libnitro.get_sregs(vcpu_nb, byref(sregs))
 
-                # put in the queue and wait for the event to be treated
-                queue.put_nowait(e)
-                queue.join()
+            e = Event(nitro_ev, regs, sregs, vcpu_nb)
 
-                self.libnitro.continue_vm(vcpu_nb)
-            except KeyboardInterrupt:
-                logging.debug('Interrupt thread')
-                break
+            # put in the queue and wait for the event to be treated
+            queue.put_nowait(e)
+            queue.join()
+
+            self.libnitro.continue_vm(vcpu_nb)
+
+    def stop_listen(self):
+        self.stop_request.set()
+        # ack current queue
+        self.current_queue.task_done()
+        # remove it from queue list
+        self.queue_list.remove(self.current_queue)
+        # wait for other queue to be have a item
+        while [q for q in self.queue_list if q.qsize() == 0]:
+            logging.debug('waiting...')
+            time.sleep(1)
+        # ack other queue
+        [q.task_done() for q in self.queue_list]
+        # wait for threads to exit
+        wait(self.futures)
+
+
 
 def init_logger():
     logger = logging.getLogger()
@@ -131,9 +150,14 @@ def main(args):
     con = libvirt.open('qemu:///system')
     domain = con.lookupByName(vm_name)
 
+    counter = 0
     with Nitro(domain) as nitro:
         for event in nitro.listen():
             logging.debug(event)
+            counter += 1
+            if counter == 3000:
+                logging.debug('break')
+                break
 
 if __name__ == '__main__':
     init_logger()
