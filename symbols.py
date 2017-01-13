@@ -57,10 +57,6 @@ def main(args):
     imagefilename_off = s.profile.get_obj_offset('_EPROCESS', 'ImageFileName')
     # get eprocess UniqueProcessId offset
     uniqueprocessid_off = s.profile.get_obj_offset('_EPROCESS', 'UniqueProcessId')
-    # # get KiArgumentTable
-    # kiargs_addr = get_symbol_addr(s, 'nt!KiArgumentTable')
-    # # get W32pArgumentTable
-    # w32pargs_addr = get_symbol_addr(s, 'win32k!W32pArgumentTable')
 
     # add to json
     kernel_symbols = {}
@@ -69,8 +65,6 @@ def main(args):
     kernel_symbols['DirectoryTableBase_off'] = directorytablebase_off
     kernel_symbols['ImageFileName_off'] = imagefilename_off
     kernel_symbols['UniqueProcessId_off'] = uniqueprocessid_off
-    # kernel_symbols['KiArgumentTable'] = kiargs_addr
-    # kernel_symbols['W32pArgumentTable'] = w32pargs_addr
 
     jdata.append(kernel_symbols)
 
