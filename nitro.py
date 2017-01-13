@@ -44,9 +44,8 @@ def main(args):
     with Nitro(domain) as nitro:
         backend = Backend(domain)
         for event in nitro.listen():
-            # get event dict
-            event_info = event.info()
-            events.append(event_info)
+            syscall = backend.process_event(event)
+            events.append(syscall.info())
             # wait for CTRL+C to stop
             if not run:
                 break
