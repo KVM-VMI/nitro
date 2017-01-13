@@ -27,6 +27,9 @@ requests.Session.send = send_fix_timeout
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from libnitro import Nitro
 
+
+NB_TEST = 1
+
 def get_ip(mac_addr):
     while True:
         output = subprocess.check_output(["ip", "neigh"])
@@ -71,45 +74,41 @@ def run_nitro(func):
         thread = threading.Thread(target=run_nitro_thread, args=(stop_request,))
         thread.start()
 
-        func(domain, session)
+        result = func(domain, session)
 
         # wait for thread to stop
         stop_request.set()
         thread.join()
+        return result
     return wrapper
-
-
-def chrono(func):
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        func(*args, **kwargs)
-        end = time.time()
-        total_seconds = end - start
-        logging.info('Total execution time {}'.format(timedelta(seconds=total_seconds)))
-    return wrapper
-
 
 
 @run_nitro
-@chrono
 def run_test(domain, session):
     logging.info('Running test command')
     # command that will be executed in user desktop session
     exe = "c:\\windows\\system32\\WindowsPowerShell\\v1.0\\powershell.exe"
-    args = ["-Command", "Get-ChildItem -Path C:\\windows\\system32"]
+    args = ["-Command", "Get-ChildItem -Path C:\\windows"]
     
     # prepare psexec command
     args_psexec_display = ["-accepteula", "-s", "-i", "1"]
     args_psexec = args_psexec_display
     args_psexec.append(exe)
     args_psexec.extend(args)
+    logging.debug('Executing PowerShell command : {}'.format(args[1]))
+    start = None
+    end = None
     while True:
         try:
+            start = time.time()
             session.run_cmd('c:\\pstools\\PsExec64.exe', args_psexec)
+            end = time.time()
         except winrm.exceptions.WinRMTransportError:
             logging.debug('WinRM error, retrying')
         else:
             break
+    total_seconds = end - start
+    return total_seconds
         
 
 
@@ -124,7 +123,14 @@ def test_domain(domain):
     logging.info('Establishing a WinRM session')
     s = winrm.Session(ip, auth=('vagrant', 'vagrant'))
     s.run_cmd('ipconfig')
-    run_test(domain, s)
+
+    total = 0
+    for i in range(1,NB_TEST + 1):
+        result = run_test(domain, s)
+        logging.info('[TEST {}] Total execution time : {}'.format(i, timedelta(seconds=result)))
+        total += result
+    avg_total = total / NB_TEST
+    logging.info('Average execution time : {}'.format(timedelta(seconds=avg_total)))
 
 
 def main():
