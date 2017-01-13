@@ -13,6 +13,17 @@ from datetime import timedelta
 import libvirt
 import winrm
 
+# fix timeout
+import requests
+old_req_send = requests.Session.send
+
+# force a fixed timeout value
+def send_fix_timeout(self, request, **kwargs):
+    return old_req_send(self, request, timeout=3000)
+# patch
+requests.Session.send = send_fix_timeout
+
+# add parent directory
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from libnitro import Nitro
 
@@ -92,7 +103,14 @@ def run_test(domain, session):
     args_psexec = args_psexec_display
     args_psexec.append(exe)
     args_psexec.extend(args)
-    session.run_cmd('c:\\pstools\\PsExec64.exe', args_psexec)
+    while True:
+        try:
+            session.run_cmd('c:\\pstools\\PsExec64.exe', args_psexec)
+        except winrm.exceptions.WinRMTransportError:
+            logging.debug('WinRM error, retrying')
+        else:
+            break
+        
 
 
 @start_stop
