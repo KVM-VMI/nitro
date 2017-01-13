@@ -68,8 +68,7 @@ def main(args):
 
     jdata.append(kernel_symbols)
 
-    with open('output.json', 'w') as f:
-        json.dump(jdata, f)
+    print(json.dumps(jdata))
 
 if __name__ == '__main__':
     main(docopt(__doc__))
