@@ -17,6 +17,7 @@ import libvirt
 from docopt import docopt
 
 from libnitro import Nitro
+from backend import Backend
 
 run = True
 # def new signal for SIGINT
@@ -41,6 +42,7 @@ def main(args):
     events = []
     # start Nitro
     with Nitro(domain) as nitro:
+        backend = Backend(domain)
         for event in nitro.listen():
             # get event dict
             event_info = event.info()
