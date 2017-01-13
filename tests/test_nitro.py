@@ -26,6 +26,7 @@ requests.Session.send = send_fix_timeout
 # add parent directory
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from libnitro import Nitro
+from event import SyscallDirection
 
 
 NB_TEST = 1
@@ -64,7 +65,7 @@ def run_nitro(func):
             with Nitro(domain) as nitro:
                 logging.info('Counting syscalls...')
                 for event in nitro.listen():
-                    if event.direction() == 'ENTER':
+                    if event.direction == SyscallDirection.enter:
                         nb_syscalls += 1
                     if stop_request.isSet():
                         break
