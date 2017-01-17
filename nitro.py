@@ -14,6 +14,8 @@ import logging
 import signal
 import json
 import libvirt
+import time
+from pprint import pprint
 from docopt import docopt
 
 from libnitro import Nitro
@@ -38,21 +40,23 @@ def main(args):
     con = libvirt.open('qemu:///system')
     domain = con.lookupByName(vm_name)
 
-    counter = 0
     events = []
+
     # start Nitro
     with Nitro(domain) as nitro:
-        backend = Backend(domain)
-        for event in nitro.listen():
-            syscall = backend.process_event(event)
-            events.append(syscall.info())
-            # wait for CTRL+C to stop
-            if not run:
-                break
-    logging.info('Writing events')
-    with open('events.json', 'w') as f:
-        json.dump(events, f)
+        with Backend(domain) as backend:
+            for event in nitro.listen():
+                ev_info = event.info()
+                pprint(ev_info, width=1)
 
+                # stop properly by CTRL+C
+                if not run:
+                    break
+
+                #syscall = backend.process_event(event)
+                #sys_info = syscall.info()
+                #logging.debug('syscall : {}'.format(sys_info))
+                #events.append(syscall.info())
 
 
 if __name__ == '__main__':

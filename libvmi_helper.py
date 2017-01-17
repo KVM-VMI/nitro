@@ -13,50 +13,50 @@ Options:
 import logging
 import pyvmi
 import zmq
+import subprocess
 import base64
 from docopt import docopt
 
-SOCKET_PATH = '/tmp/nitro_libvmi.sock'
+NITRO_LIBVMI_SOCKET = '/tmp/nitro_libvmi.sock'
 
 class LibvmiHelper:
+
+    METHOD_ARGS_TYPE = {
+            'read_addr_va': {'address': long, 'pid': int},
+            'read_va': {'address': long, 'pid': int, 'size': int},
+            'read_addr_ksym': {'symbol': str},
+            'get_winver_str': {},
+            }
 
     def __init__(self, vm_name):
         self.vmi = pyvmi.init(vm_name, 'complete')
         self.ctxt = zmq.Context()
         self.socket = self.ctxt.socket(zmq.PAIR)
-        self.socket.bind('ipc://{}'.format(SOCKET_PATH))
+        self.socket.bind('ipc://{}'.format(NITRO_LIBVMI_SOCKET))
 
     def listen(self):
         while True:
-            msg = self.socket.recv_json()
-            func_name = msg['function']
-            func = getattr(self, func_name)
-            result = func(msg['args'])
-            reply = {}
-            reply['result'] = result
-            self.socket.send_json(reply)
+            request = self.socket.recv_json()
+            logging.debug('New request {}'.format(request))
+            func_name = request['function']
+            if func_name == 'stop':
+                break
 
-
-    def read_addr_va(self, args):
-        logging.debug('read_addr_va')
-        address = int(args['address'])
-        pid = int(args['pid'])
-        result = self.vmi.read_addr_va(address, pid)
-        return result
-
-    def read_va(self, args):
-        logging.debug('read_va')
-        address = int(args['address'])
-        pid = int(args['pid'])
-        size = int(args['size'])
-        result = self.vmi.read_va(address, pid, size)
-        return base64.b64encode(result)
-
-    def read_addr_ksym(self, args):
-        logging.debug('read_addr_ksym')
-        symbol = args['symbol']
-        result = self.vmi.read_addr_ksym(symbol)
-        return result
+            # build args with correct type
+            typed_args = []
+            for k,v in self.METHOD_ARGS_TYPE[func_name].iteritems():
+                cur_arg = request['args'].pop(0)
+                typed_args.append(v(cur_arg))
+            # call libvmi
+            libvmi_func = getattr(self.vmi, func_name)
+            result = libvmi_func(*typed_args)
+            logging.debug('result: {}'.format(result))
+            # encode result b64 (may be bytes)
+            result = base64.b64encode(str(result))
+            # return response
+            response = {'result': result}
+            logging.debug('sending response: {}'.format(response))
+            self.socket.send_json(response)
 
 
 def init_logger():
