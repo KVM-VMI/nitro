@@ -135,6 +135,10 @@ def test_domain(domain):
 
 
 def main():
+    # must be run as root
+    if os.geteuid() != 0:
+        logging.warn('Need root privileges')
+        sys.exit(1)
     con = libvirt.open('qemu:///system')
     for domain in con.listAllDomains():
         if re.match('nitro_.*', domain.name()):
