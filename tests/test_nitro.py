@@ -29,7 +29,7 @@ from libnitro import Nitro
 from event import SyscallDirection
 
 
-NB_TEST = 1
+NB_TEST = 3
 
 def get_ip(mac_addr):
     while True:
