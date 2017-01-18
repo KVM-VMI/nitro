@@ -1,42 +1,15 @@
-import sys
-import os
-import re
-import subprocess
-import json
 import logging
-import struct
-
+import re
+import os
 import libvirt
-import pyvmi
+import subprocess
+import shutil
+import json
+from tempfile import NamedTemporaryFile
+from event import SyscallDirection
+from libvmi_helper_client import LibvmiHelperClient
 
-from event import Event
-from hooks import Hooks
-
-class SyscallContext:
-
-    def __init__(self, event, process, syscall_name):
-        self.event = event
-        self.process = process
-        self.syscall_name = syscall_name
-
-    def __str__(self):
-        return '[{}] {} -> {}'.format(self.event, self.process.name, self.syscall_name)
-
-
-class VM:
-
-    def __init__(self, vm_name):
-        self.con = libvirt.open('qemu:///system')
-        self.domain = self.con.lookupByName(vm_name)
-
-    def pmem_dump(self, path):
-        flags = libvirt.VIR_DUMP_MEMORY_ONLY
-        dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
-        self.domain.coreDumpWithFormat(path, dumpformat, flags)
-
-    def vmem_read(self, addr, size):
-        content = self.domain.memoryPeek(addr, size, libvirt.VIR_MEMORY_VIRTUAL)
-        return content
+GETSYMBOLS_SCRIPT = 'symbols.py'
 
 class Process:
 
@@ -46,100 +19,102 @@ class Process:
         self.name = name
         self.pid = pid
 
+    def info(self):
+        info = {}
+        info['name'] = self.name
+        info['pid'] = self.pid
+        return info
+
+class Syscall:
+
+    def __init__(self, event, name, process):
+        self.event = event
+        self.name = name
+        self.process = process
+
+    def info(self):
+        info = {}
+        info['name'] = self.name
+        info['event'] = self.event.info()
+        if self.process:
+            info['process'] = self.process.info()
+        return info
+
+
 class Backend:
 
-    def __init__(self, vm_name, arch):
-        self.ptr_size = int(arch / 8)
+    def __init__(self, domain):
+        self.domain = domain
+        vcpus_info = self.domain.vcpus()
+        self.nb_vcpu = len(vcpus_info[0])
+        # create on syscall stack per vcpu
+        self.syscall_stack = {}
+        for vcpu_nb in range(self.nb_vcpu):
+            self.syscall_stack[vcpu_nb] = []
+        self.load_symbols()
+        # run libvmi helper subprocess
+        self.libvmi = LibvmiHelperClient(self.domain)
         self.processes = {}
-        self.sys_stack = []
-        self.vm = VM(vm_name)
-        logging.debug('Initializing libvmi ...')
-        self.vmi = pyvmi.init(vm_name, "complete")
-        self.hooks = Hooks(self.vmi)
-        # dump memory
-        logging.debug('Taking Physical Memory dump ...')
-        self.dump_path = 'dump.raw'
-        self.vm.pmem_dump(self.dump_path)
-        # call helper
-        logging.debug('Getting symbols ...')
-        # check virtualenv
-        venv_python = os.path.join('venv', 'bin', 'python')
-        if not os.path.isfile(venv_python):
-            logging.debug('Please install a virtualenv "venv" with rekall')
-            sys.exit(1)
-        cmd = [venv_python, 'symbols.py', self.dump_path]
-        proc = subprocess.Popen(cmd)
-        proc.communicate()
-        if proc.returncode != 0:
-            logging.critical('Unable to extract Windows symbols from RAM dump !')
-            sys.exit(1)
-        with open('output.json') as f:
-            jdata = json.load(f)
-            # loading ssdt entries
-            self.nt_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
-            self.win32k_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
-            self.sdt = [self.nt_ssdt, self.win32k_ssdt]
-            cur = None
-            for e in jdata:
-                if isinstance(e, list) and e[0] == 'r':
-                    if e[1]["divider"] is not None:
-                        # new table
-                        m = re.match(r'Table ([0-9]) @ .*', e[1]["divider"])
-                        idx = int(m.group(1))
-                        cur_ssdt = self.sdt[idx]['ServiceTable']
-                    else:
-                        entry = e[1]["entry"]
-                        full_name = e[1]["symbol"]["symbol"]
-                        m = re.match(r'(.*)(\+.*)?', full_name)
-                        name = m.group(1)
-                        # add entry  to our ssdt
-                        cur_ssdt[entry] = name
-            # loading kernel symbols addresses
-            self.kernel_symbols = jdata[-1]
-            logging.debug(self.kernel_symbols)
 
-            # # load argument tables
-            # argument_tables = [(0, self.kernel_symbols['KiArgumentTable']), (1, self.kernel_symbols['W32pArgumentTable'])]
-            # for table in argument_tables:
-            #     idx = table[0]
-            #     arg_table_addr = table[1]
-            #     nb_entries = len(self.sdt[idx]['ServiceTable'].keys())
-            #     for i in range(nb_entries):
-            #         addr = arg_table_addr + (4 * i)
-            #         content = self.vmi.read_va(addr, 0, 4)
-            #         nb_arg = struct.unpack(">I", content)[0] / 4
-            #         self.sdt[idx]['ArgumentTable'][i] = nb_arg
-        # remove dump and json file
-        os.remove('dump.raw')
-        os.remove('output.json')
+    def __enter__(self):
+        return self
 
+    def __exit__(self, exc_type, exc_value, traceback):
+        logging.info('Stopping libvmi helper')
+        self.libvmi.stop()
 
-    def new_event(self, event):
-        ctxt = None
-        if event.nitro_event.direction == Event.DIRECTION_EXIT:
-            # check syscall stack
+    def load_symbols(self):
+        with NamedTemporaryFile() as ram_dump:
+            # take a ram dump
+            logging.info('Dumping physical memory to {}'.format(ram_dump.name))
+            flags = libvirt.VIR_DUMP_MEMORY_ONLY
+            dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
+            self.domain.coreDumpWithFormat(ram_dump.name, dumpformat, flags)
+            # build symbols.py absolute path
+            script_dir = os.path.dirname(os.path.realpath(__file__))
+            symbols_script_path = os.path.join(script_dir, GETSYMBOLS_SCRIPT)
+            # call rekall on ram dump
+            logging.info('Extracting symbols with Rekall')
+            python2 = shutil.which('python2')
+            symbols_process = [python2, symbols_script_path, ram_dump.name]
+            output = subprocess.check_output(symbols_process)
+        logging.info('Loading symbols')
+        # load output as json
+        jdata = json.loads(output.decode('utf-8'))
+        # load ssdt entries
+        nt_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
+        win32k_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
+        self.sdt = [nt_ssdt, win32k_ssdt]
+        cur_ssdt = None
+        for e in jdata:
+            if isinstance(e, list) and e[0] == 'r':
+                if e[1]["divider"] is not None:
+                    # new table
+                    m = re.match(r'Table ([0-9]) @ .*', e[1]["divider"])
+                    idx = int(m.group(1))
+                    cur_ssdt = self.sdt[idx]['ServiceTable']
+                else:
+                    entry = e[1]["entry"]
+                    full_name = e[1]["symbol"]["symbol"]
+                    # add entry  to our current ssdt
+                    cur_ssdt[entry] = full_name
+                    logging.debug('Add SSDT entry [{}] -> {}'.format(entry, full_name))
+
+    def process_event(self, event):
+        cr3 = event.sregs.cr3
+        process = self.associate_process(cr3)
+        if event.direction == SyscallDirection.exit:
             try:
-                ctxt = self.sys_stack.pop()
-                ctxt.event = event
+                syscall_name = self.syscall_stack[event.vcpu_nb].pop()
             except IndexError:
-                # logging.debug(event)
-                return
+                syscall_name = 'Unknown'
         else:
-            # create syscall context
-            cr3 = event.sregs.cr3
-            # get process
-            process = self.associate_process(cr3)
-            # get syscall name
-            ssn = event.regs.rax & 0xFFF
-            idx = (event.regs.rax & 0x3000) >> 12
-            syscall = self.sdt[idx]['ServiceTable'][ssn]
-            m = re.match(r'.*!(.*)', syscall)
-            syscall_name = m.group(1)
-            ctxt = SyscallContext(event, process, syscall_name)
-            # push on stack
-            self.sys_stack.append(ctxt)
+            syscall_name = self.get_syscall_name(event.regs.rax)
+            # push them to the stack
+            self.syscall_stack[event.vcpu_nb].append(syscall_name)
+        syscall = Syscall(event, syscall_name, process)
+        return syscall
 
-        self.hooks.dispatch(ctxt)
 
     def associate_process(self, cr3):
         p = None
@@ -150,29 +125,44 @@ class Backend:
             self.processes[cr3] = p
         return p
 
+
+
     def find_eprocess(self, cr3):
         # read PsActiveProcessHead list_entry
-        flink = self.vmi.read_addr_ksym('PsActiveProcessHead')
+        ps_head = self.libvmi.translate_ksym2v('PsActiveProcessHead')
+        flink = self.libvmi.read_addr_ksym('PsActiveProcessHead')
         
-        while flink != self.kernel_symbols['PsActiveProcessHead']:
+        while flink != ps_head:
             # get start of EProcess
-            start_eproc = flink - self.kernel_symbols['ActiveProcessLinks_off']
+            start_eproc = flink - self.libvmi.get_offset('win_tasks')
             # move to start of DirectoryTableBase
-            directory_table_base_off = start_eproc + self.kernel_symbols['DirectoryTableBase_off']
+            directory_table_base_off = start_eproc + self.libvmi.get_offset('win_pdbase')
             # read directory_table_base
-            directory_table_base = self.vmi.read_addr_va(directory_table_base_off, 0)
+            directory_table_base = self.libvmi.read_addr_va(directory_table_base_off, 0)
             # compare to our cr3
             if cr3 == directory_table_base:
                 # get name
-                image_file_name_off = start_eproc + self.kernel_symbols['ImageFileName_off']
-                content = self.vmi.read_va(image_file_name_off, 0, 15)
+                image_file_name_off = start_eproc + self.libvmi.get_offset('win_pname')
+                content = self.libvmi.read_va(image_file_name_off, 0, 15)
                 image_file_name = content.rstrip(b'\0').decode('utf-8')
                 # get pid
-                unique_processid_off = start_eproc + self.kernel_symbols['UniqueProcessId_off']
-                pid = self.vmi.read_addr_va(unique_processid_off, 0)
+                unique_processid_off = start_eproc + self.libvmi.get_offset('win_pid')
+                pid = self.libvmi.read_addr_va(unique_processid_off, 0)
                 eprocess = Process(cr3, start_eproc, image_file_name, pid)
                 return eprocess
 
             # read new flink
-            flink = self.vmi.read_addr_va(flink, 0)
+            flink = self.libvmi.read_addr_va(flink, 0)
+        return None
+
+
+    def get_syscall_name(self, rax):
+        ssn = rax & 0xFFF
+        idx = (rax & 0x3000) >> 12
+        try:
+            syscall_name = self.sdt[idx]['ServiceTable'][ssn]
+        except (KeyError, IndexError):
+            syscall_name = 'Table{}!Unknown'.format(idx)
+        return syscall_name
+
 

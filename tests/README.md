@@ -10,36 +10,38 @@ Running `sudo ./test_nitro.py` will do the following operations :
 3. wait for the DHCP request to get the ip address via polling on `ip neigh`
 4. test the WinRM service by sending an `ipconfig` command using credentials `vagrant:vagrant`
 5. set nitro traps and start counting the number of syscalls
-6. run a test command in a graphic powershell (currently, listing content under `system32`)
-7. stop nitro
-8. display results and elapsed time for the test
-
-limitations:
-- arch must be `x64`
-- only 1 VCPU allowed
+6. run a test command in a graphic powershell (currently, listing content under `C:\Windows`)
+7. repeat this procedure 3 times
+8. display the average elapsed time per test
 
 Execution output:
 
 ~~~
 Testing nitro_win7x64
-MAC address : 52:54:00:a3:92:b6
-IP address : 192.168.122.71
+MAC address : 52:54:00:bf:21:3e
+IP address : 192.168.122.2
 Establishing a WinRM session
+Finding QEMU pid for domain nitro_win7x64
 Running test command
+Executing PowerShell command : Get-ChildItem -Path C:\windows
 Loading libnitro.so
-Suspending the Guest
+Detected 1 VCPUs
 Initializing KVM
 Attaching to the VM
 Attaching to VCPUs
-Setting Traps
-Resuming the Guest
 Counting syscalls...
-Total execution time 0:02:04.146711
-Suspending the Guest
-Unsetting Traps
+Setting traps to True
+Start listening on VCPU 0
+WinRM error, retrying
+Setting traps to False
 Closing KVM
-Resuming the Guest
-Nb Syscalls : 514502
+Nb Syscalls : 390344
+[TEST 1] Total execution time : 0:02:02.209704
+...
+[TEST 2] Total execution time : 0:00:51.621399
+...
+...
+Average execution time : 0:01:08.184954
 Waiting for shutdown
 ~~~
 
