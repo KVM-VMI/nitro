@@ -49,6 +49,7 @@ you don't have one already.
 
 - Start `Nitro` as root
 
+~~~
 """Nitro.
 
 Usage:
@@ -60,6 +61,7 @@ Options:
   --stdout      Display events on stdout, not in a log file
 
 """
+~~~
 
 Nitro monitors the given `<vm_name>` syscalls by activating a set of traps in KVM.
 The optional components listed above are needed only if you want to extract more information
