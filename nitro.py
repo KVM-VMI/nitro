@@ -7,6 +7,8 @@ Usage:
 
 Options:
   -h --help     Show this screen.
+  --nobackend   Don't analyze events
+  --stdout      Display events on stdout, not in a log file
 
 """
 
@@ -41,20 +43,33 @@ def main(args):
     domain = con.lookupByName(vm_name)
 
     events = []
+    # init backend if necessary
+    backend = None
+    if not args['--nobackend']:
+        backend = Backend(domain)
+
     # start Nitro
     with Nitro(domain) as nitro:
-        with Backend(domain) as backend:
-            for event in nitro.listen():
+        for event in nitro.listen():
+            ev_info = None
+            if backend:
                 syscall = backend.process_event(event)
-                sys_info = syscall.info()
-                events.append(sys_info)
-                
-                # stop properly by CTRL+C
-                if not run:
-                    break
-    logging.info('Writing events')
-    with open('events.json', 'w') as f:
-        json.dump(events, f)
+                ev_info = syscall.info()
+            else:
+                ev_info = event.info()
+            if args['--stdout']:
+                pprint(ev_info, width=1)
+            else:
+                events.append(ev_info)
+            
+            # stop properly by CTRL+C
+            if not run:
+                break
+
+    if events:
+        logging.info('Writing events')
+        with open('events.json', 'w') as f:
+            json.dump(events, f)
 
 
 
