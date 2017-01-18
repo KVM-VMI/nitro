@@ -36,7 +36,8 @@ class Syscall:
         info = {}
         info['name'] = self.name
         info['event'] = self.event.info()
-        info['process'] = self.process.info()
+        if self.process:
+            info['process'] = self.process.info()
         return info
 
 
@@ -152,6 +153,7 @@ class Backend:
 
             # read new flink
             flink = self.libvmi.read_addr_va(flink, 0)
+        return None
 
 
     def get_syscall_name(self, rax):
