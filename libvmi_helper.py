@@ -27,6 +27,7 @@ class LibvmiHelper:
             'read_addr_ksym': {'symbol': str},
             'translate_ksym2v': {'symbol': str},
             'get_winver_str': {},
+            'get_offset': {'key': str},
             }
 
     def __init__(self, vm_name):

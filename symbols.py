@@ -42,24 +42,6 @@ def main(args):
     s.RunPlugin("ssdt", output=output)
     jdata = json.loads(output.getvalue())
 
-    # get eprocess ActiveProcessLinks offset
-    activeprocesslinks_off = s.profile.get_obj_offset('_EPROCESS', 'ActiveProcessLinks')
-    # get kprocess DirectoryTableBase offset
-    directorytablebase_off = s.profile.get_obj_offset('_KPROCESS', 'DirectoryTableBase')
-    # get eprocess ImageFileName offset
-    imagefilename_off = s.profile.get_obj_offset('_EPROCESS', 'ImageFileName')
-    # get eprocess UniqueProcessId offset
-    uniqueprocessid_off = s.profile.get_obj_offset('_EPROCESS', 'UniqueProcessId')
-
-    # add to json
-    kernel_symbols = {}
-    kernel_symbols['ActiveProcessLinks_off'] = activeprocesslinks_off
-    kernel_symbols['DirectoryTableBase_off'] = directorytablebase_off
-    kernel_symbols['ImageFileName_off'] = imagefilename_off
-    kernel_symbols['UniqueProcessId_off'] = uniqueprocessid_off
-
-    jdata.append(kernel_symbols)
-
     print(json.dumps(jdata))
 
 if __name__ == '__main__':
