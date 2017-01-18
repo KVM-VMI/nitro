@@ -130,9 +130,10 @@ class Backend:
 
     def find_eprocess(self, cr3):
         # read PsActiveProcessHead list_entry
+        ps_head = self.libvmi.translate_ksym2v('PsActiveProcessHead')
         flink = self.libvmi.read_addr_ksym('PsActiveProcessHead')
         
-        while flink != self.kernel_symbols['PsActiveProcessHead']:
+        while flink != ps_head:
             # get start of EProcess
             start_eproc = flink - self.kernel_symbols['ActiveProcessLinks_off']
             # move to start of DirectoryTableBase

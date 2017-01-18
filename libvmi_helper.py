@@ -25,6 +25,7 @@ class LibvmiHelper:
             'read_addr_va': {'address': long, 'pid': int},
             'read_va': {'address': long, 'pid': int, 'size': int},
             'read_addr_ksym': {'symbol': str},
+            'translate_ksym2v': {'symbol': str},
             'get_winver_str': {},
             }
 

@@ -15,6 +15,7 @@ class LibvmiHelperClient:
             'read_addr_va': int,
             'read_va': bytes,
             'read_addr_ksym': int,
+            'translate_ksym2v': int,
             'get_winver_str': str
         }
 
@@ -46,6 +47,9 @@ class LibvmiHelperClient:
 
     def read_addr_ksym(self, *args):
         return self.call_helper('read_addr_ksym', *args)
+
+    def translate_ksym2v(self, *args):
+        return self.call_helper('translate_ksym2v', *args)
             
 
     def call_helper(self, func_name, *args):
