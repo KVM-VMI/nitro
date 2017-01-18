@@ -62,7 +62,7 @@ class LibvmiHelper:
 
 
 def init_logger():
-    logging.basicConfig(filename='libvmi_helper.log', level=logging.DEBUG, format='%(message)s')
+    logging.basicConfig(filename='libvmi_helper.log', level=logging.INFO, format='%(message)s')
 
 def main(args):
     vm_name = args['<vm_name>']
