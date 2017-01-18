@@ -23,11 +23,6 @@ from docopt import docopt
 from rekall import session
 from rekall import plugins
 
-def get_symbol_addr(session, symbol):
-    return session.address_resolver.get_constant_object(symbol,
-            "unsigned int").obj_offset
-
-
 def main(args):
     ram_dump = args['<ram_dump>']
     s = session.Session(
@@ -47,8 +42,6 @@ def main(args):
     s.RunPlugin("ssdt", output=output)
     jdata = json.loads(output.getvalue())
 
-    # get PsActiveProcessHead address
-    pshead_addr = get_symbol_addr(s, 'nt!PsActiveProcessHead')
     # get eprocess ActiveProcessLinks offset
     activeprocesslinks_off = s.profile.get_obj_offset('_EPROCESS', 'ActiveProcessLinks')
     # get kprocess DirectoryTableBase offset
@@ -60,7 +53,6 @@ def main(args):
 
     # add to json
     kernel_symbols = {}
-    kernel_symbols['PsActiveProcessHead'] = pshead_addr
     kernel_symbols['ActiveProcessLinks_off'] = activeprocesslinks_off
     kernel_symbols['DirectoryTableBase_off'] = directorytablebase_off
     kernel_symbols['ImageFileName_off'] = imagefilename_off
