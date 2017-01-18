@@ -60,13 +60,13 @@ class Backend:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        logging.debug('Stopping libvmi helper')
+        logging.info('Stopping libvmi helper')
         self.libvmi.stop()
 
     def load_symbols(self):
         with NamedTemporaryFile() as ram_dump:
             # take a ram dump
-            logging.debug('Dumping physical memory to {}'.format(ram_dump.name))
+            logging.info('Dumping physical memory to {}'.format(ram_dump.name))
             flags = libvirt.VIR_DUMP_MEMORY_ONLY
             dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
             self.domain.coreDumpWithFormat(ram_dump.name, dumpformat, flags)
@@ -74,11 +74,11 @@ class Backend:
             script_dir = os.path.dirname(os.path.realpath(__file__))
             symbols_script_path = os.path.join(script_dir, GETSYMBOLS_SCRIPT)
             # call rekall on ram dump
-            logging.debug('Extracting symbols with Rekall')
+            logging.info('Extracting symbols with Rekall')
             python2 = shutil.which('python2')
             symbols_process = [python2, symbols_script_path, ram_dump.name]
             output = subprocess.check_output(symbols_process)
-        logging.debug('Loading symbols')
+        logging.info('Loading symbols')
         # load output as json
         jdata = json.loads(output.decode('utf-8'))
         # load ssdt entries

@@ -23,10 +23,10 @@ class Nitro:
         self.libnitro = self.load_libnitro()
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
-        logging.debug('Detected {} VCPUs'.format(self.nb_vcpu))
+        logging.info('Detected {} VCPUs'.format(self.nb_vcpu))
 
     def find_qemu_pid(self, domain):
-        logging.debug('Finding QEMU pid for domain {}'.format(domain.name()))
+        logging.info('Finding QEMU pid for domain {}'.format(domain.name()))
         libvirt_vm_pid_file = '/var/run/libvirt/qemu/{}.pid'.format(domain.name())
         with open(libvirt_vm_pid_file, 'r') as f:
             content = f.read()
@@ -51,7 +51,7 @@ class Nitro:
 
     def set_traps(self, enabled):
         self.domain.suspend()
-        logging.debug('Setting traps to {}'.format(enabled))
+        logging.info('Setting traps to {}'.format(enabled))
         self.libnitro.set_syscall_trap(enabled)
         self.domain.resume()
 
@@ -91,7 +91,7 @@ class Nitro:
             
 
     def listen_vcpu(self, vcpu_nb, queue):
-        logging.debug('Start listening on VCPU {}'.format(vcpu_nb))
+        logging.info('Start listening on VCPU {}'.format(vcpu_nb))
         while not self.stop_request.is_set():
             nitro_ev = NitroEventStr()
             self.libnitro.get_event(vcpu_nb, byref(nitro_ev))

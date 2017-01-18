@@ -32,7 +32,7 @@ signal.signal(signal.SIGINT, sigint_handler)
 def init_logger():
     logger = logging.getLogger()
     logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
 def main(args):
     vm_name = args['<vm_name>']
@@ -41,22 +41,21 @@ def main(args):
     domain = con.lookupByName(vm_name)
 
     events = []
-
     # start Nitro
     with Nitro(domain) as nitro:
         with Backend(domain) as backend:
             for event in nitro.listen():
-                ev_info = event.info()
-                pprint(ev_info, width=1)
-
+                syscall = backend.process_event(event)
+                sys_info = syscall.info()
+                events.append(sys_info)
+                
                 # stop properly by CTRL+C
                 if not run:
                     break
+    logging.info('Writing events')
+    with open('events.json', 'w') as f:
+        json.dump(events, f)
 
-                #syscall = backend.process_event(event)
-                #sys_info = syscall.info()
-                #logging.debug('syscall : {}'.format(sys_info))
-                #events.append(syscall.info())
 
 
 if __name__ == '__main__':
