@@ -40,3 +40,6 @@ venv/
 
 # rekall cache
 rekall_cache/
+
+events.json
+libvmi_helper.log
