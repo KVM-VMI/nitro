@@ -25,8 +25,8 @@ requests.Session.send = send_fix_timeout
 
 # add parent directory
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from libnitro import Nitro
-from event import SyscallDirection
+from nitro.nitro import Nitro
+from nitro.event import SyscallDirection
 
 
 NB_TEST = 3
@@ -110,7 +110,7 @@ def run_test(domain, session):
             break
     total_seconds = end - start
     return total_seconds
-        
+
 
 
 @start_stop

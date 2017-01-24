@@ -19,9 +19,6 @@
 # cache/backup
 *~
 
-#target
-nitro
-
 #KDevelop files
 *.kdev4
 
@@ -34,6 +31,7 @@ __pycache__
 
 # libnitro cmake build dir
 libnitro/_build
+libnitro/build
 
 # virtualenv
 venv/

@@ -6,8 +6,8 @@ import subprocess
 import shutil
 import json
 from tempfile import NamedTemporaryFile
-from event import SyscallDirection
-from libvmi_helper_client import LibvmiHelperClient
+from nitro.event import SyscallDirection
+from nitro.libvmi_helper_client import LibvmiHelperClient
 
 GETSYMBOLS_SCRIPT = 'symbols.py'
 
@@ -43,7 +43,7 @@ class Syscall:
 
 class Backend:
 
-    def __init__(self, domain):
+    def __init__(self, domain, vmi_config=None):
         self.domain = domain
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
@@ -53,7 +53,7 @@ class Backend:
             self.syscall_stack[vcpu_nb] = []
         self.load_symbols()
         # run libvmi helper subprocess
-        self.libvmi = LibvmiHelperClient(self.domain)
+        self.libvmi = LibvmiHelperClient(self.domain, vmi_config)
         self.processes = {}
 
     def __enter__(self):

@@ -13,7 +13,7 @@ from pebble import waitforqueues
 from concurrent.futures import ThreadPoolExecutor, wait
 from ctypes import *
 
-from event import NitroEvent, Regs, SRegs, NitroEventStr
+from nitro.event import NitroEvent, Regs, SRegs, NitroEventStr
 
 class Nitro:
 
@@ -88,7 +88,7 @@ class Nitro:
                 self.last_queue = q
                 yield event
                 q.task_done()
-            
+
 
     def listen_vcpu(self, vcpu_nb, queue):
         logging.info('Start listening on VCPU {}'.format(vcpu_nb))

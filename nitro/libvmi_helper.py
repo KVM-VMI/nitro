@@ -10,6 +10,7 @@ Options:
 
 """
 
+import re
 import logging
 import pyvmi
 import zmq
@@ -28,13 +29,28 @@ class LibvmiHelper:
             'translate_ksym2v': {'symbol': str},
             'get_winver_str': {},
             'get_offset': {'key': str},
+            'init_pyvmi_name': {'name': str},
+            'init_pyvmi_config': {'config': dict}
             }
 
     def __init__(self, vm_name):
-        self.vmi = pyvmi.init(vm_name, 'complete')
         self.ctxt = zmq.Context()
         self.socket = self.ctxt.socket(zmq.PAIR)
         self.socket.bind('ipc://{}'.format(NITRO_LIBVMI_SOCKET))
+
+    def init_pyvmi_name(self, name):
+        self.vmi = pyvmi.init(name, 'complete')
+        return True
+
+    def init_pyvmi_config(self, config):
+        sanitized_config = {}
+        for k, v in config.iteritems():
+            san_v = v
+            if isinstance(v, unicode):
+                san_v = str(v)
+            sanitized_config[str(k)] = san_v
+        self.vmi = pyvmi.init(sanitized_config)
+        return True
 
     def listen(self):
         while True:
@@ -49,15 +65,20 @@ class LibvmiHelper:
             for k,v in self.METHOD_ARGS_TYPE[func_name].iteritems():
                 cur_arg = request['args'].pop(0)
                 typed_args.append(v(cur_arg))
-            # call libvmi
-            libvmi_func = getattr(self.vmi, func_name)
-            result = libvmi_func(*typed_args)
+            if re.match('init_pyvmi_*', func_name):
+                # init using domain name
+                helper_func = getattr(self, func_name)
+                result = helper_func(*typed_args)
+            else:
+                # call libvmi
+                libvmi_func = getattr(self.vmi, func_name)
+                result = libvmi_func(*typed_args)
             logging.debug('result: {}'.format(result))
             # encode result b64 (may be bytes)
             result = base64.b64encode(str(result))
             # return response
             response = {'result': result}
-            logging.debug('sending response: {}'.format(response))
+            logging.debug(response)
             self.socket.send_json(response)
 
 

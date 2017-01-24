@@ -1,6 +1,5 @@
 import logging
 import os
-import pyvmi
 import zmq
 import subprocess
 import base64
@@ -17,10 +16,12 @@ class LibvmiHelperClient:
             'read_addr_ksym': int,
             'translate_ksym2v': int,
             'get_offset': int,
-            'get_winver_str': str
+            'get_winver_str': str,
+            'init_pyvmi_name': str,
+            'init_pyvmi_config': str,
         }
 
-    def __init__(self, domain):
+    def __init__(self, domain, vmi_config=None):
         self.domain = domain
         # build path to libvmi
         script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -33,6 +34,11 @@ class LibvmiHelperClient:
         self.ctxt = zmq.Context()
         self.socket = self.ctxt.socket(zmq.PAIR)
         self.socket.connect('ipc://{}'.format(NITRO_LIBVMI_SOCKET))
+        # init
+        if vmi_config:
+            self.init_pyvmi_config(vmi_config)
+        else:
+            self.init_pyvmi_name(domain.name())
         # sending test request
         vers = self.get_winver_str()
         logging.debug('Windows version : {}'.format(vers))
@@ -54,7 +60,13 @@ class LibvmiHelperClient:
 
     def get_offset(self, *args):
         return self.call_helper('get_offset', *args)
-            
+
+    def init_pyvmi_name(self, *args):
+        return self.call_helper('init_pyvmi_name', *args)
+
+    def init_pyvmi_config(self, *args):
+        return self.call_helper('init_pyvmi_config', *args)
+
 
     def call_helper(self, func_name, *args):
         # prepare request

@@ -20,8 +20,8 @@ import time
 from pprint import pprint
 from docopt import docopt
 
-from libnitro import Nitro
-from backend import Backend
+from nitro.nitro import Nitro
+from nitro.backend import Backend
 
 run = True
 # def new signal for SIGINT
@@ -61,7 +61,7 @@ def main(args):
                 pprint(ev_info, width=1)
             else:
                 events.append(ev_info)
-            
+
             # stop properly by CTRL+C
             if not run:
                 break
