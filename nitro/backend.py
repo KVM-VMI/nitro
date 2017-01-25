@@ -60,6 +60,9 @@ class Backend:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.stop()
+
+    def stop(self):
         logging.info('Stopping libvmi helper')
         self.libvmi.stop()
 
