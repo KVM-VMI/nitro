@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import zmq
 import subprocess
 import base64
@@ -26,8 +27,9 @@ class LibvmiHelperClient:
         # build path to libvmi
         script_dir = os.path.dirname(os.path.realpath(__file__))
         libvmi_helper_path = os.path.join(script_dir, LIBVMI_HELPER)
-        args = [libvmi_helper_path, self.domain.name()]
-        logging.debug('Starting libvmi helper')
+        python2 = shutil.which('python2')
+        args = [python2, libvmi_helper_path, self.domain.name()]
+        logging.debug('Starting libvmi helper {}'.format(args))
         # run subprocess
         self.libvmi_proc = subprocess.Popen(args)
         # init zmq
