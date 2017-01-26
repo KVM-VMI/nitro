@@ -13,25 +13,27 @@ from pebble import waitforqueues
 from concurrent.futures import ThreadPoolExecutor, wait
 from ctypes import *
 
-from nitro.event import NitroEvent, Regs, SRegs, NitroEventStr
+from nitro.event import NitroEvent
+from nitro.kvm import Regs, SRegs, NitroEventStr
+
+def find_qemu_pid(domain):
+    logging.info('Finding QEMU pid for domain {}'.format(domain.name()))
+    libvirt_vm_pid_file = '/var/run/libvirt/qemu/{}.pid'.format(domain.name())
+    with open(libvirt_vm_pid_file, 'r') as f:
+        content = f.read()
+        pid = int(content)
+        return pid
 
 class Nitro:
 
     def __init__(self, domain):
         self.domain = domain
-        self.pid = self.find_qemu_pid(domain)
+        self.pid = find_qemu_pid(domain)
         self.libnitro = self.load_libnitro()
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
         logging.info('Detected {} VCPUs'.format(self.nb_vcpu))
 
-    def find_qemu_pid(self, domain):
-        logging.info('Finding QEMU pid for domain {}'.format(domain.name()))
-        libvirt_vm_pid_file = '/var/run/libvirt/qemu/{}.pid'.format(domain.name())
-        with open(libvirt_vm_pid_file, 'r') as f:
-            content = f.read()
-            pid = int(content)
-            return pid
 
     def load_libnitro(self):
         logging.debug('Loading libnitro.so')
