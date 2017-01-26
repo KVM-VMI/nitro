@@ -9,6 +9,7 @@ import shutil
 import time
 import xml.etree.ElementTree as tree
 import threading
+import socket
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 from datetime import timedelta
 
@@ -52,7 +53,7 @@ def run_nitro_thread(domain, stop_request):
 
 def get_test_content():
     content = """
-powershell -Command \"Get-ChildItem -Path C:\\windows"
+powershell -Command \"Get-ChildItem -Path C:\\windows\"
 """[1:].replace('\n', '\r\n')
     return content
 
@@ -79,16 +80,26 @@ def test_domain(domain):
     start_time = time.time()
     # mount cdrom, test is executed
     mount_cdrom(domain, tmp_iso.name)
-    # wait for shutdown
+    # wait for domain to be shutting down
     while True:
-        if domain.state()[0] == libvirt.VIR_DOMAIN_SHUTOFF:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(10)
+        state = s.connect_ex((ip, 5985))
+        s.close()
+        logging.debug(state)
+        if state != 0:
+            # port is closed
+            # end of execution
+            stop_request.set()
+            stop_time = time.time()
+            domain.shutdown()
+            thread.join()
             break
         time.sleep(1)
-    stop_time = time.time()
     result = stop_time - start_time
-    # stop nitro and clean
-    stop_request.set()
-    #thread.join()
+    # stop domain
+    while domain.state()[0] != libvirt.VIR_DOMAIN_SHUTOFF:
+        time.sleep(1)
     tmp_iso.close()
     return result
 
@@ -135,7 +146,7 @@ open=run.bat
     # write run.bat
     content = get_test_content()
     end_test = """
-shutdown -s -f -t 0
+sc stop winrm
 """[1:].replace('\n', '\r\n')
     content += end_test
     run_bat_path = os.path.join(tmpdir, 'run.bat')
@@ -162,6 +173,5 @@ def main():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(message)s')
-    logging.getLogger("requests").setLevel(logging.WARNING)
     main()
 
