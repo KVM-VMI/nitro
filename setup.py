@@ -1,23 +1,6 @@
 #!/usr/bin/env python3
 
-from setuptools import setup, find_packages, Extension
-import os
-import subprocess
-import shutil
-
-script_dir = os.path.dirname(os.path.realpath(__file__))
-libnitro_source_path = os.path.join(script_dir, 'nitro', 'libnitro')
-libnitro_build_path = os.path.join(script_dir, 'nitro', 'libnitro', 'build')
-# mkdir build
-os.makedirs(libnitro_build_path, exist_ok=True)
-# cmake
-p = subprocess.Popen('cmake {}'.format(libnitro_source_path), shell=True, cwd=libnitro_build_path)
-p.wait()
-# make
-p = subprocess.Popen('make', shell=True, cwd=libnitro_build_path)
-p.wait()
-
-
+from setuptools import setup, find_packages
 
 setup(
     name="nitro",
@@ -30,6 +13,5 @@ setup(
     install_requires=[
         'Pebble',
     ],
-    data_files=[('nitro/libnitro', ['nitro/libnitro/libnitro.so'])],
     keywords="nitro hyperisor monitoring tracing syscall",
 )
