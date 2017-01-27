@@ -86,7 +86,6 @@ def test_domain(domain):
         s.settimeout(10)
         state = s.connect_ex((ip, 5985))
         s.close()
-        logging.debug(state)
         if state != 0:
             # port is closed
             # end of execution
