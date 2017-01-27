@@ -152,23 +152,23 @@ class VCPU(IOCTL):
         self.fd = vcpu_fd
 
     def get_event(self):
-        logging.debug('get_event {}'.format(self.vcpu_nb))
+        # logging.debug('get_event {}'.format(self.vcpu_nb))
         nitro_ev = NitroEventStr()
         self.make_ioctl(self.KVM_NITRO_GET_EVENT, byref(nitro_ev))
         return nitro_ev
 
     def continue_vm(self):
-        logging.debug('continue_vm {}'.format(self.vcpu_nb))
+        # logging.debug('continue_vm {}'.format(self.vcpu_nb))
         return self.make_ioctl(self.KVM_NITRO_CONTINUE, None)
 
     def get_regs(self):
-        logging.debug('get_regs {}'.format(self.vcpu_nb))
+        # logging.debug('get_regs {}'.format(self.vcpu_nb))
         regs = Regs()
         self.make_ioctl(self.KVM_NITRO_GET_REGS, byref(regs))
         return regs
 
     def get_sregs(self):
-        logging.debug('get_sregs {}'.format(self.vcpu_nb))
+        # logging.debug('get_sregs {}'.format(self.vcpu_nb))
         sregs = SRegs()
         self.make_ioctl(self.KVM_NITRO_GET_SREGS, byref(sregs))
         return sregs
