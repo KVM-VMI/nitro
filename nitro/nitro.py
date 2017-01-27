@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from ctypes import *
 
 from nitro.event import NitroEvent
-from nitro.kvm import Regs, SRegs, NitroEventStr
+from nitro.kvm import KVM, VM, VCPU
 
 def find_qemu_pid(domain):
     logging.info('Finding QEMU pid for domain {}'.format(domain.name()))
@@ -29,57 +29,39 @@ class Nitro:
     def __init__(self, domain):
         self.domain = domain
         self.pid = find_qemu_pid(domain)
-        self.libnitro = self.load_libnitro()
-        vcpus_info = self.domain.vcpus()
-        self.nb_vcpu = len(vcpus_info[0])
-        logging.info('Detected {} VCPUs'.format(self.nb_vcpu))
-
-
-    def load_libnitro(self):
-        logging.debug('Loading libnitro.so')
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        libnitro_so_path = os.path.join(script_dir, 'libnitro', 'libnitro.so')
-        libnitro = cdll.LoadLibrary(libnitro_so_path)
-        return libnitro
-
-    def attach_vm(self):
-        logging.debug('Initializing KVM')
-        self.libnitro.init_kvm()
-        logging.debug('Attaching to the VM')
-        self.libnitro.attach_vm(c_int(self.pid))
-        logging.debug('Attaching to VCPUs')
-        self.libnitro.attach_vcpus()
-
+        # init KVM
+        self.kvm_io = KVM()
+        # get VM fd
+        vm_fd = self.kvm_io.attach_vm(self.pid)
+        self.vm_io = VM(vm_fd)
+        # get VCPU fds
+        self.vcpus_io = self.vm_io.attach_vcpus()
 
     def set_traps(self, enabled):
         self.domain.suspend()
-        logging.info('Setting traps to {}'.format(enabled))
-        self.libnitro.set_syscall_trap(enabled)
+        self.vm_io.set_syscall_trap(enabled)
         self.domain.resume()
 
-
     def __enter__(self):
-        self.attach_vm()
         return self
 
     def __exit__(self, type, value, traceback):
         self.stop_listen()
-        logging.debug('Closing KVM')
-        self.libnitro.close_kvm()
 
 
     def listen(self):
         self.set_traps(True)
         self.stop_request = threading.Event()
-        pool = ThreadPoolExecutor(max_workers=self.nb_vcpu)
+        pool = ThreadPoolExecutor(max_workers=len(self.vcpus_io))
         self.futures = []
         self.queue_list = []
-        for vcpu_nb in range(self.nb_vcpu):
+        self.last_queue = None
+        for vcpu_io in self.vcpus_io:
             # create queue for this vcpu
             q = Queue(maxsize=1)
             self.queue_list.append(q)
             # start to listen on this vcpu and report events in the queue
-            f = pool.submit(self.listen_vcpu, vcpu_nb, q)
+            f = pool.submit(self.listen_vcpu, vcpu_io, q)
             self.futures.append(f)
 
         # while a thread is still running
@@ -92,24 +74,21 @@ class Nitro:
                 q.task_done()
 
 
-    def listen_vcpu(self, vcpu_nb, queue):
-        logging.info('Start listening on VCPU {}'.format(vcpu_nb))
+    def listen_vcpu(self, vcpu_io, queue):
+        logging.info('Start listening on VCPU {}'.format(vcpu_io.vcpu_nb))
         while not self.stop_request.is_set():
-            nitro_ev = NitroEventStr()
-            self.libnitro.get_event(vcpu_nb, byref(nitro_ev))
+            nitro_raw_ev = vcpu_io.get_event()
 
-            regs = Regs()
-            sregs = SRegs()
-            self.libnitro.get_regs(vcpu_nb, byref(regs))
-            self.libnitro.get_sregs(vcpu_nb, byref(sregs))
+            regs = vcpu_io.get_regs()
+            sregs = vcpu_io.get_sregs()
 
-            e = NitroEvent(nitro_ev, regs, sregs, vcpu_nb)
+            e = NitroEvent(nitro_raw_ev, regs, sregs, vcpu_io.vcpu_nb)
 
-            # put in the queue and wait for the event to be treated
+            # put in the queue and wait for the event to be processed
             queue.put_nowait(e)
             queue.join()
 
-            self.libnitro.continue_vm(vcpu_nb)
+            vcpu_io.continue_vm()
 
     def stop_listen(self):
         self.set_traps(False)
