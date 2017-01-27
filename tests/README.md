@@ -1,3 +1,7 @@
+# Requirements
+
+- `genisoimage`
+
 # Testing
 
 This directory contains a script named `test_nitro.py` to benchmark Nitro
