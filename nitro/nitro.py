@@ -36,6 +36,7 @@ class Nitro:
         self.vm_io = VM(vm_fd)
         # get VCPU fds
         self.vcpus_io = self.vm_io.attach_vcpus()
+        logging.info('Detected {} VCPUs'.format(len(self.vcpus_io)))
 
     def set_traps(self, enabled):
         self.domain.suspend()
