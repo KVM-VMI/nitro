@@ -29,11 +29,10 @@ def main(args):
             filename=ram_dump,
             autodetect=["rsds"],
             logger=logging.getLogger(),
-            cache_dir='{}/rekall_cache'.format(os.getcwd()),
             autodetect_build_local='basic',
             format='data',
             profile_path=[
-                "http://profiles.rekall-forensic.com"   
+                "http://profiles.rekall-forensic.com"
             ])
 
 
