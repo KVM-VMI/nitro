@@ -11,11 +11,11 @@ class SyscallType(Enum):
 
 class NitroEvent:
 
-    def __init__(self, nitro_event_str, regs, sregs, vcpu_nb=0):
+    def __init__(self, nitro_event_str, vcpu_nb=0):
         self.direction = SyscallDirection(nitro_event_str.direction)
         self.type = SyscallType(nitro_event_str.type)
-        self.regs = regs
-        self.sregs = sregs
+        self.regs = nitro_event_str.regs
+        self.sregs = nitro_event_str.sregs
         self.vcpu_nb = vcpu_nb
 
     def __str__(self):

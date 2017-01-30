@@ -80,10 +80,7 @@ class Nitro:
         while not self.stop_request.is_set():
             nitro_raw_ev = vcpu_io.get_event()
 
-            regs = vcpu_io.get_regs()
-            sregs = vcpu_io.get_sregs()
-
-            e = NitroEvent(nitro_raw_ev, regs, sregs, vcpu_io.vcpu_nb)
+            e = NitroEvent(nitro_raw_ev, vcpu_io.vcpu_nb)
 
             # put in the queue and wait for the event to be processed
             queue.put_nowait(e)
