@@ -48,7 +48,6 @@ to build ready to test Windows VMs.
 The templates apply the following modifications:
 
 - Disable Windows Updates (to reduce noise)
-- Set WinRM service to start as soon as possible (no delay)
 - Open the WinRM service on public networks
 
 To build a vm, run `./packer build <template.json>`.

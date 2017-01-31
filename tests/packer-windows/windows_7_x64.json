@@ -31,8 +31,11 @@
             "sc config \"WSearch\" start= disabled",
             "reg ADD HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer /v NoDriveTypeAutoRun /d 0 /t REG_DWORD /f",
             "reg ADD HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoplayHandlers\\UserChosenExecuteHandlers\\AutorunINFLegacyArrival /ve /d MSAutoRun /t REG_SZ /f",
-            "reg ADD HKLM\\SYSTEM\\CurrentControlSet\\services\\WinRM /v DelayedAutoStart /d 0 /t REG_DWORD /f",
-            "netsh advfirewall firewall add rule name=\"WinRM Public\" dir=in action=allow profile=any protocol=TCP localport=5985"
+            "reg ADD HKLM\\SYSTEM\\CurrentControlSet\\services\\WinRM /v DelayedAutoStart /d 300 /t REG_DWORD /f",
+            "netsh advfirewall firewall add rule name=\"WinRM Public\" dir=in action=allow profile=any protocol=TCP localport=5985",
+            "reg ADD HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PublicProfile /v DisableStealthMode /d 1 /t REG_DWORD /f",
+            "reg ADD HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\DomainProfile /v DisableStealthMode /d 1 /t REG_DWORD /f",
+            "reg ADD HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PrivateProfile /v DisableStealthMode /d 1 /t REG_DWORD /f"
           ]
       }
 

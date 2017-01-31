@@ -23,6 +23,17 @@ from nitro.event import SyscallDirection
 
 NB_TEST = 3
 
+def wait_winrm(ip_addr, opened=True):
+    while True:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        state = s.connect_ex((ip_addr, 5985))
+        if state == 0 and opened:
+            break
+        elif state != 0 and not opened:
+            # received a RST, port is closed
+            break
+        time.sleep(1)
+
 def clear_arp_cache():
     logging.info('Flushing Arp cache')
     subprocess.check_call(['ip', '-s', '-s', 'neigh', 'flush', 'all'],
@@ -53,7 +64,7 @@ def run_nitro_thread(domain, stop_request):
 
 def get_test_content():
     content = """
-powershell -Command \"Get-ChildItem -Path C:\\windows\"
+powershell -Command \"Get-ChildItem -Path C:\\windows"
 """[1:].replace('\n', '\r\n')
     return content
 
@@ -72,6 +83,8 @@ def test_domain(domain):
     ip = get_ip(mac_addr)
     logging.info('IP address : {}'.format(ip))
     tmp_iso = build_cdrom()
+    # wait for WinRM to be opened
+    wait_winrm(ip, True)
     # run nitro
     stop_request = threading.Event()
     thread = threading.Thread(target=run_nitro_thread, args=(domain, stop_request,))
@@ -80,21 +93,13 @@ def test_domain(domain):
     start_time = time.time()
     # mount cdrom, test is executed
     mount_cdrom(domain, tmp_iso.name)
-    # wait for domain to be shutting down
-    while True:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(10)
-        state = s.connect_ex((ip, 5985))
-        s.close()
-        if state != 0:
-            # port is closed
-            # end of execution
-            stop_request.set()
-            stop_time = time.time()
-            domain.shutdown()
-            thread.join()
-            break
-        time.sleep(1)
+    # wait on WinRM to be closed
+    wait_winrm(ip, False)
+    # stop nitro
+    stop_request.set()
+    stop_time = time.time()
+    domain.shutdown()
+    thread.join()
     result = stop_time - start_time
     # stop domain
     while domain.state()[0] != libvirt.VIR_DOMAIN_SHUTOFF:
