@@ -51,7 +51,6 @@ class Nitro:
 
 
     def listen(self):
-        self.set_traps(True)
         self.stop_request = threading.Event()
         pool = ThreadPoolExecutor(max_workers=len(self.vcpus_io))
         self.futures = []

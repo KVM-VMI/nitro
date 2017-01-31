@@ -50,6 +50,7 @@ def main(args):
 
     # start Nitro
     with Nitro(domain) as nitro:
+        nitro.set_traps(True)
         for event in nitro.listen():
             ev_info = None
             if backend:
