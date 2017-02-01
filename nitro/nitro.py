@@ -16,19 +16,34 @@ from ctypes import *
 from nitro.event import NitroEvent
 from nitro.kvm import KVM, VM, VCPU
 
-def find_qemu_pid(domain):
-    logging.info('Finding QEMU pid for domain {}'.format(domain.name()))
-    libvirt_vm_pid_file = '/var/run/libvirt/qemu/{}.pid'.format(domain.name())
-    with open(libvirt_vm_pid_file, 'r') as f:
-        content = f.read()
-        pid = int(content)
-        return pid
+def find_qemu_pid(vm_name):
+    logging.info('Finding QEMU pid for domain {}'.format(vm_name))
+    libvirt_vm_pid_file = '/var/run/libvirt/qemu/{}.pid'.format(vm_name)
+    try:
+        with open(libvirt_vm_pid_file, 'r') as f:
+            content = f.read()
+            pid = int(content)
+            return pid
+    except IOError:
+        # permission denied
+        # find the PID using pgrep
+        # pgrep --full to match the whole command line
+        cmd = ['pgrep', '--full', 'qemu.*-name {}'.format(vm_name)]
+        output = subprocess.check_output(cmd)
+        try:
+            pid = int(output)
+            return pid
+        except ValueError as e:
+            # output issue
+            logging.critical('Cannot find PID with pgrep output: {}'.format(output))
+            raise e
+    return -1
 
 class Nitro:
 
     def __init__(self, domain):
         self.domain = domain
-        self.pid = find_qemu_pid(domain)
+        self.pid = find_qemu_pid(domain.name())
         # init KVM
         self.kvm_io = KVM()
         # get VM fd
