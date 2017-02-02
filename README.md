@@ -80,7 +80,7 @@ An event should look like this output
 A successful run should give the following output :
 
 ~~~
-$ sudo ./nitro.py --nobackend --stdout nitro_win7x64
+$ ./nitro.py --nobackend --stdout nitro_win7x64
 Setting traps to False
 Finding QEMU pid for domain nitro_win7x64
 Detected 1 VCPUs
@@ -195,25 +195,3 @@ An event should now look like this:
     }
   },
 ~~~
-
-
-# Note
-
-We need to use the root user because:
-- `libvmi` uses only `qemu:///system` as libvirt connection
-- even if you are in the `libvirt` group, and therefore can access `qemu:///system`,
-the memory dump produced by `libvirt` is created as `root:root`.
-
-## How to start Nitro as a normal user
-
-First you have to be in the `libvirt` group, to access the `qemu:///system` connection.
-~~~
-# usermod -a -G libvirt <user>
-~~~
-
-The you have to modify `/etc/libvirt/qemu.conf` and set
-~~~
-dynamic_ownership = 0
-~~~
-so that libvirt will not change the permissions when the temporary RAM dump file
-is created.

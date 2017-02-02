@@ -1,11 +1,12 @@
 import logging
 import re
 import os
+import stat
 import libvirt
 import subprocess
 import shutil
 import json
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from nitro.event import SyscallDirection
 from nitro.libvmi_helper_client import LibvmiHelperClient
 
@@ -67,20 +68,28 @@ class Backend:
         self.libvmi.stop()
 
     def load_symbols(self):
-        with NamedTemporaryFile() as ram_dump:
-            # take a ram dump
-            logging.info('Dumping physical memory to {}'.format(ram_dump.name))
-            flags = libvirt.VIR_DUMP_MEMORY_ONLY
-            dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
-            self.domain.coreDumpWithFormat(ram_dump.name, dumpformat, flags)
-            # build symbols.py absolute path
-            script_dir = os.path.dirname(os.path.realpath(__file__))
-            symbols_script_path = os.path.join(script_dir, GETSYMBOLS_SCRIPT)
-            # call rekall on ram dump
-            logging.info('Extracting symbols with Rekall')
-            python2 = shutil.which('python2')
-            symbols_process = [python2, symbols_script_path, ram_dump.name]
-            output = subprocess.check_output(symbols_process)
+        # we need to put the ram dump in our own directory
+        # because otherwise it will be created in /tmp
+        # and later owned by root
+        with TemporaryDirectory() as tmp_dir:
+            with NamedTemporaryFile(dir=tmp_dir) as ram_dump:
+                # chmod to be r/w by everyone
+                os.chmod(ram_dump.name, stat.S_IRUSR | stat.S_IWUSR |
+                                        stat.S_IRGRP | stat.S_IWGRP |
+                                        stat.S_IROTH | stat.S_IWOTH)
+                # take a ram dump
+                logging.info('Dumping physical memory to {}'.format(ram_dump.name))
+                flags = libvirt.VIR_DUMP_MEMORY_ONLY
+                dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
+                self.domain.coreDumpWithFormat(ram_dump.name, dumpformat, flags)
+                # build symbols.py absolute path
+                script_dir = os.path.dirname(os.path.realpath(__file__))
+                symbols_script_path = os.path.join(script_dir, GETSYMBOLS_SCRIPT)
+                # call rekall on ram dump
+                logging.info('Extracting symbols with Rekall')
+                python2 = shutil.which('python2')
+                symbols_process = [python2, symbols_script_path, ram_dump.name]
+                output = subprocess.check_output(symbols_process)
         logging.info('Loading symbols')
         # load output as json
         jdata = json.loads(output.decode('utf-8'))
