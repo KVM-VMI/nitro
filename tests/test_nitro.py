@@ -54,6 +54,7 @@ def get_ip(mac_addr):
 def run_nitro_thread(domain, stop_request):
     nb_syscalls = 0
     with Nitro(domain) as nitro:
+        nitro.set_traps(True)
         logging.info('Counting syscalls...')
         for event in nitro.listen():
             if event.direction == SyscallDirection.enter:
