@@ -11,7 +11,10 @@ setup(
         guest syscalls and analyze them"""),
     packages=find_packages(),
     install_requires=[
+        'docopt',
         'Pebble',
+        'libvirt-python',
+        'pyzmq',
     ],
     keywords="nitro hyperisor monitoring tracing syscall",
 )
