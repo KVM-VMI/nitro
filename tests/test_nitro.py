@@ -65,7 +65,7 @@ def run_nitro_thread(domain, stop_request):
 
 def get_test_content():
     content = """
-powershell -Command \"Get-ChildItem -Path C:\\windows"
+powershell -Command \"Get-ChildItem -Path C:\\windows\\system32"
 """[1:].replace('\n', '\r\n')
     return content
 

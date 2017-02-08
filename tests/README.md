@@ -14,7 +14,7 @@ Running `sudo ./test_nitro.py` will do the following operations :
 3. wait for the DHCP request to get the ip address via polling on `ip neigh`
 4. set nitro traps and start counting the number of syscalls
 5. insert a CDROM with autorun
-6. run the test command (list content under `C:\Windows`)
+6. run the test command (list content under `C:\Windows\system32`)
 7. repeat this procedure 3 times
 8. display the average elapsed time per test
 
