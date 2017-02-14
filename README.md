@@ -176,7 +176,7 @@ At least, the following keys are required :
 - `win_pname`
 
 If you have installed everything correctly, you can run Nitro :
-`sudo ./main.py nitro_win7x64`
+`./main.py nitro_win7x64`
 
 An event should now look like this:
 ~~~JSON
