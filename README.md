@@ -42,7 +42,7 @@ you don't have one already.
 """Nitro.
 
 Usage:
-  nitro.py [options] <vm_name>
+  main.py [options] <vm_name>
 
 Options:
   -h --help     Show this screen.
@@ -80,7 +80,7 @@ An event should look like this output
 A successful run should give the following output :
 
 ~~~
-$ ./nitro.py --nobackend --stdout nitro_win7x64
+$ ./main.py --nobackend --stdout nitro_win7x64
 Setting traps to False
 Finding QEMU pid for domain nitro_win7x64
 Detected 1 VCPUs
@@ -176,7 +176,7 @@ At least, the following keys are required :
 - `win_pname`
 
 If you have installed everything correctly, you can run Nitro :
-`sudo ./nitro.py nitro_win7x64`
+`sudo ./main.py nitro_win7x64`
 
 An event should now look like this:
 ~~~JSON
