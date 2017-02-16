@@ -1,7 +1,6 @@
 <domain type='kvm'>
     <name>{}</name>
-  <memory unit='KiB'>524288</memory>
-  <currentMemory unit='KiB'>524288</currentMemory>
+  <memory unit='MB'>1500</memory>
   <vcpu placement='static'>1</vcpu>
   <os>
     <type arch='x86_64' machine='pc'>hvm</type>
