@@ -2,6 +2,7 @@
   "builders": [
     {
       "type": "qemu",
+      "accelerator": "kvm",
       "vm_name": "win7x64",
       "iso_url": "{{user `iso_url`}}",
       "iso_checksum_type": "{{user `iso_checksum_type`}}",
