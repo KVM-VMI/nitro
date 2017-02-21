@@ -19,6 +19,7 @@
       "disk_interface": "ide",
       "net_device": "e1000",
       "qemuargs": [
+          [ "-smp", "2" ],
           [ "-m", "1500" ]
       ],
       "floppy_files": [
