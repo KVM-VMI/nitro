@@ -29,7 +29,7 @@ def main(args):
             filename=ram_dump,
             autodetect=["rsds"],
             logger=logging.getLogger(),
-            autodetect_build_local='basic',
+            autodetect_build_local='none',
             format='data',
             profile_path=[
                 "http://profiles.rekall-forensic.com"
