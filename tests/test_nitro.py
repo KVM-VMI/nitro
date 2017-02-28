@@ -34,12 +34,6 @@ def wait_winrm(ip_addr, opened=True):
             break
         time.sleep(1)
 
-def clear_arp_cache():
-    logging.info('Flushing Arp cache')
-    subprocess.check_call(['ip', '-s', '-s', 'neigh', 'flush', 'all'],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL)
-
 def get_ip(mac_addr):
     while True:
         output = subprocess.check_output(["ip", "neigh"])
@@ -78,8 +72,6 @@ def test_domain(domain):
     dom_elem = tree.fromstring(domain.XMLDesc())
     mac_addr = dom_elem.find("./devices/interface[@type='network']/mac").get('address')
     logging.debug('MAC address : {}'.format(mac_addr))
-    # clear ARP cache
-    clear_arp_cache()
     # wait for IP address
     ip = get_ip(mac_addr)
     logging.info('IP address : {}'.format(ip))
@@ -160,10 +152,6 @@ sc stop winrm
 
 
 def main():
-    # must be run as root
-    if os.geteuid() != 0:
-        logging.warn('Need root privileges')
-        sys.exit(1)
     con = libvirt.open('qemu:///system')
     for domain in con.listAllDomains():
         if re.match('nitro_.*', domain.name()):
