@@ -91,8 +91,9 @@ def test_domain(domain):
     # stop nitro
     stop_request.set()
     stop_time = time.time()
-    domain.shutdown()
+    # wait for nitro thread to terminate properly
     thread.join()
+    domain.shutdown()
     result = stop_time - start_time
     # stop domain
     while domain.state()[0] != libvirt.VIR_DOMAIN_SHUTOFF:
