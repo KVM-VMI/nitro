@@ -56,11 +56,23 @@ Once the build is done, the image will be available in `packer-windows/output-qe
 # Importing VMs
 
 To easily import the vm in libvirt, you can use the script `import_libvirt.py`,
-which will create a storage pool named `nitro` and move the vm disk image
-in an `images` directory.
+which will do the following modifications:
+- create a storage pool named `nitro` associated with a subdirectory named `images` under `tests`
+- move the disk image from `output-qemu` to `images`
+- set the name of the vm to `nitro_<vm_name>`
+- optionnaly configure a custom QEMU binary
 
-Also, it will take care of setting the name of the vm to `nitro_<vm_name>`,
-and configure the emulator to `kvm-vmi/qemu/x86_64-softmmu/qemu-system-x86_64`,
-which is a fork of QEMU already patched with libvmi memory access modifications.
+~~~
+Usage:
+  import_libvirt.py [--qemu=<path>] <qemu_image>
 
-Don't forget to build QEMU. (`./configure --target-list=x86-64-softmmu`)
+Options:
+  -h --help         Show this screen.
+  --qemu=<path>     Path to custom QEMU binary
+~~~
+
+# Custom QEMU
+
+You will need to compile a custom QEMU from the `qemu` subdirectory which contains
+already the modifications to allow a read/write access to the guest memory.
+This allows `libvmi` to perform an introspection and `nitro` to analyze syscalls events.
