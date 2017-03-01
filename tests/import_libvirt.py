@@ -2,10 +2,11 @@
 
 """
 Usage:
-  import_libvirt.py <qemu_image>
+  import_libvirt.py [--qemu=<path>] <qemu_image>
 
 Options:
-  -h --help     Show this screen.
+  -h --help         Show this screen.
+  --qemu=<path>     Path to custom QEMU binary
 """
 
 import os
@@ -56,9 +57,11 @@ def main(args):
     try:
         domain = con.lookupByName(domain_name)
     except libvirt.libvirtError:
-        # use our modified QEMU patched for VMI as emulator
-        # it should be in kvm-vmi/qemu/x86_64-softmmu/qemu-system-x86_64
-        qemu_bin_path = os.path.realpath(os.path.join(script_dir, '..', '..', 'qemu', 'x86_64-softmmu', 'qemu-system-x86_64'))
+        # default system qemu
+        qemu_bin_path = '/usr/bin/kvm'
+        # set custom qemu if needed
+        if args['--qemu']:
+            qemu_bin_path = args['--qemu']
         # move image to nitro pool
         nitro_image_path = os.path.join(storage_path, '{}.qcow2'.format(image_name))
         shutil.move(qemu_image, nitro_image_path)
