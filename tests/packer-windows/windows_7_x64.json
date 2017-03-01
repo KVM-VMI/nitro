@@ -18,6 +18,7 @@
       "disk_size": 61440,
       "disk_interface": "ide",
       "net_device": "e1000",
+      "vnc_bind_address": "0.0.0.0",
       "qemuargs": [
           [ "-smp", "2" ],
           [ "-m", "1500" ]
