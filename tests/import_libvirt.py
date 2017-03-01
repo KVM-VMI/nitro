@@ -49,8 +49,10 @@ def main(args):
         pool_xml = tree.tostring(pool_elem).decode('utf-8')
         # define it
         storage = con.storagePoolDefineXML(pool_xml)
-        storage.create()
         storage.setAutostart(True)
+    # make sure storage is running
+    if not storage.isActive():
+        storage.create()
     # check if domain is already defined
     image_name = os.path.basename(qemu_image)
     domain_name = 'nitro_{}'.format(image_name)
