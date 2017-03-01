@@ -78,6 +78,10 @@ def test_domain(domain):
     tmp_iso = build_cdrom()
     # wait for WinRM to be opened
     wait_winrm(ip, True)
+    # wait for idle
+    idle_wait = 60 * 5
+    logging.info('Waiting for Windows to be idle (5 min)')
+    time.sleep(idle_wait)
     # run nitro
     stop_request = threading.Event()
     thread = threading.Thread(target=run_nitro_thread, args=(domain, stop_request,))
