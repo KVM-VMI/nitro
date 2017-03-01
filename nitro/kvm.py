@@ -1,3 +1,4 @@
+import os
 import logging
 from ctypes import *
 from ioctl_opt import IO, IOR, IOW
@@ -103,6 +104,9 @@ class IOCTL():
             raise Exception('Uninitialized FD for ioctl')
         return self.libc.ioctl(self.fd, request, arg)
 
+    def close(self):
+        os.close(self.fd)
+
 class KVM(IOCTL):
 
     KVM_NODE = '/dev/kvm'
@@ -159,5 +163,5 @@ class VCPU(IOCTL):
 
     def continue_vm(self):
         # logging.debug('continue_vm {}'.format(self.vcpu_nb))
-        return self.make_ioctl(self.KVM_NITRO_CONTINUE, None)
+        return self.make_ioctl(self.KVM_NITRO_CONTINUE, 0)
 

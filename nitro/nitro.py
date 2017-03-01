@@ -63,6 +63,7 @@ class Nitro:
 
     def __exit__(self, type, value, traceback):
         self.stop_listen()
+        self.kvm_io.close()
 
 
     def listen(self):
