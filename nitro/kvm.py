@@ -149,6 +149,10 @@ class VCPU(IOCTL):
 
     KVM_NITRO_GET_EVENT = IOR(KVMIO, 0xE5, NitroEventStr)
     KVM_NITRO_CONTINUE = IO(KVMIO, 0xE6)
+    KVM_NITRO_GET_REGS = IOR(KVMIO, 0xE7, Regs)
+    KVM_NITRO_SET_REGS = IOW(KVMIO, 0xE8, Regs)
+    KVM_NITRO_GET_SREGS = IOR(KVMIO, 0xE9, SRegs)
+    KVM_NITRO_SET_SREGS = IOW(KVMIO, 0xEA, SRegs)
 
     def __init__(self, vcpu_nb, vcpu_fd):
         super().__init__()
@@ -165,3 +169,20 @@ class VCPU(IOCTL):
         # logging.debug('continue_vm {}'.format(self.vcpu_nb))
         return self.make_ioctl(self.KVM_NITRO_CONTINUE, 0)
 
+    def get_regs(self):
+        regs = Regs()
+        self.make_ioctl(self.KVM_NITRO_GET_REGS, byref(regs))
+        return regs
+
+    def get_sregs(self):
+        sregs = SRegs()
+        self.make_ioctl(self.KVM_NITRO_GET_SREGS, byref(sregs))
+        return sregs
+
+    def set_regs(self, regs):
+        ret = self.make_ioctl(self.KVM_NITRO_SET_REGS, byref(regs))
+        return ret
+
+    def set_sregs(self, sregs):
+        ret = self.make_ioctl(self.KVM_NITRO_SET_SREGS, byref(sregs))
+        return ret
