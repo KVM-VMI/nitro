@@ -60,7 +60,7 @@ def main(args):
         domain = con.lookupByName(domain_name)
     except libvirt.libvirtError:
         # default system qemu
-        qemu_bin_path = '/usr/bin/kvm'
+        qemu_bin_path = shutil.which('qemu-system-x86_64')
         # set custom qemu if needed
         if args['--qemu']:
             qemu_bin_path = args['--qemu']
