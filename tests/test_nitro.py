@@ -22,6 +22,7 @@ import libvirt
 # local
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from nitro.nitro import Nitro
+from nitro.backend import Backend
 from nitro.event import SyscallDirection
 
 
@@ -115,7 +116,6 @@ class VMTest:
         # looking for a nitro_<vm> in qemu:///system
         self.domain = domain
 
-
     def wait_for_ip(self):
         # find MAC address
         dom_elem = tree.fromstring(self.domain.XMLDesc())
@@ -144,7 +144,7 @@ class VMTest:
         new_xml = tree.tostring(cdrom_elem).decode('utf-8')
         self.domain.updateDeviceFlags(new_xml, libvirt.VIR_DOMAIN_AFFECT_LIVE)
 
-    def run(self, cdrom_iso, idle=True):
+    def run(self, cdrom_iso, analyze=False, idle=True):
         # start domain
         logging.info('Testing {}'.format(self.domain.name()))
         self.domain.create()
@@ -159,7 +159,7 @@ class VMTest:
             logging.info('Waiting for Windows to be idle (5 min)')
             time.sleep(idle_wait)
         # run nitro before inserting CDROM
-        nitro = NitroThread(self.domain)
+        nitro = NitroThread(self.domain, analyze)
         nitro.start()
         # mount cdrom, test is executed
         self.mount_cdrom(cdrom_iso)
@@ -172,19 +172,21 @@ class VMTest:
         # stop domain
         while self.domain.state()[0] != libvirt.VIR_DOMAIN_SHUTOFF:
             time.sleep(1)
-        result = (nitro.events, nitro.total_time, nitro.nb_syscall)
+        result = (nitro.events, nitro.total_time)
         return result
 
 
 class NitroThread(Thread):
 
-    def __init__(self, domain):
+    def __init__(self, domain, analyze):
         super().__init__()
         self.domain = domain
+        self.analyze_enabled = analyze
+        if self.analyze_enabled:
+            self.backend = Backend(self.domain)
         self.stop_request = Event()
         self.total_time = None
         self.events = []
-        self.nb_syscall = 0
 
     def run(self):
         # start timer
@@ -192,15 +194,17 @@ class NitroThread(Thread):
         with Nitro(self.domain) as nitro:
             nitro.set_traps(True)
             for event in nitro.listen():
-                self.events.append(event)
-                if event.direction == SyscallDirection.enter:
-                    self.nb_syscall += 1
+                if self.analyze_enabled:
+                    syscall = self.backend.process_event(event)
+                    ev_info = syscall.info()
+                else:
+                    ev_info = event.info()
+                self.events.append(ev_info)
                 if self.stop_request.isSet():
                     break
         # stop timer
         stop_time = datetime.datetime.now()
         self.total_time = str(stop_time - start_time)
-        logging.info('Nb Syscalls : {}'.format(self.nb_syscall))
 
     def stop(self):
         self.stop_request.set()
@@ -218,10 +222,18 @@ class TestNitro(unittest.TestCase):
     def tearDown(self):
         self.cdrom.cleanup()
 
-    def test_nitro(self):
-        script = 'powershell -Command \"Get-ChildItem -Path C:\\windows\\system32"'
+    def test_list_system32_no_analyze(self):
+        script = 'powershell -Command \"Get-ChildItem -Path C:\\windows\\system32\"'
         self.cdrom.configure_test(script)
         cdrom_iso = self.cdrom.generate_iso()
-        events, exec_time, nb_syscall = self.vm_test.run(cdrom_iso, idle=False)
+        events, exec_time = self.vm_test.run(cdrom_iso, idle=False)
+        logging.info('Test execution time {}'.format(exec_time))
+
+
+    def test_list_system32_analyze(self):
+        script = 'powershell -Command \"Get-ChildItem -Path C:\\windows\\system32\"'
+        self.cdrom.configure_test(script)
+        cdrom_iso = self.cdrom.generate_iso()
+        events, exec_time = self.vm_test.run(cdrom_iso, analyze=True, idle=False)
         logging.info('Test execution time {}'.format(exec_time))
 
