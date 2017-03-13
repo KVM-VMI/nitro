@@ -14,6 +14,7 @@ import json
 from threading import Thread, Event
 import socket
 from tempfile import TemporaryDirectory, NamedTemporaryFile
+from pathlib import Path
 import datetime
 import unittest
 
@@ -86,7 +87,7 @@ sc stop winrm
         with open(run_bat_path, 'w') as f:
             f.write(content)
 
-    def configure_test(self, script, powershell=False):
+    def set_script(self, script, powershell=False):
         script = script.replace('\n', '\r\n')
         if powershell:
             test_bat_content = 'powershell -File test.ps1'
@@ -99,6 +100,19 @@ sc stop winrm
         test_bat_path = os.path.join(self.cdrom_dir, 'test.bat')
         with open(test_bat_path, 'w') as f:
             f.write(test_bat_content)
+
+    def set_executable(self, exe_path):
+        exe_path = Path(exe_path)
+        # copy executable
+        exe_path_cdrom = os.path.join(self.cdrom_dir, exe_path.name)
+        shutil.copyfile(str(exe_path), exe_path_cdrom)
+        # write test.bat
+        content = """
+{}
+""".format(exe_path.name)[1:].replace('\n', '\r\n')
+        test_bat_path = os.path.join(self.cdrom_dir, 'test.bat')
+        with open(test_bat_path, 'w') as f:
+            f.write(content)
 
     def generate_iso(self, cleanup=True):
         self.cdrom_iso_tmp = NamedTemporaryFile(delete=False, dir=self.tmp_dir.name)
@@ -242,7 +256,7 @@ class TestNitro(unittest.TestCase):
 
     def test_list_system32_no_analyze(self):
         script = 'Get-ChildItem -Path C:\\windows\\system32'
-        self.cdrom.configure_test(script, powershell=True)
+        self.cdrom.set_script(script, powershell=True)
         cdrom_iso = self.cdrom.generate_iso()
         events, exec_time = self.vm_test.run(cdrom_iso, analyze=False)
         # writing events
@@ -252,9 +266,19 @@ class TestNitro(unittest.TestCase):
 
     def test_list_system32_analyze(self):
         script = 'Get-ChildItem -Path C:\\windows\\system32'
-        self.cdrom.configure_test(script, powershell=True)
+        self.cdrom.set_script(script, powershell=True)
         cdrom_iso = self.cdrom.generate_iso()
         events, exec_time = self.vm_test.run(cdrom_iso)
+        # writing events
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
+        logging.info('Test execution time {}'.format(exec_time))
+
+    def test_binary(self):
+        binary_path = ''
+        self.cdrom.set_executable(binary_path)
+        cdrom_iso = self.cdrom.generate_iso()
+        events, exec_time = self.vm_test.run(cdrom_iso, analyze=False)
         # writing events
         with open('events.json', 'w') as f:
             json.dump(events, f, indent=4)
