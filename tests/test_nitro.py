@@ -10,6 +10,7 @@ import subprocess
 import shutil
 import time
 import xml.etree.ElementTree as tree
+import json
 from threading import Thread, Event
 import socket
 from tempfile import TemporaryDirectory, NamedTemporaryFile
@@ -85,11 +86,19 @@ sc stop winrm
         with open(run_bat_path, 'w') as f:
             f.write(content)
 
-    def configure_test(self, script):
+    def configure_test(self, script, powershell=False):
         script = script.replace('\n', '\r\n')
+        if powershell:
+            test_bat_content = 'powershell -File test.ps1'
+            # write test.ps1
+            test_ps1_path = os.path.join(self.cdrom_dir, 'test.ps1')
+            with open(test_ps1_path, 'w') as f:
+                f.write(script)
+        else:
+            test_bat_content = script
         test_bat_path = os.path.join(self.cdrom_dir, 'test.bat')
         with open(test_bat_path, 'w') as f:
-            f.write(script)
+            f.write(test_bat_content)
 
     def generate_iso(self, cleanup=True):
         self.cdrom_iso_tmp = NamedTemporaryFile(delete=False, dir=self.tmp_dir.name)
@@ -144,7 +153,7 @@ class VMTest:
         new_xml = tree.tostring(cdrom_elem).decode('utf-8')
         self.domain.updateDeviceFlags(new_xml, libvirt.VIR_DOMAIN_AFFECT_LIVE)
 
-    def run(self, cdrom_iso, analyze=False, idle=True):
+    def run(self, cdrom_iso, analyze=True, idle=False):
         # start domain
         logging.info('Testing {}'.format(self.domain.name()))
         self.domain.create()
@@ -218,22 +227,36 @@ class TestNitro(unittest.TestCase):
         domain = con.lookupByName('nitro_win7x64')
         self.vm_test = VMTest(domain)
         self.cdrom = CDROM()
+        # clean old test directory
+        test_dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), self._testMethodName)
+        shutil.rmtree(test_dir_path, ignore_errors=True)
+        os.makedirs(test_dir_path, exist_ok=True)
+        # chdir into this directory for the test
+        self.origin_wd = os.getcwd()
+        os.chdir(test_dir_path)
 
     def tearDown(self):
         self.cdrom.cleanup()
+        # chdir back to original wd
+        os.chdir(self.origin_wd)
 
     def test_list_system32_no_analyze(self):
-        script = 'powershell -Command \"Get-ChildItem -Path C:\\windows\\system32\"'
-        self.cdrom.configure_test(script)
+        script = 'Get-ChildItem -Path C:\\windows\\system32'
+        self.cdrom.configure_test(script, powershell=True)
         cdrom_iso = self.cdrom.generate_iso()
-        events, exec_time = self.vm_test.run(cdrom_iso, idle=False)
+        events, exec_time = self.vm_test.run(cdrom_iso, analyze=False)
+        # writing events
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
         logging.info('Test execution time {}'.format(exec_time))
 
-
     def test_list_system32_analyze(self):
-        script = 'powershell -Command \"Get-ChildItem -Path C:\\windows\\system32\"'
-        self.cdrom.configure_test(script)
+        script = 'Get-ChildItem -Path C:\\windows\\system32'
+        self.cdrom.configure_test(script, powershell=True)
         cdrom_iso = self.cdrom.generate_iso()
-        events, exec_time = self.vm_test.run(cdrom_iso, analyze=True, idle=False)
+        events, exec_time = self.vm_test.run(cdrom_iso)
+        # writing events
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
         logging.info('Test execution time {}'.format(exec_time))
 
