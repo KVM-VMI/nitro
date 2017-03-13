@@ -8,9 +8,10 @@ import shutil
 import json
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from nitro.event import SyscallDirection
-from nitro.libvmi_helper_client import LibvmiHelperClient
+from nitro.libvmi import Libvmi
 
 GETSYMBOLS_SCRIPT = 'symbols.py'
+
 
 class Process:
 
@@ -25,6 +26,7 @@ class Process:
         info['name'] = self.name
         info['pid'] = self.pid
         return info
+
 
 class Syscall:
 
@@ -44,7 +46,7 @@ class Syscall:
 
 class Backend:
 
-    def __init__(self, domain, vmi_config=None):
+    def __init__(self, domain):
         self.domain = domain
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
@@ -54,7 +56,7 @@ class Backend:
             self.syscall_stack[vcpu_nb] = []
         self.load_symbols()
         # run libvmi helper subprocess
-        self.libvmi = LibvmiHelperClient(self.domain, vmi_config)
+        self.libvmi = Libvmi(domain.name())
         self.processes = {}
 
     def __enter__(self):
@@ -64,8 +66,7 @@ class Backend:
         self.stop()
 
     def stop(self):
-        logging.info('Stopping libvmi helper')
-        self.libvmi.stop()
+        self.libvmi.destroy()
 
     def load_symbols(self):
         # we need to put the ram dump in our own directory
@@ -127,7 +128,6 @@ class Backend:
         syscall = Syscall(event, syscall_name, process)
         return syscall
 
-
     def associate_process(self, cr3):
         p = None
         try:
@@ -136,8 +136,6 @@ class Backend:
             p = self.find_eprocess(cr3)
             self.processes[cr3] = p
         return p
-
-
 
     def find_eprocess(self, cr3):
         # read PsActiveProcessHead list_entry
@@ -155,8 +153,7 @@ class Backend:
             if cr3 == directory_table_base:
                 # get name
                 image_file_name_off = start_eproc + self.libvmi.get_offset('win_pname')
-                content = self.libvmi.read_va(image_file_name_off, 0, 15)
-                image_file_name = content.rstrip(b'\0').decode('utf-8')
+                image_file_name = self.libvmi.read_str_va(image_file_name_off, 0)
                 # get pid
                 unique_processid_off = start_eproc + self.libvmi.get_offset('win_pid')
                 pid = self.libvmi.read_addr_va(unique_processid_off, 0)
@@ -166,7 +163,6 @@ class Backend:
             # read new flink
             flink = self.libvmi.read_addr_va(flink, 0)
         return None
-
 
     def get_syscall_name(self, rax):
         ssn = rax & 0xFFF
