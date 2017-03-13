@@ -4,41 +4,29 @@
 
 # Testing
 
-This directory contains a script named `test_nitro.py` to benchmark Nitro
-performance.
+The tests can be run with `nose2`
 
-Running `sudo ./test_nitro.py` will do the following operations :
+A test consist of the following operations:
 
-1. Check for every domain named `nitro_*` in `qemu:///system`
-2. start the domain
-3. wait for the DHCP request to get the ip address via polling on `ip neigh`
-4. set nitro traps and start counting the number of syscalls
-5. insert a CDROM with autorun
-6. run the test command (list content under `C:\Windows\system32`)
-7. repeat this procedure 3 times
-8. display the average elapsed time per test
+1. start the domain `nitro_win7x64`
+2. wait for the DHCP request to get the ip address via polling on `ip neigh`
+3. wait for WinRM service to be available
+4. set nitro traps and start listening to syscall events
+5. configure and insert a CDROM to execute a binary or a script
+6. wait for WinRM service to be closed
+7. stop the domain and the test
 
-Execution output:
+This is an example of the API used to build a test:
 
+~~~Python
+script = 'powershell -Command \"Get-ChildItem -Path C:\\windows\\system32"'
+self.cdrom.configure_test(script)
+cdrom_iso = self.cdrom.generate_iso()
+events, exec_time, nb_syscall = self.vm_test.run(cdrom_iso)
+logging.info('Test execution time {}'.format(exec_time))
 ~~~
-Testing nitro_win7x64
-MAC address : 52:54:00:99:b1:ce
-Flushing Arp cache
-IP address : 192.168.122.225
-ISO generated at /tmp/tmp5evvw3mc
-Finding QEMU pid for domain nitro_win7x64
-attach_vm PID = 4938
-Mounting CDROM image
-attach_vcpus
-Detected 1 VCPUs
-Counting syscalls...
-set_syscall_trap True
-Start listening on VCPU 0
-set_syscall_trap False
-Nb Syscalls : 362454
-[TEST 1] Total execution time : 0:02:45.670122
-...
-~~~
+
+use `nose2 -log-capture` to get the logging output
 
 # Building Test VMs
 
