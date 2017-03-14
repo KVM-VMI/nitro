@@ -7,7 +7,7 @@ import subprocess
 import shutil
 import json
 from tempfile import NamedTemporaryFile, TemporaryDirectory
-from nitro.event import SyscallDirection
+from nitro.event import SyscallDirection, SyscallType
 from nitro.libvmi import Libvmi
 
 GETSYMBOLS_SCRIPT = 'symbols.py'
@@ -32,8 +32,30 @@ class Syscall:
 
     def __init__(self, event, name, process):
         self.event = event
-        self.name = name
+        self.full_name = name
+        # clean rekall syscall name
+        # full_name is 'nt!NtOpenFile'
+        # name is NtOpenFile
+        *rest, self.name = self.full_name.split('!')
         self.process = process
+        # args and return value
+        if self.event.direction == SyscallDirection.exit:
+            # ret value
+            self.retvalue = self.event.regs.rax
+        else:
+            # collect args
+            if self.event.type == SyscallType.syscall:
+                # assume Windows here
+                # convention is first 4 args in rcx,rdx,r8,r9
+                # rest on stack
+                args = [self.event.regs.rcx,
+                        self.event.regs.rdx,
+                        self.event.regs.r8,
+                        self.event.regs.r9,]
+            else:
+                # sysenter is not handled
+                raise RuntimeError('collecting SYSENTER arguments is not implemented')
+            self.args = args
 
     def info(self):
         info = {}
@@ -41,6 +63,10 @@ class Syscall:
         info['event'] = self.event.info()
         if self.process:
             info['process'] = self.process.info()
+        if self.event.direction == SyscallDirection.exit:
+            info['retvalue'] = self.retvalue
+        else:
+            info['args'] = self.args
         return info
 
 
@@ -54,6 +80,7 @@ class Backend:
         self.syscall_stack = {}
         for vcpu_nb in range(self.nb_vcpu):
             self.syscall_stack[vcpu_nb] = []
+        self.sdt = None
         self.load_symbols()
         # run libvmi helper subprocess
         self.libvmi = Libvmi(domain.name())
@@ -126,6 +153,8 @@ class Backend:
             # push them to the stack
             self.syscall_stack[event.vcpu_nb].append(syscall_name)
         syscall = Syscall(event, syscall_name, process)
+        # dispatch on the hooks
+        self.dispatch(syscall)
         return syscall
 
     def associate_process(self, cr3):
@@ -173,4 +202,32 @@ class Backend:
             syscall_name = 'Table{}!Unknown'.format(idx)
         return syscall_name
 
+    def dispatch(self, syscall):
+        prefix = 'enter' if syscall.event.direction == SyscallDirection.enter else 'exit'
 
+        try:
+            # if hook is defined
+            hook_name = '{}_{}'.format(prefix, syscall.name)
+            hook = getattr(self, hook_name)
+        except AttributeError:
+            # hook not defined
+            pass
+        else:
+            try:
+                logging.debug('Hook {}'.format(hook_name))
+                hook()
+            except ValueError:
+                # log page fault
+                logging.debug('Page fault while processing hook')
+
+    def enter_NtOpenKey(self):
+        pass
+
+    def enter_NtOpenFile(self):
+        pass
+
+    def enter_NtOpenProcess(self):
+        pass
+
+    def enter_NtOpenEvent(self):
+        pass
