@@ -70,7 +70,7 @@ def main(args):
     if events:
         logging.info('Writing events')
         with open('events.json', 'w') as f:
-            json.dump(events, f)
+            json.dump(events, f, indent=4)
 
 
 
