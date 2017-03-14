@@ -248,11 +248,18 @@ class TestNitro(unittest.TestCase):
         # chdir into this directory for the test
         self.origin_wd = os.getcwd()
         os.chdir(test_dir_path)
+        # create logging file handler
+        self.f_handler = logging.FileHandler('test.log', mode='w')
+        logging.getLogger().addHandler(self.f_handler)
+        logging.info('Starting test at {}'.format(datetime.datetime.now()))
 
     def tearDown(self):
         self.cdrom.cleanup()
         # chdir back to original wd
         os.chdir(self.origin_wd)
+        # remove file handler
+        logging.info('Ending test at {}'.format(datetime.datetime.now()))
+        logging.getLogger().removeHandler(self.f_handler)
 
     def test_list_system32_no_analyze(self):
         script = 'Get-ChildItem -Path C:\\windows\\system32'
@@ -260,6 +267,7 @@ class TestNitro(unittest.TestCase):
         cdrom_iso = self.cdrom.generate_iso()
         events, exec_time = self.vm_test.run(cdrom_iso, analyze=False)
         # writing events
+        logging.debug('Writing events...')
         with open('events.json', 'w') as f:
             json.dump(events, f, indent=4)
         logging.info('Test execution time {}'.format(exec_time))
@@ -270,6 +278,7 @@ class TestNitro(unittest.TestCase):
         cdrom_iso = self.cdrom.generate_iso()
         events, exec_time = self.vm_test.run(cdrom_iso)
         # writing events
+        logging.debug('Writing events...')
         with open('events.json', 'w') as f:
             json.dump(events, f, indent=4)
         logging.info('Test execution time {}'.format(exec_time))
@@ -280,6 +289,7 @@ class TestNitro(unittest.TestCase):
         cdrom_iso = self.cdrom.generate_iso()
         events, exec_time = self.vm_test.run(cdrom_iso, analyze=False)
         # writing events
+        logging.debug('Writing events...')
         with open('events.json', 'w') as f:
             json.dump(events, f, indent=4)
         logging.info('Test execution time {}'.format(exec_time))
