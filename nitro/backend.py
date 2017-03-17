@@ -33,15 +33,6 @@ class Syscall:
 
     ARGUMENT_TABLE = {
         'NtOpenKey': 3,
-        'NtCreateKey': 3,
-        'NtOpenEvent': 3,
-        'NtCreateEvent': 3,
-        'NtOpenProcess': 3,
-        'NtCreateProcess': 3,
-        'NtOpenFile': 3,
-        'NtCreateFile': 3,
-        'NtOpenMutant': 3,
-        'NtCreateMutant': 3,
     }
 
     def __init__(self, event, name, process, vmi):
@@ -49,7 +40,7 @@ class Syscall:
         self.full_name = name
         # clean rekall syscall name
         # full_name is 'nt!NtOpenFile'
-        # name is NtOpenFile
+        # name will be NtOpenFile
         *rest, self.name = self.full_name.split('!')
         self.process = process
         # args and return value
@@ -99,7 +90,8 @@ class Syscall:
             return []
 
     def dispatch(self):
-        # TODO don't dispatch to the hooks if process is None
+        # don't dispatch to the hooks if process is None
+        # TODO
         if self.process is None:
             return
         prefix = 'enter' if self.event.direction == SyscallDirection.enter else 'exit'
@@ -119,66 +111,9 @@ class Syscall:
                 # log page fault
                 logging.debug('Page fault while processing hook')
 
+    # hooks defined here
     def enter_NtOpenKey(self, KeyHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtCreateKey(self, KeyHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtOpenEvent(self, EventHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtCreateEvent(self, EventHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtOpenProcess(self, ProcessHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtCreateProcess(self, ProcessHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtOpenFile(self, EventHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtCreateFile(self, EventHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtOpenMutant(self, EventHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtCreateMutant(self, EventHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
+        pass
 
 
 class Backend:
@@ -282,7 +217,7 @@ class Backend:
         # read PsActiveProcessHead list_entry
         ps_head = self.libvmi.translate_ksym2v('PsActiveProcessHead')
         flink = self.libvmi.read_addr_ksym('PsActiveProcessHead')
-        
+
         while flink != ps_head:
             # get start of EProcess
             start_eproc = flink - self.libvmi.get_offset('win_tasks')
