@@ -1,6 +1,10 @@
+import logging
 from ctypes import *
 
 charptr = POINTER(c_char)
+
+VMI_SUCCESS = 0
+VMI_FAILURE = 1
 
 VMI_AUTO = (1 << 0)
 
@@ -29,6 +33,8 @@ VMI_INIT_COMPLETE = (1 << 17)
 #define VMI_INVALID_DOMID ~0ULL /**< invalid domain id */
 
 
+
+
 class VMIInstance(Structure):
     _fields_ = [("buffer", c_int * 1024 * 1024 * 10)]
 
@@ -46,6 +52,7 @@ class Libvmi:
         self.libvmi.vmi_translate_ksym2v.restype = c_ulonglong
         self.libvmi.vmi_get_offset.restype = c_ulonglong
         self.libvmi.vmi_read_str_va.restype = charptr
+        self.nb_pagefaults = 0
 
     def destroy(self):
         self.libvmi.vmi_destroy(self.vmi)
@@ -58,7 +65,12 @@ class Libvmi:
     def read_addr_ksym(self, symbol):
         symbol_c = create_string_buffer(symbol.encode('utf-8'))
         value_c = c_ulonglong()
-        self.libvmi.vmi_read_addr_ksym(self.vmi, symbol_c, byref(value_c))
+        status = self.libvmi.vmi_read_addr_ksym(self.vmi, symbol_c, byref(value_c))
+        if status == VMI_FAILURE:
+            self.nb_pagefaults += 1
+            logging.debug('PageFault trying to read {}, with {}'.format(symbol, 'read_addr_ksym'))
+            raise ValueError('PageFault')
+
         return value_c.value
 
     def get_offset(self, offset):
@@ -67,15 +79,37 @@ class Libvmi:
         return value
 
     def read_addr_va(self, vaddr, pid):
+        if vaddr == 0:
+            raise ValueError('Nullptr')
         vaddr_c = c_ulonglong(vaddr)
         pid_c = c_int(pid)
         value_c = c_ulonglong()
-        self.libvmi.vmi_read_addr_va(self.vmi, vaddr_c, pid_c, byref(value_c))
+        status = self.libvmi.vmi_read_addr_va(self.vmi, vaddr_c, pid_c, byref(value_c))
+        if status == VMI_FAILURE:
+            self.nb_pagefaults += 1
+            logging.debug('PageFault trying to read {}, with {}'.format(hex(vaddr), 'read_addr_va'))
+            raise ValueError('PageFault')
         return value_c.value
 
     def read_str_va(self, vaddr, pid):
+        if vaddr == 0:
+            raise ValueError('Nullptr')
         vaddr_c = c_ulonglong(vaddr)
         pid_c = c_int(pid)
         ptr = self.libvmi.vmi_read_str_va(self.vmi, vaddr_c, pid_c)
         string = cast(ptr, c_char_p).value.decode('utf-8')
         return string
+
+    def read_va(self, vaddr, pid, count):
+        if vaddr == 0:
+            raise ValueError('Nullptr')
+        vaddr_c = c_ulonglong(vaddr)
+        pid_c = c_int(pid)
+        buffer = (c_char * count)()
+        nb_read = self.libvmi.vmi_read_va(self.vmi, vaddr_c, pid_c, byref(buffer), count)
+        if nb_read == 0:
+            self.nb_pagefaults += 1
+            logging.debug('PageFault trying to read {}, with {}'.format(hex(vaddr), 'read_va'))
+            raise ValueError('PageFault')
+        value = bytes(buffer)[:nb_read]
+        return value

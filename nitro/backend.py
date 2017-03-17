@@ -9,6 +9,7 @@ import json
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from nitro.event import SyscallDirection, SyscallType
 from nitro.libvmi import Libvmi
+from nitro.win_types import ObjectAttributes
 
 GETSYMBOLS_SCRIPT = 'symbols.py'
 
@@ -30,7 +31,20 @@ class Process:
 
 class Syscall:
 
-    def __init__(self, event, name, process):
+    ARGUMENT_TABLE = {
+        'NtOpenKey': 3,
+        'NtCreateKey': 3,
+        'NtOpenEvent': 3,
+        'NtCreateEvent': 3,
+        'NtOpenProcess': 3,
+        'NtCreateProcess': 3,
+        'NtOpenFile': 3,
+        'NtCreateFile': 3,
+        'NtOpenMutant': 3,
+        'NtCreateMutant': 3,
+    }
+
+    def __init__(self, event, name, process, vmi):
         self.event = event
         self.full_name = name
         # clean rekall syscall name
@@ -43,19 +57,9 @@ class Syscall:
             # ret value
             self.retvalue = self.event.regs.rax
         else:
-            # collect args
-            if self.event.type == SyscallType.syscall:
-                # assume Windows here
-                # convention is first 4 args in rcx,rdx,r8,r9
-                # rest on stack
-                args = [self.event.regs.rcx,
-                        self.event.regs.rdx,
-                        self.event.regs.r8,
-                        self.event.regs.r9,]
-            else:
-                # sysenter is not handled
-                raise RuntimeError('collecting SYSENTER arguments is not implemented')
-            self.args = args
+            self.args = self.collect_args()
+        self.vmi = vmi
+        self.decoded = None
 
     def info(self):
         info = {}
@@ -67,7 +71,114 @@ class Syscall:
             info['retvalue'] = self.retvalue
         else:
             info['args'] = self.args
+        if self.decoded:
+            info['decoded'] = self.decoded
         return info
+
+    def collect_args(self):
+        try:
+            # if syscall is defined in hardcoded argument table
+            count = self.ARGUMENT_TABLE[self.name]
+
+            # collect args
+            if self.event.type == SyscallType.syscall:
+                # assume Windows here
+                # convention is first 4 args in rcx,rdx,r8,r9
+                # rest on stack
+                args = [self.event.regs.rcx,
+                        self.event.regs.rdx,
+                        self.event.regs.r8,
+                        self.event.regs.r9, ]
+                if count > 4:
+                    raise RuntimeError('collecting more than 4 arguments is not implemented')
+                return args[:count]
+            else:
+                # sysenter is not handled
+                raise RuntimeError('collecting SYSENTER arguments is not implemented')
+        except KeyError:
+            return []
+
+    def dispatch(self):
+        # TODO don't dispatch to the hooks if process is None
+        if self.process is None:
+            return
+        prefix = 'enter' if self.event.direction == SyscallDirection.enter else 'exit'
+
+        try:
+            # if hook is defined
+            hook_name = '{}_{}'.format(prefix, self.name)
+            hook = getattr(self, hook_name)
+        except AttributeError:
+            # hook not defined
+            pass
+        else:
+            try:
+                logging.debug('Hook {}'.format(hook_name))
+                hook(*self.args)
+            except ValueError:
+                # log page fault
+                logging.debug('Page fault while processing hook')
+
+    def enter_NtOpenKey(self, KeyHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtCreateKey(self, KeyHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtOpenEvent(self, EventHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtCreateEvent(self, EventHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtOpenProcess(self, ProcessHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtCreateProcess(self, ProcessHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtOpenFile(self, EventHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtCreateFile(self, EventHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtOpenMutant(self, EventHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtCreateMutant(self, EventHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
 
 
 class Backend:
@@ -93,6 +204,7 @@ class Backend:
         self.stop()
 
     def stop(self):
+        logging.info('NB Page Faults {}'.format(self.libvmi.nb_pagefaults))
         self.libvmi.destroy()
 
     def load_symbols(self):
@@ -152,9 +264,9 @@ class Backend:
             syscall_name = self.get_syscall_name(event.regs.rax)
             # push them to the stack
             self.syscall_stack[event.vcpu_nb].append(syscall_name)
-        syscall = Syscall(event, syscall_name, process)
+        syscall = Syscall(event, syscall_name, process, self.libvmi)
         # dispatch on the hooks
-        self.dispatch(syscall)
+        syscall.dispatch()
         return syscall
 
     def associate_process(self, cr3):
@@ -201,33 +313,3 @@ class Backend:
         except (KeyError, IndexError):
             syscall_name = 'Table{}!Unknown'.format(idx)
         return syscall_name
-
-    def dispatch(self, syscall):
-        prefix = 'enter' if syscall.event.direction == SyscallDirection.enter else 'exit'
-
-        try:
-            # if hook is defined
-            hook_name = '{}_{}'.format(prefix, syscall.name)
-            hook = getattr(self, hook_name)
-        except AttributeError:
-            # hook not defined
-            pass
-        else:
-            try:
-                logging.debug('Hook {}'.format(hook_name))
-                hook()
-            except ValueError:
-                # log page fault
-                logging.debug('Page fault while processing hook')
-
-    def enter_NtOpenKey(self):
-        pass
-
-    def enter_NtOpenFile(self):
-        pass
-
-    def enter_NtOpenProcess(self):
-        pass
-
-    def enter_NtOpenEvent(self):
-        pass
