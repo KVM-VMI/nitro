@@ -134,15 +134,8 @@ informations, such as:
 - process PID
 - syscall name
 
-First, `Rekall` is used in `symbols.py` to extract the syscall table from
+`Rekall` is used in `symbols.py` to extract the syscall table from
 the memory dump.
-
-Then, a subprocess is started to run `libvmi` (it is only Python2),
-and the communication is managed with `ZeroMQ`.
-
-On a debian based distro, you can install the following packages:
-- `python-zmq`
-- `python3-zmq`
 
 Unfortunately, `Rekall` is not available as a Debian package.
 For now you will have to install it system-wide with `pip`.
