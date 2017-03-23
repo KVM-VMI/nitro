@@ -52,12 +52,6 @@ class Syscall:
             # sysenter is not handled
             raise RuntimeError('collecting SYSENTER arguments is not implemented')
 
-    # hooks defined here
-    def enter_NtOpenKey(self, KeyHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process)
-        buffer = obj.PUnicodeString.Buffer
-        self.decoded = buffer
-
     def enter_NtCreateKey(self, KeyHandle, DesiredAccess, object_attributes):
         obj = ObjectAttributes(object_attributes, self.process)
         buffer = obj.PUnicodeString.Buffer
@@ -215,7 +209,7 @@ class Backend:
             pass
         else:
             try:
-                logging.debug('Hook {} - {}'.format(syscall.direction.name, hook))
+                logging.debug('Hook {} - {}'.format(syscall.event.direction.name, hook))
                 hook(syscall)
             except (RuntimeError, ValueError):
                 # log page fault
@@ -226,9 +220,11 @@ class Backend:
                 self.hooks_processed += 1
 
     def define_hook(self, name, callback, direction=SyscallDirection.enter):
+        logging.info('Defining hook on {}'.format(name))
         self.hooks[direction][name] = callback
 
     def undefine_hook(self, name, direction=SyscallDirection.enter):
+        logging.info('Removing hook on {}'.format(name))
         self.hooks[direction].pop(name)
 
     def associate_process(self, cr3):

@@ -25,7 +25,7 @@ import libvirt
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from nitro.nitro import Nitro
 from nitro.backend import Backend
-from nitro.event import SyscallDirection
+from nitro.win_types import ObjectAttributes
 
 
 def wait_winrm(ip_addr, opened=True):
@@ -199,6 +199,13 @@ class VMTest:
         return result
 
 
+# hooks
+def enter_NtOpenKey(syscall):
+    KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+    obj = ObjectAttributes(object_attributes, syscall.process)
+    buffer = obj.PUnicodeString.Buffer
+    logging.debug('decoded {}'.format(buffer))
+
 class NitroThread(Thread):
 
     def __init__(self, domain, analyze):
@@ -207,9 +214,13 @@ class NitroThread(Thread):
         self.analyze_enabled = analyze
         if self.analyze_enabled:
             self.backend = Backend(self.domain)
+            self.setup_hooks()
         self.stop_request = Event()
         self.total_time = None
         self.events = []
+
+    def setup_hooks(self):
+        self.backend.define_hook('NtOpenKey', enter_NtOpenKey)
 
     def run(self):
         # start timer
@@ -234,6 +245,9 @@ class NitroThread(Thread):
         self.join()
         if self.analyze_enabled:
             self.backend.stop()
+
+
+
 
 
 class TestNitro(unittest.TestCase):
