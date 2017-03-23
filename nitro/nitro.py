@@ -9,7 +9,6 @@ import libvirt
 import time
 import threading
 from queue import Queue
-from pebble import waitforqueues
 from concurrent.futures import ThreadPoolExecutor, wait
 from ctypes import *
 
