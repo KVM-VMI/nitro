@@ -117,7 +117,7 @@ class Syscall:
                 hook(*self.args)
             except ValueError:
                 # log page fault
-                logging.debug('Page fault while processing hook')
+                logging.debug('Error while processing hook')
 
     def enter_NtOpenKey(self, KeyHandle, DesiredAccess, object_attributes):
         obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
@@ -195,7 +195,7 @@ class Backend:
         self.stop()
 
     def stop(self):
-        logging.info('NB Page Faults {}'.format(self.libvmi.nb_pagefaults))
+        logging.info('Libvmi failures {}'.format(self.libvmi.failures))
         self.libvmi.destroy()
 
     def load_symbols(self):
