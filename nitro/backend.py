@@ -10,32 +10,14 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 from nitro.event import SyscallDirection, SyscallType
 from nitro.libvmi import Libvmi
 from nitro.win_types import ObjectAttributes
+from nitro.process import Process
 
 GETSYMBOLS_SCRIPT = 'symbols.py'
 
 
-class Process:
-
-    def __init__(self, cr3, start_eproc, name, pid):
-        self.cr3 = cr3
-        self.start_eproc = start_eproc
-        self.name = name
-        self.pid = pid
-
-    def info(self):
-        info = {}
-        info['name'] = self.name
-        info['pid'] = self.pid
-        return info
-
-
 class Syscall:
 
-    ARGUMENT_TABLE = {
-        'NtOpenKey': 3,
-    }
-
-    def __init__(self, event, name, process, vmi):
+    def __init__(self, event, name, process):
         self.event = event
         self.full_name = name
         # clean rekall syscall name
@@ -43,13 +25,6 @@ class Syscall:
         # name will be NtOpenFile
         *rest, self.name = self.full_name.split('!')
         self.process = process
-        # args and return value
-        if self.event.direction == SyscallDirection.exit:
-            # ret value
-            self.retvalue = self.event.regs.rax
-        else:
-            self.args = self.collect_args()
-        self.vmi = vmi
         self.decoded = None
 
     def info(self):
@@ -58,109 +33,75 @@ class Syscall:
         info['event'] = self.event.info()
         if self.process:
             info['process'] = self.process.info()
-        if self.event.direction == SyscallDirection.exit:
-            info['retvalue'] = self.retvalue
-        else:
-            info['args'] = self.args
-        if self.decoded:
-            info['decoded'] = self.decoded
         return info
 
-    def collect_args(self):
-        try:
-            # if syscall is defined in hardcoded argument table
-            count = self.ARGUMENT_TABLE[self.name]
-
-            # collect args
-            if self.event.type == SyscallType.syscall:
-                # assume Windows here
-                # convention is first 4 args in rcx,rdx,r8,r9
-                # rest on stack
-                args = [self.event.regs.rcx,
-                        self.event.regs.rdx,
-                        self.event.regs.r8,
-                        self.event.regs.r9, ]
-                if count > 4:
-                    raise RuntimeError('collecting more than 4 arguments is not implemented')
-                return args[:count]
-            else:
-                # sysenter is not handled
-                raise RuntimeError('collecting SYSENTER arguments is not implemented')
-        except KeyError:
-            return []
-
-    def dispatch(self):
-        # don't dispatch to the hooks if process is None
-        # TODO
-        if self.process is None:
-            return
-        prefix = 'enter' if self.event.direction == SyscallDirection.enter else 'exit'
-
-        try:
-            # if hook is defined
-            hook_name = '{}_{}'.format(prefix, self.name)
-            hook = getattr(self, hook_name)
-        except AttributeError:
-            # hook not defined
-            pass
+    def collect_args(self, count):
+        # collect args
+        if self.event.type == SyscallType.syscall:
+            # assume Windows here
+            # convention is first 4 args in rcx,rdx,r8,r9
+            # rest on stack
+            args = [self.event.regs.rcx,
+                    self.event.regs.rdx,
+                    self.event.regs.r8,
+                    self.event.regs.r9, ]
+            if count > 4:
+                raise RuntimeError('collecting more than 4 arguments is not implemented')
+            return args[:count]
         else:
-            try:
-                logging.debug('Hook {}'.format(hook_name))
-                hook(*self.args)
-            except ValueError:
-                # log page fault
-                logging.debug('Error while processing hook')
+            # sysenter is not handled
+            raise RuntimeError('collecting SYSENTER arguments is not implemented')
 
     # hooks defined here
     def enter_NtOpenKey(self, KeyHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        obj = ObjectAttributes(object_attributes, self.process)
         buffer = obj.PUnicodeString.Buffer
         self.decoded = buffer
 
     def enter_NtCreateKey(self, KeyHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        obj = ObjectAttributes(object_attributes, self.process)
         buffer = obj.PUnicodeString.Buffer
         self.decoded = buffer
 
     def enter_NtOpenEvent(self, EventHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        obj = ObjectAttributes(object_attributes, self.process)
         buffer = obj.PUnicodeString.Buffer
         self.decoded = buffer
 
     def enter_NtCreateEvent(self, EventHandle, DesiredAccess, object_attributes):
         if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            obj = ObjectAttributes(object_attributes, self.process)
             buffer = obj.PUnicodeString.Buffer
             self.decoded = buffer
 
     def enter_NtOpenProcess(self, ProcessHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        obj = ObjectAttributes(object_attributes, self.process)
         buffer = obj.PUnicodeString.Buffer
         self.decoded = buffer
 
     def enter_NtCreateProcess(self, ProcessHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        obj = ObjectAttributes(object_attributes, self.process)
         buffer = obj.PUnicodeString.Buffer
         self.decoded = buffer
 
     def enter_NtOpenFile(self, EventHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        obj = ObjectAttributes(object_attributes, self.process)
         buffer = obj.PUnicodeString.Buffer
         self.decoded = buffer
 
     def enter_NtCreateFile(self, EventHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        obj = ObjectAttributes(object_attributes, self.process)
         buffer = obj.PUnicodeString.Buffer
         self.decoded = buffer
 
     def enter_NtOpenMutant(self, EventHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        obj = ObjectAttributes(object_attributes, self.process)
         buffer = obj.PUnicodeString.Buffer
         self.decoded = buffer
 
     def enter_NtCreateMutant(self, EventHandle, DesiredAccess, object_attributes):
         if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            obj = ObjectAttributes(object_attributes, self.process)
             buffer = obj.PUnicodeString.Buffer
             self.decoded = buffer
 
@@ -180,6 +121,12 @@ class Backend:
         # run libvmi helper subprocess
         self.libvmi = Libvmi(domain.name())
         self.processes = {}
+        self.hooks = {
+            SyscallDirection.enter: {},
+            SyscallDirection.exit: {}
+        }
+        self.hooks_completed = 0
+        self.hooks_processed = 0
 
     def __enter__(self):
         return self
@@ -188,7 +135,7 @@ class Backend:
         self.stop()
 
     def stop(self):
-        logging.info('Libvmi failures {}'.format(self.libvmi.failures))
+        logging.info('Libvmi failures {}, hooks processed {}, completed {}'.format(self.libvmi.failures, self.hooks_processed, self.hooks_completed))
         self.libvmi.destroy()
 
     def load_symbols(self):
@@ -238,7 +185,10 @@ class Backend:
 
     def process_event(self, event):
         cr3 = event.sregs.cr3
+        # rebuild context
+        # 1 find process
         process = self.associate_process(cr3)
+        # 2 find syscall
         if event.direction == SyscallDirection.exit:
             try:
                 syscall_name = self.syscall_stack[event.vcpu_nb].pop()
@@ -248,10 +198,38 @@ class Backend:
             syscall_name = self.get_syscall_name(event.regs.rax)
             # push them to the stack
             self.syscall_stack[event.vcpu_nb].append(syscall_name)
-        syscall = Syscall(event, syscall_name, process, self.libvmi)
+        syscall = Syscall(event, syscall_name, process)
         # dispatch on the hooks
-        syscall.dispatch()
+        self.dispatch_hooks(syscall)
         return syscall
+
+    def dispatch_hooks(self, syscall):
+        # don't dispatch if process is None
+        # TODO
+        if syscall.process is None:
+            return
+
+        try:
+            hook = self.hooks[syscall.event.direction][syscall.name]
+        except KeyError:
+            pass
+        else:
+            try:
+                logging.debug('Hook {} - {}'.format(syscall.direction.name, hook))
+                hook(syscall)
+            except (RuntimeError, ValueError):
+                # log page fault
+                logging.debug('Error while processing hook')
+            else:
+                self.hooks_completed += 1
+            finally:
+                self.hooks_processed += 1
+
+    def define_hook(self, name, callback, direction=SyscallDirection.enter):
+        self.hooks[direction][name] = callback
+
+    def undefine_hook(self, name, direction=SyscallDirection.enter):
+        self.hooks[direction].pop(name)
 
     def associate_process(self, cr3):
         p = None
@@ -282,7 +260,7 @@ class Backend:
                 # get pid
                 unique_processid_off = start_eproc + self.libvmi.get_offset('win_pid')
                 pid = self.libvmi.read_addr_va(unique_processid_off, 0)
-                eprocess = Process(cr3, start_eproc, image_file_name, pid)
+                eprocess = Process(cr3, start_eproc, image_file_name, pid, self.libvmi)
                 return eprocess
 
             # read new flink
