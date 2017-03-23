@@ -1,6 +1,8 @@
 import logging
 import struct
 
+class InconsistentMemoryError(Exception):
+    pass
 
 class WinStruct(object):
 
@@ -27,6 +29,9 @@ class ObjectAttributes(WinStruct):
 
     def __init__(self, addr, process):
         super(ObjectAttributes, self).__init__(addr, process)
+        if self.Length != 0x30:
+            # memory inconsistent
+            raise InconsistentMemoryError()
         self.PUnicodeString = UnicodeString(self.PUnicodeString, process)
 
 

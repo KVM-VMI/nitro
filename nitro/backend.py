@@ -11,6 +11,7 @@ from nitro.event import SyscallDirection, SyscallType
 from nitro.libvmi import Libvmi
 from nitro.win_types import ObjectAttributes
 from nitro.process import Process
+from nitro.win_types import InconsistentMemoryError
 
 GETSYMBOLS_SCRIPT = 'symbols.py'
 
@@ -121,6 +122,7 @@ class Backend:
         }
         self.hooks_completed = 0
         self.hooks_processed = 0
+        self.memory_access_error = 0
 
     def __enter__(self):
         return self
@@ -129,7 +131,7 @@ class Backend:
         self.stop()
 
     def stop(self):
-        logging.info('Libvmi failures {}, hooks processed {}, completed {}'.format(self.libvmi.failures, self.hooks_processed, self.hooks_completed))
+        logging.info('hooks processed {}, completed {}, memory access errors {}, libvmi failures {}'.format(self.hooks_processed, self.hooks_completed, self.memory_access_error, self.libvmi.failures))
         self.libvmi.destroy()
 
     def load_symbols(self):
@@ -209,8 +211,11 @@ class Backend:
             pass
         else:
             try:
-                logging.debug('Hook {} - {}'.format(syscall.event.direction.name, hook))
+                logging.debug('Processing hook {} - {}'.format(syscall.event.direction.name, hook.__name__))
                 hook(syscall)
+            except InconsistentMemoryError:
+                self.memory_access_error += 1
+                logging.debug('Error while processing hook')
             except (RuntimeError, ValueError):
                 # log page fault
                 logging.debug('Error while processing hook')
