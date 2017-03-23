@@ -16,6 +16,7 @@ from ctypes import *
 from nitro.event import NitroEvent
 from nitro.kvm import KVM, VM, VCPU
 
+
 def find_qemu_pid(vm_name):
     logging.info('Finding QEMU pid for domain {}'.format(vm_name))
     libvirt_vm_pid_file = '/var/run/libvirt/qemu/{}.pid'.format(vm_name)
@@ -37,7 +38,7 @@ def find_qemu_pid(vm_name):
             # output issue
             logging.critical('Cannot find PID with pgrep output: {}'.format(output))
             raise e
-    return -1
+
 
 class Nitro:
 
@@ -52,6 +53,10 @@ class Nitro:
         # get VCPU fds
         self.vcpus_io = self.vm_io.attach_vcpus()
         logging.info('Detected {} VCPUs'.format(len(self.vcpus_io)))
+        self.stop_request = None
+        self.futures = None
+        self.queue = None
+        self.current_cont_event = None
 
     def set_traps(self, enabled):
         self.domain.suspend()
@@ -65,56 +70,58 @@ class Nitro:
         self.stop_listen()
         self.kvm_io.close()
 
-
     def listen(self):
         self.stop_request = threading.Event()
         pool = ThreadPoolExecutor(max_workers=len(self.vcpus_io))
         self.futures = []
-        self.queue_list = []
-        self.last_queue = None
+        self.queue = Queue(maxsize=1)
+        self.current_cont_event = None
         for vcpu_io in self.vcpus_io:
-            # create queue for this vcpu
-            q = Queue(maxsize=1)
-            self.queue_list.append(q)
             # start to listen on this vcpu and report events in the queue
-            f = pool.submit(self.listen_vcpu, vcpu_io, q)
+            f = pool.submit(self.listen_vcpu, vcpu_io, self.queue)
             self.futures.append(f)
 
         # while a thread is still running
         while [f for f in self.futures if f.running()]:
-            modified_queues = waitforqueues(self.queue_list)
-            for q in modified_queues:
-                event = q.get()
-                self.last_queue = q
-                yield event
-                q.task_done()
-
+            (event, continue_event) = self.queue.get()
+            # remember last continue_event for stop_listen()
+            self.current_cont_event = continue_event
+            yield event
+            continue_event.set()
 
     def listen_vcpu(self, vcpu_io, queue):
         logging.info('Start listening on VCPU {}'.format(vcpu_io.vcpu_nb))
+        # we need a per thread continue event
+        continue_event = threading.Event()
         while not self.stop_request.is_set():
             nitro_raw_ev = vcpu_io.get_event()
-
             e = NitroEvent(nitro_raw_ev, vcpu_io.vcpu_nb)
-
-            # put in the queue and wait for the event to be processed
-            queue.put_nowait(e)
-            queue.join()
+            # put the event in the queue
+            # and wait for the event to be processed, when the main thread will set the continue_event
+            item = (e, continue_event)
+            queue.put(item)
+            continue_event.wait()
+            # reset continue_event
+            continue_event.clear()
 
             vcpu_io.continue_vm()
+        logging.debug('stop listening on VCPU {}'.format(vcpu_io.vcpu_nb))
 
     def stop_listen(self):
         self.set_traps(False)
         self.stop_request.set()
-        # ack last queue
-        self.last_queue.task_done()
-        # remove it from queue list
-        self.queue_list.remove(self.last_queue)
-        # wait for other queues to get an event
-        while [q for q in self.queue_list if q.qsize() == 0]:
-            time.sleep(1)
-        # ack other queues
-        [q.task_done() for q in self.queue_list]
+        nb_threads = len([f for f in self.futures if f.running()])
+        # ack current thread
+        self.current_cont_event.set()
+        # wait for current thread to terminate
+        while [f for f in self.futures if f.running()] == nb_threads:
+            time.sleep(0.1)
+        # ack the rest of the threads
+        while [f for f in self.futures if f.running()]:
+            if self.queue.full():
+                (event, continue_event) = self.queue.get()
+                continue_event.set()
+            # let the threads terminate
+            time.sleep(0.1)
         # wait for threads to exit
         wait(self.futures)
-
