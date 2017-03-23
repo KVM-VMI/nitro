@@ -145,6 +145,7 @@ class VM(IOCTL):
         r = self.make_ioctl(self.KVM_NITRO_SET_SYSCALL_TRAP, byref(c_enabled))
         return r
 
+
 class VCPU(IOCTL):
 
     KVM_NITRO_GET_EVENT = IOR(KVMIO, 0xE5, NitroEventStr)

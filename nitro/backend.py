@@ -109,11 +109,60 @@ class Syscall:
                 hook(*self.args)
             except ValueError:
                 # log page fault
-                logging.debug('Page fault while processing hook')
+                logging.debug('Error while processing hook')
 
     # hooks defined here
     def enter_NtOpenKey(self, KeyHandle, DesiredAccess, object_attributes):
-        pass
+        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        buffer = obj.PUnicodeString.Buffer
+        self.decoded = buffer
+
+    def enter_NtCreateKey(self, KeyHandle, DesiredAccess, object_attributes):
+        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        buffer = obj.PUnicodeString.Buffer
+        self.decoded = buffer
+
+    def enter_NtOpenEvent(self, EventHandle, DesiredAccess, object_attributes):
+        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        buffer = obj.PUnicodeString.Buffer
+        self.decoded = buffer
+
+    def enter_NtCreateEvent(self, EventHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
+
+    def enter_NtOpenProcess(self, ProcessHandle, DesiredAccess, object_attributes):
+        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        buffer = obj.PUnicodeString.Buffer
+        self.decoded = buffer
+
+    def enter_NtCreateProcess(self, ProcessHandle, DesiredAccess, object_attributes):
+        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        buffer = obj.PUnicodeString.Buffer
+        self.decoded = buffer
+
+    def enter_NtOpenFile(self, EventHandle, DesiredAccess, object_attributes):
+        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        buffer = obj.PUnicodeString.Buffer
+        self.decoded = buffer
+
+    def enter_NtCreateFile(self, EventHandle, DesiredAccess, object_attributes):
+        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        buffer = obj.PUnicodeString.Buffer
+        self.decoded = buffer
+
+    def enter_NtOpenMutant(self, EventHandle, DesiredAccess, object_attributes):
+        obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+        buffer = obj.PUnicodeString.Buffer
+        self.decoded = buffer
+
+    def enter_NtCreateMutant(self, EventHandle, DesiredAccess, object_attributes):
+        if object_attributes:
+            obj = ObjectAttributes(object_attributes, self.process.pid, self.vmi)
+            buffer = obj.PUnicodeString.Buffer
+            self.decoded = buffer
 
 
 class Backend:
@@ -139,7 +188,7 @@ class Backend:
         self.stop()
 
     def stop(self):
-        logging.info('NB Page Faults {}'.format(self.libvmi.nb_pagefaults))
+        logging.info('Libvmi failures {}'.format(self.libvmi.failures))
         self.libvmi.destroy()
 
     def load_symbols(self):
