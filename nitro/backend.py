@@ -53,52 +53,7 @@ class Syscall:
             # sysenter is not handled
             raise RuntimeError('collecting SYSENTER arguments is not implemented')
 
-    def enter_NtCreateKey(self, KeyHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process)
-        buffer = obj.PUnicodeString.Buffer
-        self.decoded = buffer
 
-    def enter_NtOpenEvent(self, EventHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process)
-        buffer = obj.PUnicodeString.Buffer
-        self.decoded = buffer
-
-    def enter_NtCreateEvent(self, EventHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
-
-    def enter_NtOpenProcess(self, ProcessHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process)
-        buffer = obj.PUnicodeString.Buffer
-        self.decoded = buffer
-
-    def enter_NtCreateProcess(self, ProcessHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process)
-        buffer = obj.PUnicodeString.Buffer
-        self.decoded = buffer
-
-    def enter_NtOpenFile(self, EventHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process)
-        buffer = obj.PUnicodeString.Buffer
-        self.decoded = buffer
-
-    def enter_NtCreateFile(self, EventHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process)
-        buffer = obj.PUnicodeString.Buffer
-        self.decoded = buffer
-
-    def enter_NtOpenMutant(self, EventHandle, DesiredAccess, object_attributes):
-        obj = ObjectAttributes(object_attributes, self.process)
-        buffer = obj.PUnicodeString.Buffer
-        self.decoded = buffer
-
-    def enter_NtCreateMutant(self, EventHandle, DesiredAccess, object_attributes):
-        if object_attributes:
-            obj = ObjectAttributes(object_attributes, self.process)
-            buffer = obj.PUnicodeString.Buffer
-            self.decoded = buffer
 
 
 class Backend:

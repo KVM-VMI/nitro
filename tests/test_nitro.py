@@ -206,6 +206,19 @@ def enter_NtOpenKey(syscall):
     buffer = obj.PUnicodeString.Buffer
     logging.debug('decoded {}'.format(buffer))
 
+def enter_NtOpenProcess(syscall):
+    KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+    obj = ObjectAttributes(object_attributes, syscall.process)
+    buffer = obj.PUnicodeString.Buffer
+    logging.debug('decoded {}'.format(buffer))
+
+def enter_NtOpenFile(syscall):
+    KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+    obj = ObjectAttributes(object_attributes, syscall.process)
+    buffer = obj.PUnicodeString.Buffer
+    logging.debug('decoded {}'.format(buffer))
+
+
 class NitroThread(Thread):
 
     def __init__(self, domain, analyze):
@@ -221,6 +234,8 @@ class NitroThread(Thread):
 
     def setup_hooks(self):
         self.backend.define_hook('NtOpenKey', enter_NtOpenKey)
+        self.backend.define_hook('NtOpenProcess', enter_NtOpenProcess)
+        self.backend.define_hook('NtOpenFile', enter_NtOpenFile)
 
     def run(self):
         # start timer
