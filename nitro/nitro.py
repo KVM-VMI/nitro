@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
 
 
-import os
-import re
 import logging
 import subprocess
-import libvirt
 import time
 import threading
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, wait
-from ctypes import *
 
 from nitro.event import NitroEvent
-from nitro.kvm import KVM, VM, VCPU
+from nitro.kvm import KVM, VM
 
 
 def find_qemu_pid(vm_name):
