@@ -232,7 +232,8 @@ class NitroThread(Thread):
     def stop(self):
         self.stop_request.set()
         self.join()
-        self.backend.stop()
+        if self.analyze_enabled:
+            self.backend.stop()
 
 
 class TestNitro(unittest.TestCase):
@@ -273,7 +274,29 @@ class TestNitro(unittest.TestCase):
             json.dump(events, f, indent=4)
         logging.info('Test execution time {}'.format(exec_time))
 
+    def test_list_windows_no_analyze(self):
+        script = 'Get-ChildItem -Path C:\\windows'
+        self.cdrom.set_script(script, powershell=True)
+        cdrom_iso = self.cdrom.generate_iso()
+        events, exec_time = self.vm_test.run(cdrom_iso, analyze=False)
+        # writing events
+        logging.debug('Writing events...')
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
+        logging.info('Test execution time {}'.format(exec_time))
+
     def test_list_system32_analyze(self):
+        script = 'Get-ChildItem -Path C:\\windows\\system32'
+        self.cdrom.set_script(script, powershell=True)
+        cdrom_iso = self.cdrom.generate_iso()
+        events, exec_time = self.vm_test.run(cdrom_iso)
+        # writing events
+        logging.debug('Writing events...')
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
+        logging.info('Test execution time {}'.format(exec_time))
+
+    def test_list_windows_analyze(self):
         script = 'Get-ChildItem -Path C:\\windows'
         self.cdrom.set_script(script, powershell=True)
         cdrom_iso = self.cdrom.generate_iso()
