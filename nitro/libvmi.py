@@ -113,3 +113,15 @@ class Libvmi:
             raise ValueError('VMI_FAILURE')
         value = bytes(buffer)[:nb_read]
         return value
+
+    def v2pcache_flush(self):
+        self.libvmi.vmi_v2pcache_flush(self.vmi)
+
+    def pidcache_flush(self):
+        self.libvmi.vmi_pidcache_flush(self.vmi)
+
+    def symcache_flush(self):
+        self.libvmi.vmi_symcache_flush(self.vmi)
+
+    def rvacache_flush(self):
+        self.libvmi.vmi_rvacache_flush(self.vmi)
