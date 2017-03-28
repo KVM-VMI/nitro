@@ -114,8 +114,8 @@ class Libvmi:
         value = bytes(buffer)[:nb_read]
         return value
 
-    def v2pcache_flush(self):
-        self.libvmi.vmi_v2pcache_flush(self.vmi)
+    def v2pcache_flush(self, dtb=0):
+        self.libvmi.vmi_v2pcache_flush(self.vmi, dtb)
 
     def pidcache_flush(self):
         self.libvmi.vmi_pidcache_flush(self.vmi)
