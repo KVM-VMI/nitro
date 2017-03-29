@@ -8,7 +8,7 @@ import shutil
 import json
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from nitro.event import SyscallDirection, SyscallType
-from nitro.libvmi import Libvmi
+from nitro.libvmi import Libvmi, LibvmiError
 from nitro.win_types import ObjectAttributes
 from nitro.process import Process
 from nitro.win_types import InconsistentMemoryError
@@ -47,13 +47,11 @@ class Syscall:
                     self.event.regs.r8,
                     self.event.regs.r9, ]
             if count > 4:
-                raise RuntimeError('collecting more than 4 arguments is not implemented')
+                raise ValueError('collecting more than 4 arguments is not implemented')
             return args[:count]
         else:
             # sysenter is not handled
-            raise RuntimeError('collecting SYSENTER arguments is not implemented')
-
-
+            raise ValueError('collecting SYSENTER arguments is not implemented')
 
 
 class Backend:
@@ -75,9 +73,13 @@ class Backend:
             SyscallDirection.enter: {},
             SyscallDirection.exit: {}
         }
-        self.hooks_completed = 0
-        self.hooks_processed = 0
-        self.memory_access_error = 0
+        self.stats = {
+            'hooks_processed': 0,
+            'hooks_completed': 0,
+            'memory_access_error': 0,
+            'libvmi_failure': 0,
+            'misc_error': 0
+        }
 
     def __enter__(self):
         return self
@@ -86,7 +88,7 @@ class Backend:
         self.stop()
 
     def stop(self):
-        logging.info('hooks processed {}, completed {}, memory access errors {}, libvmi failures {}'.format(self.hooks_processed, self.hooks_completed, self.memory_access_error, self.libvmi.failures))
+        logging.info(json.dumps(self.stats, indent=4))
         self.libvmi.destroy()
 
     def load_symbols(self):
@@ -175,15 +177,19 @@ class Backend:
                 logging.debug('Processing hook {} - {}'.format(syscall.event.direction.name, hook.__name__))
                 hook(syscall)
             except InconsistentMemoryError:
-                self.memory_access_error += 1
-                logging.debug('Error while processing hook')
-            except (RuntimeError, ValueError):
-                # log page fault
-                logging.debug('Error while processing hook')
+                self.stats['memory_access_error'] += 1
+                logging.exception('Memory access error')
+            except LibvmiError:
+                self.stats['libvmi_failure'] += 1
+                logging.exception('VMI_FAILURE')
+            # misc failures
+            except ValueError:
+                self.stats['misc_error'] += 1
+                logging.exception('Misc error')
             else:
-                self.hooks_completed += 1
+                self.stats['hooks_completed'] += 1
             finally:
-                self.hooks_processed += 1
+                self.stats['hooks_processed'] += 1
 
     def define_hook(self, name, callback, direction=SyscallDirection.enter):
         logging.info('Defining hook on {}'.format(name))

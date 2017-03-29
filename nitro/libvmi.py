@@ -33,7 +33,8 @@ VMI_INIT_COMPLETE = (1 << 17)
 #define VMI_INVALID_DOMID ~0ULL /**< invalid domain id */
 
 
-
+class LibvmiError(Exception):
+    pass
 
 class VMIInstance(Structure):
     _fields_ = [("buffer", c_int * 1024 * 1024 * 10)]
@@ -69,7 +70,7 @@ class Libvmi:
         if status == VMI_FAILURE:
             self.failures += 1
             logging.debug('VMI_FAILURE trying to read {}, with {}'.format(symbol, 'read_addr_ksym'))
-            raise ValueError('VMI_FAILURE')
+            raise LibvmiError('VMI_FAILURE')
 
         return value_c.value
 
@@ -88,7 +89,7 @@ class Libvmi:
         if status == VMI_FAILURE:
             self.failures += 1
             logging.debug('VMI_FAILURE trying to read {}, with {}'.format(hex(vaddr), 'read_addr_va'))
-            raise ValueError('VMI_FAILURE')
+            raise LibvmiError('VMI_FAILURE')
         return value_c.value
 
     def read_str_va(self, vaddr, pid):
@@ -110,7 +111,7 @@ class Libvmi:
         if nb_read == 0:
             self.failures += 1
             logging.debug('VMI_FAILURE trying to read {}, with {}'.format(hex(vaddr), 'read_va'))
-            raise ValueError('VMI_FAILURE')
+            raise LibvmiError('VMI_FAILURE')
         value = bytes(buffer)[:nb_read]
         return value
 
