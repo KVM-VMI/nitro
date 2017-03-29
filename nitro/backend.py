@@ -135,8 +135,13 @@ class Backend:
                     logging.debug('Add SSDT entry [{}] -> {}'.format(entry, full_name))
 
     def process_event(self, event):
-        cr3 = event.sregs.cr3
+        # invalidate libvmi cache
+        self.libvmi.v2pcache_flush()
+        self.libvmi.pidcache_flush()
+        self.libvmi.rvacache_flush()
+        self.libvmi.symcache_flush()
         # rebuild context
+        cr3 = event.sregs.cr3
         # 1 find process
         process = self.associate_process(cr3)
         # 2 find syscall
