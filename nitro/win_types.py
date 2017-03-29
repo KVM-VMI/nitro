@@ -49,5 +49,5 @@ class UnicodeString(WinStruct):
         try:
             string = buffer.decode('utf-16-le')
         except UnicodeDecodeError:
-            string = "UnicodeDecodeError"
+            raise ValueError('UnicodeDecodeError')
         self.Buffer = string
