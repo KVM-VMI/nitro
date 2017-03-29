@@ -125,3 +125,6 @@ class Libvmi:
 
     def rvacache_flush(self):
         self.libvmi.vmi_rvacache_flush(self.vmi)
+
+    def pagecache_flush(self):
+        self.libvmi.vmi_pagecache_flush(self.vmi)
