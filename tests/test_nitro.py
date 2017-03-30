@@ -326,3 +326,34 @@ class TestNitro(unittest.TestCase):
             json.dump(events, f, indent=4)
         logging.info('Test execution time {}'.format(exec_time))
 
+    def test_hook_openfile(self):
+        file_path = 'C:\\Program Files\\Windows Sidebar\\Gadgets\\PicturePuzzle.Gadget\\en-US\\gadget.xml'
+        script = 'Get-Content \"{}\"'.format(file_path)
+        self.cdrom.set_script(script, powershell=True)
+        cdrom_iso = self.cdrom.generate_iso()
+
+        def enter_NtOpenFile(syscall):
+            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            obj = ObjectAttributes(object_attributes, syscall.process)
+            buffer = obj.PUnicodeString.Buffer
+            syscall.hook = buffer
+
+        def enter_NtCreateFile(syscall):
+            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            obj = ObjectAttributes(object_attributes, syscall.process)
+            buffer = obj.PUnicodeString.Buffer
+            syscall.hook = buffer
+
+        hooks = {
+            'NtOpenFile': enter_NtOpenFile,
+            'NtCreateFile': enter_NtCreateFile,
+        }
+        events, exec_time = self.vm_test.run(cdrom_iso, hooks=hooks)
+        # writing events
+        logging.debug('Writing events...')
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
+        logging.info('Test execution time {}'.format(exec_time))
+        # checking if we find the event where the file is opened
+        event_file_opened = [e for e in events if e.get('hook') and e['hook'].find(file_path)]
+        self.assertTrue(event_file_opened)
