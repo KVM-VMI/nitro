@@ -241,5 +241,7 @@ class Backend:
         try:
             syscall_name = self.sdt[idx]['ServiceTable'][ssn]
         except (KeyError, IndexError):
+            # this code should not be reached, because there is only 2 SSDT's defined in Windows (Nt and Win32k)
+            # the 2 others are NULL
             syscall_name = 'Table{}!Unknown'.format(idx)
         return syscall_name
