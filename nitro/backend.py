@@ -26,7 +26,7 @@ class Syscall:
         # name will be NtOpenFile
         *rest, self.name = self.full_name.split('!')
         self.process = process
-        self.decoded = None
+        self.hook = None
 
     def info(self):
         info = {}
@@ -34,6 +34,9 @@ class Syscall:
         info['event'] = self.event.info()
         if self.process:
             info['process'] = self.process.info()
+        if self.hook:
+            # user added information, if any hook has been set
+            info['hook'] = self.hook
         return info
 
     def collect_args(self, count):
