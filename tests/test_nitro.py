@@ -167,7 +167,7 @@ class VMTest:
         new_xml = tree.tostring(cdrom_elem).decode('utf-8')
         self.domain.updateDeviceFlags(new_xml, libvirt.VIR_DOMAIN_AFFECT_LIVE)
 
-    def run(self, cdrom_iso, analyze=True, idle=False):
+    def run(self, cdrom_iso, analyze=True, idle=False, hooks=None):
         # start domain
         logging.info('Testing {}'.format(self.domain.name()))
         self.domain.create()
@@ -182,7 +182,7 @@ class VMTest:
             logging.info('Waiting for Windows to be idle (5 min)')
             time.sleep(idle_wait)
         # run nitro before inserting CDROM
-        nitro = NitroThread(self.domain, analyze)
+        nitro = NitroThread(self.domain, analyze, hooks)
         nitro.start()
         # mount cdrom, test is executed
         self.mount_cdrom(cdrom_iso)
@@ -199,43 +199,22 @@ class VMTest:
         return result
 
 
-# hooks
-def enter_NtOpenKey(syscall):
-    KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
-    obj = ObjectAttributes(object_attributes, syscall.process)
-    buffer = obj.PUnicodeString.Buffer
-    logging.debug('decoded {}'.format(buffer))
-
-def enter_NtOpenProcess(syscall):
-    KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
-    obj = ObjectAttributes(object_attributes, syscall.process)
-    buffer = obj.PUnicodeString.Buffer
-    logging.debug('decoded {}'.format(buffer))
-
-def enter_NtOpenFile(syscall):
-    KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
-    obj = ObjectAttributes(object_attributes, syscall.process)
-    buffer = obj.PUnicodeString.Buffer
-    logging.debug('decoded {}'.format(buffer))
-
-
 class NitroThread(Thread):
 
-    def __init__(self, domain, analyze):
+    def __init__(self, domain, analyze, hooks):
         super().__init__()
         self.domain = domain
         self.analyze_enabled = analyze
         if self.analyze_enabled:
             self.backend = Backend(self.domain)
-            self.setup_hooks()
+            self.setup_hooks(hooks)
         self.stop_request = Event()
         self.total_time = None
         self.events = []
 
-    def setup_hooks(self):
-        self.backend.define_hook('NtOpenKey', enter_NtOpenKey)
-        self.backend.define_hook('NtOpenProcess', enter_NtOpenProcess)
-        self.backend.define_hook('NtOpenFile', enter_NtOpenFile)
+    def setup_hooks(self, hooks):
+        for name, callback in hooks.items():
+            self.backend.define_hook(name, callback)
 
     def run(self):
         # start timer
