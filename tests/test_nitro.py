@@ -201,7 +201,7 @@ class VMTest:
 
 class NitroThread(Thread):
 
-    def __init__(self, domain, analyze, hooks):
+    def __init__(self, domain, analyze=False, hooks=None):
         super().__init__()
         self.domain = domain
         self.analyze_enabled = analyze
