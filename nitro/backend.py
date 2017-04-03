@@ -236,7 +236,7 @@ class Backend:
 
             # read new flink
             flink = self.libvmi.read_addr_va(flink, 0)
-        return None
+        raise RuntimeError('Process not found')
 
     def get_syscall_name(self, rax):
         ssn = rax & 0xFFF
