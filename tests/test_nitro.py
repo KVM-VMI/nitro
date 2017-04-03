@@ -335,13 +335,13 @@ class TestNitro(unittest.TestCase):
         def enter_NtOpenFile(syscall):
             KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
             obj = ObjectAttributes(object_attributes, syscall.process)
-            buffer = obj.PUnicodeString.Buffer
+            buffer = obj.ObjectName.Buffer
             syscall.hook = buffer
 
         def enter_NtCreateFile(syscall):
             KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
             obj = ObjectAttributes(object_attributes, syscall.process)
-            buffer = obj.PUnicodeString.Buffer
+            buffer = obj.ObjectName.Buffer
             syscall.hook = buffer
 
         hooks = {
@@ -367,13 +367,13 @@ class TestNitro(unittest.TestCase):
         def enter_NtOpenKey(syscall):
             KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
             obj = ObjectAttributes(object_attributes, syscall.process)
-            buffer = obj.PUnicodeString.Buffer
+            buffer = obj.ObjectName.Buffer
             syscall.hook = buffer
 
         def enter_NtCreateKey(syscall):
             KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
             obj = ObjectAttributes(object_attributes, syscall.process)
-            buffer = obj.PUnicodeString.Buffer
+            buffer = obj.ObjectName.Buffer
             syscall.hook = buffer
 
         hooks = {

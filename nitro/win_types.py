@@ -23,8 +23,8 @@ class ObjectAttributes(WinStruct):
 
     _fields_ = [
             (0, 'Length',  'I'),
-            (0x8, 'Handle', 'P'),
-            (0x10, 'PUnicodeString', 'P'),
+            (0x8, 'RootDirectory', 'P'),
+            (0x10, 'ObjectName', 'P'),
             ]
 
     def __init__(self, addr, process):
@@ -32,7 +32,7 @@ class ObjectAttributes(WinStruct):
         if self.Length != 0x30:
             # memory inconsistent
             raise InconsistentMemoryError()
-        self.PUnicodeString = UnicodeString(self.PUnicodeString, process)
+        self.ObjectName = UnicodeString(self.ObjectName, process)
 
 
 class UnicodeString(WinStruct):
