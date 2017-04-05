@@ -357,6 +357,9 @@ class TestNitro(unittest.TestCase):
         # checking if we find the event where the file is opened
         event_found = [e for e in events if e.get('hook') and e['hook'].find(file_path)]
         self.assertTrue(event_found)
+        # get all opened files and log them for debug
+        opened_files = [e['hook'] for e in events if e.get('hook')]
+        logging.info('opened_files {}'.format(json.dumps(opened_files, indent=4)))
 
     def test_hook_openkey(self):
         key_path = 'Software\\ABCDMagicKey1234'
