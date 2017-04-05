@@ -91,7 +91,12 @@ class NitroVCPUs(Structure):
             ]
 
 
-class IOCTL():
+class IOCTL:
+
+    __slots__ = (
+        'libc',
+        'fd'
+    )
 
     LIBC_6 = 'libc.so.6'
 
@@ -109,6 +114,10 @@ class IOCTL():
 
 class KVM(IOCTL):
 
+    __slots__ = (
+        'kvm_file'
+    )
+
     KVM_NODE = '/dev/kvm'
     KVM_NITRO_ATTACH_VM = IOW(KVMIO, 0xE1, c_int)
 
@@ -124,6 +133,10 @@ class KVM(IOCTL):
         return r
 
 class VM(IOCTL):
+
+    __slots__ = (
+        'vcpus_struct'
+    )
 
     KVM_NITRO_ATTACH_VCPUS = IOR(KVMIO, 0xE2, NitroVCPUs)
     KVM_NITRO_SET_SYSCALL_TRAP = IOW(KVMIO, 0xE3, c_bool)
@@ -147,6 +160,10 @@ class VM(IOCTL):
 
 
 class VCPU(IOCTL):
+
+    __slots__ = (
+        'vcpu_nb',
+    )
 
     KVM_NITRO_GET_EVENT = IOR(KVMIO, 0xE5, NitroEventStr)
     KVM_NITRO_CONTINUE = IO(KVMIO, 0xE6)

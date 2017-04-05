@@ -21,6 +21,12 @@ class WinStruct(object):
 
 class ObjectAttributes(WinStruct):
 
+    __slots__ = (
+        'Length',
+        'RootDirectory',
+        'ObjectName',
+    )
+
     _fields_ = [
             (0, 'Length',  'I'),
             (0x8, 'RootDirectory', 'P'),
@@ -36,6 +42,12 @@ class ObjectAttributes(WinStruct):
 
 
 class UnicodeString(WinStruct):
+
+    __slots__ = (
+        'Length',
+        'MaximumLength',
+        'Buffer',
+    )
 
     _fields_ = [
             (0, 'Length', 'H'),

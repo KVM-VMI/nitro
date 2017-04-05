@@ -42,6 +42,17 @@ class VMIInstance(Structure):
 
 class Libvmi:
 
+    __slots__ = (
+        'libvmi',
+        'vmi_instance',
+        'vmi',
+        'sdt',
+        'libvmi',
+        'processes',
+        'hooks',
+        'stats',
+    )
+
     def __init__(self, vm_name):
         self.libvmi = cdll.LoadLibrary('libvmi.so')
         self.vmi_instance = VMIInstance()
@@ -53,7 +64,6 @@ class Libvmi:
         self.libvmi.vmi_translate_ksym2v.restype = c_ulonglong
         self.libvmi.vmi_get_offset.restype = c_ulonglong
         self.libvmi.vmi_read_str_va.restype = charptr
-        self.failures = 0
 
     def destroy(self):
         self.libvmi.vmi_destroy(self.vmi)
@@ -68,7 +78,6 @@ class Libvmi:
         value_c = c_ulonglong()
         status = self.libvmi.vmi_read_addr_ksym(self.vmi, symbol_c, byref(value_c))
         if status == VMI_FAILURE:
-            self.failures += 1
             logging.debug('VMI_FAILURE trying to read {}, with {}'.format(symbol, 'read_addr_ksym'))
             raise LibvmiError('VMI_FAILURE')
 
@@ -87,7 +96,6 @@ class Libvmi:
         value_c = c_ulonglong()
         status = self.libvmi.vmi_read_addr_va(self.vmi, vaddr_c, pid_c, byref(value_c))
         if status == VMI_FAILURE:
-            self.failures += 1
             logging.debug('VMI_FAILURE trying to read {}, with {}'.format(hex(vaddr), 'read_addr_va'))
             raise LibvmiError('VMI_FAILURE')
         return value_c.value
@@ -109,7 +117,6 @@ class Libvmi:
         buffer = (c_char * count)()
         nb_read = self.libvmi.vmi_read_va(self.vmi, vaddr_c, pid_c, byref(buffer), count)
         if nb_read == 0:
-            self.failures += 1
             logging.debug('VMI_FAILURE trying to read {}, with {}'.format(hex(vaddr), 'read_va'))
             raise LibvmiError('VMI_FAILURE')
         value = bytes(buffer)[:nb_read]

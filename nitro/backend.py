@@ -18,6 +18,14 @@ GETSYMBOLS_SCRIPT = 'symbols.py'
 
 class Syscall:
 
+    __slots__ = (
+        'event',
+        'full_name',
+        'name',
+        'process',
+        'hook',
+    )
+
     def __init__(self, event, name, process):
         self.event = event
         self.full_name = name
@@ -58,6 +66,17 @@ class Syscall:
 
 
 class Backend:
+
+    __slots__ = (
+        'domain',
+        'nb_vcpu',
+        'syscall_stack',
+        'sdt',
+        'libvmi',
+        'processes',
+        'hooks',
+        'stats',
+    )
 
     def __init__(self, domain):
         self.domain = domain

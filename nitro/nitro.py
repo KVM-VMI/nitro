@@ -37,6 +37,18 @@ def find_qemu_pid(vm_name):
 
 class Nitro:
 
+    __slots__ = (
+        'domain',
+        'pid',
+        'kvm_io',
+        'vm_io',
+        'vcpus_io',
+        'stop_request',
+        'futures',
+        'queue',
+        'current_cont_event',
+    )
+
     def __init__(self, domain):
         self.domain = domain
         self.pid = find_qemu_pid(domain.name())
