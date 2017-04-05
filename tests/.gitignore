@@ -1,2 +1,4 @@
 # ignore nitro storage pool
 images/
+# ignore test output
+test_*/
