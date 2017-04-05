@@ -48,3 +48,4 @@ events.json
 dist
 build
 *.egg-info
+libvmi_helper.log
