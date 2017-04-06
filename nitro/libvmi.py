@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 from ctypes import *
 
 charptr = POINTER(c_char)
@@ -6,35 +7,26 @@ charptr = POINTER(c_char)
 VMI_SUCCESS = 0
 VMI_FAILURE = 1
 
-VMI_AUTO = (1 << 0)
+VMI_INIT_DOMAINNAME = (1 << 0)  # initialize using domain name
 
-VMI_XEN = (1 << 1)
+VMI_INIT_DOMAINID = (1 << 1) # initialize using domain id
 
-VMI_KVM = (1 << 2)
 
-VMI_FILE = (1 << 3)
+class VMIMode(Enum):
+    VMI_XEN = 0
+    VMI_KVM = 1
+    VMI_FILE = 2
 
-VMI_INIT_PARTIAL = (1 << 16)
 
-VMI_INIT_COMPLETE = (1 << 17)
-
-#define VMI_INIT_EVENTS (1 << 18) /**< init support for VM events */
-
-#define VMI_INIT_SHM_SNAPSHOT (1 << 19) /**< setup shm-snapshot in vmi_init() if the feature is activated */
-
-#define VMI_CONFIG_NONE (1 << 24) /**< no config provided */
-
-#define VMI_CONFIG_GLOBAL_FILE_ENTRY (1 << 25) /**< config in file provided */
-
-#define VMI_CONFIG_STRING (1 << 26) /**< config string provided */
-
-#define VMI_CONFIG_GHASHTABLE (1 << 27) /**< config GHashTable provided */
-
-#define VMI_INVALID_DOMID ~0ULL /**< invalid domain id */
+class VMIConfig(Enum):
+    VMI_CONFIG_GLOBAL_FILE_ENTRY = 0
+    VMI_CONFIG_STRING = 1
+    VMI_CONFIG_GHASHTABLE = 2
 
 
 class LibvmiError(Exception):
     pass
+
 
 class VMIInstance(Structure):
     _fields_ = [("buffer", c_int * 1024 * 1024 * 10)]
@@ -59,7 +51,8 @@ class Libvmi:
         self.vmi = pointer(self.vmi_instance)
         # init libvmi
         vm_name_c = create_string_buffer(vm_name.encode('utf-8'))
-        self.libvmi.vmi_init(byref(self.vmi), VMI_KVM | VMI_INIT_COMPLETE, vm_name_c)
+        self.libvmi.vmi_init_complete(byref(self.vmi), vm_name_c, VMI_INIT_DOMAINNAME, 0,
+                                      VMIConfig.VMI_CONFIG_GLOBAL_FILE_ENTRY.value, 0, 0)
         # small fixes
         self.libvmi.vmi_translate_ksym2v.restype = c_ulonglong
         self.libvmi.vmi_get_offset.restype = c_ulonglong
