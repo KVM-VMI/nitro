@@ -13,7 +13,6 @@ setup(
     install_requires=[
         'docopt',
         'libvirt-python',
-        'pyzmq',
     ],
     keywords="nitro hyperisor monitoring tracing syscall",
 )
