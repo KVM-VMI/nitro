@@ -164,7 +164,6 @@ class Backend:
         self.libvmi.pidcache_flush()
         self.libvmi.rvacache_flush()
         self.libvmi.symcache_flush()
-        self.libvmi.pagecache_flush()
         # rebuild context
         cr3 = event.sregs.cr3
         # 1 find process
