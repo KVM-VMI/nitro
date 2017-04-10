@@ -25,7 +25,7 @@ import libvirt
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from nitro.nitro import Nitro
 from nitro.backend import Backend
-from nitro.win_types import ObjectAttributes
+from nitro.win_types import ObjectAttributes, FileAccessMask
 
 
 def wait_winrm(ip_addr, opened=True):
@@ -336,13 +336,21 @@ class TestNitro(unittest.TestCase):
             KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
-            syscall.hook = buffer
+            access = FileAccessMask(DesiredAccess)
+            syscall.hook = {
+                'object_name': buffer,
+                'access': access.rights
+            }
 
         def enter_NtCreateFile(syscall):
             KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
-            syscall.hook = buffer
+            access = FileAccessMask(DesiredAccess)
+            syscall.hook = {
+                'object_name': buffer,
+                'access': access.rights
+            }
 
         hooks = {
             'NtOpenFile': enter_NtOpenFile,
@@ -355,10 +363,10 @@ class TestNitro(unittest.TestCase):
             json.dump(events, f, indent=4)
         logging.info('Test execution time {}'.format(exec_time))
         # checking if we find the event where the file is opened
-        event_found = [e for e in events if e.get('hook') and e['hook'].find(file_path)]
+        event_found = [e for e in events if e.get('hook') and e['hook']['object_name'].find(file_path)]
         self.assertTrue(event_found)
         # get all opened files and log them for debug
-        opened_files = [e['hook'] for e in events if e.get('hook')]
+        opened_files = [e['hook']['object_name'] for e in events if e.get('hook')]
         logging.info('opened_files {}'.format(json.dumps(opened_files, indent=4)))
 
     def test_hook_openkey(self):
