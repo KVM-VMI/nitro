@@ -207,6 +207,8 @@ class Backend:
             except ValueError:
                 self.stats['misc_error'] += 1
                 logging.exception('Misc error')
+            except Exception:
+                logging.exception('Unknown error while processing hook')
             else:
                 self.stats['hooks_completed'] += 1
             finally:
