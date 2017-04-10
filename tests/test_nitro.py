@@ -479,6 +479,126 @@ class TestNitro(unittest.TestCase):
                        and 'GENERIC_ALL' in e['hook']['access']]
         self.assertTrue(event_found)
 
+    def test_createfile_append(self):
+        binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_append.exe')
+        self.cdrom.set_executable(binary_path)
+        cdrom_iso = self.cdrom.generate_iso()
+
+        def enter_NtCreateFile(syscall):
+            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            obj = ObjectAttributes(object_attributes, syscall.process)
+            buffer = obj.ObjectName.Buffer
+            access = FileAccessMask(DesiredAccess)
+            syscall.hook = {
+                'object_name': buffer,
+                'access': access.rights
+            }
+
+        hooks = {
+            'NtCreateFile': enter_NtCreateFile,
+        }
+        events, exec_time = self.vm_test.run(cdrom_iso, hooks=hooks)
+        # writing events
+        logging.debug('Writing events...')
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
+        logging.info('Test execution time {}'.format(exec_time))
+        # checking if we find the event where the file is opened
+        event_found = [e for e in events if e.get('hook')
+                       and e['hook']['object_name'].find('foobar.txt') != -1
+                       and 'FILE_APPEND_DATA' in e['hook']['access']]
+        self.assertTrue(event_found)
+
+    def test_createfile_file_execute(self):
+        binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_file_execute.exe')
+        self.cdrom.set_executable(binary_path)
+        cdrom_iso = self.cdrom.generate_iso()
+
+        def enter_NtCreateFile(syscall):
+            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            obj = ObjectAttributes(object_attributes, syscall.process)
+            buffer = obj.ObjectName.Buffer
+            access = FileAccessMask(DesiredAccess)
+            syscall.hook = {
+                'object_name': buffer,
+                'access': access.rights
+            }
+
+        hooks = {
+            'NtCreateFile': enter_NtCreateFile,
+        }
+        events, exec_time = self.vm_test.run(cdrom_iso, hooks=hooks)
+        # writing events
+        logging.debug('Writing events...')
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
+        logging.info('Test execution time {}'.format(exec_time))
+        # checking if we find the event where the file is opened
+        event_found = [e for e in events if e.get('hook')
+                       and e['hook']['object_name'].find('foobar.txt') != -1
+                       and 'FILE_EXECUTE' in e['hook']['access']]
+        self.assertTrue(event_found)
+
+    def test_createfile_read_data(self):
+        binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_read_data.exe')
+        self.cdrom.set_executable(binary_path)
+        cdrom_iso = self.cdrom.generate_iso()
+
+        def enter_NtCreateFile(syscall):
+            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            obj = ObjectAttributes(object_attributes, syscall.process)
+            buffer = obj.ObjectName.Buffer
+            access = FileAccessMask(DesiredAccess)
+            syscall.hook = {
+                'object_name': buffer,
+                'access': access.rights
+            }
+
+        hooks = {
+            'NtCreateFile': enter_NtCreateFile,
+        }
+        events, exec_time = self.vm_test.run(cdrom_iso, hooks=hooks)
+        # writing events
+        logging.debug('Writing events...')
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
+        logging.info('Test execution time {}'.format(exec_time))
+        # checking if we find the event where the file is opened
+        event_found = [e for e in events if e.get('hook')
+                       and e['hook']['object_name'].find('foobar.txt') != -1
+                       and 'FILE_READ_DATA' in e['hook']['access']]
+        self.assertTrue(event_found)
+
+    def test_createfile_write_data(self):
+        binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_write_data.exe')
+        self.cdrom.set_executable(binary_path)
+        cdrom_iso = self.cdrom.generate_iso()
+
+        def enter_NtCreateFile(syscall):
+            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            obj = ObjectAttributes(object_attributes, syscall.process)
+            buffer = obj.ObjectName.Buffer
+            access = FileAccessMask(DesiredAccess)
+            syscall.hook = {
+                'object_name': buffer,
+                'access': access.rights
+            }
+
+        hooks = {
+            'NtCreateFile': enter_NtCreateFile,
+        }
+        events, exec_time = self.vm_test.run(cdrom_iso, hooks=hooks)
+        # writing events
+        logging.debug('Writing events...')
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
+        logging.info('Test execution time {}'.format(exec_time))
+        # checking if we find the event where the file is opened
+        event_found = [e for e in events if e.get('hook')
+                       and e['hook']['object_name'].find('foobar.txt') != -1
+                       and 'FILE_WRITE_DATA' in e['hook']['access']]
+        self.assertTrue(event_found)
+
     def test_hook_openkey(self):
         key_path = 'Software\\ABCDMagicKey1234'
         script = 'New-Item \"HKCU:\\{}\" -Force | New-ItemProperty -Name foobar -Value true -PropertyType STRING -Force'.format(key_path)

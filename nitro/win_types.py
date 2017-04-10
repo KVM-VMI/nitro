@@ -91,7 +91,7 @@ class FileAccessMask(AccessMask):
     SPECIFIC_RIGHTS = [
         (1 << 0, "FILE_READ_DATA"),
         (1 << 1, "FILE_WRITE_DATA"),
-        (1 << 2, "FILE_READ_DATA"),
+        (1 << 2, "FILE_APPEND_DATA"),
         (1 << 3, "FILE_READ_EA"),
         (0x10, "FILE_WRITE_EA"),
         (0x20, "FILE_EXECUTE"),
