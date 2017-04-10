@@ -2,3 +2,8 @@
 images/
 # ignore test output
 test_*/
+
+# visual studio
+Debug/
+*.pdb
+.vs
