@@ -180,12 +180,16 @@ class VCPU(IOCTL):
     def get_event(self):
         # logging.debug('get_event {}'.format(self.vcpu_nb))
         nitro_ev = NitroEventStr()
-        self.make_ioctl(self.KVM_NITRO_GET_EVENT, byref(nitro_ev))
+        ret = self.make_ioctl(self.KVM_NITRO_GET_EVENT, byref(nitro_ev))
+        if ret != 0:
+            raise ValueError('get_event failed')
         return nitro_ev
 
     def continue_vm(self):
         # logging.debug('continue_vm {}'.format(self.vcpu_nb))
-        return self.make_ioctl(self.KVM_NITRO_CONTINUE, 0)
+        ret = self.make_ioctl(self.KVM_NITRO_CONTINUE, 0)
+        if ret != 0:
+            raise ValueError('continue vm failed')
 
     def get_regs(self):
         regs = Regs()
