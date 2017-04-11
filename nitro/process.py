@@ -2,6 +2,7 @@ class Process:
 
     def __init__(self, cr3, start_eproc, name, pid, libvmi):
         self.cr3 = cr3
+        # FIXME: This should be moved out
         self.start_eproc = start_eproc
         self.name = name
         self.pid = pid

@@ -4,25 +4,10 @@ from ctypes import *
 
 charptr = POINTER(c_char)
 
+# status_t
+
 VMI_SUCCESS = 0
 VMI_FAILURE = 1
-
-VMI_INIT_DOMAINNAME = (1 << 0)  # initialize using domain name
-
-VMI_INIT_DOMAINID = (1 << 1)    # initialize using domain id
-
-
-class VMIMode(Enum):
-    VMI_XEN = 0
-    VMI_KVM = 1
-    VMI_FILE = 2
-
-
-class VMIConfig(Enum):
-    VMI_CONFIG_GLOBAL_FILE_ENTRY = 0
-    VMI_CONFIG_STRING = 1
-    VMI_CONFIG_GHASHTABLE = 2
-
 
 class LibvmiInitError(Enum):
     VMI_INIT_ERROR_NONE = 0                 # No error
@@ -36,6 +21,53 @@ class LibvmiInitError(Enum):
     VMI_INIT_ERROR_NO_CONFIG = 8            # No configuration was found for OS initialization
     VMI_INIT_ERROR_NO_CONFIG_ENTRY = 9      # Configuration contained no valid entry for VM
 
+# os_t
+
+VMI_OS_UNKNOWN = 0
+VMI_OS_LINUX = 1
+VMI_OS_WINDOWS = 2
+
+# vmi_mode_t
+
+class VMIMode(Enum):
+    VMI_XEN = 0
+    VMI_KVM = 1
+    VMI_FILE = 2
+
+
+# VMI_INIT
+
+VMI_INIT_DOMAINNAME = (1 << 0)
+VMI_INIT_DOMAINID = (1 << 1)
+VMI_INIT_EVENT = (1 << 2)
+VMI_INIT_SHM = (1 << 3)
+
+# vmi_config_t
+
+class VMIConfig(Enum):
+    VMI_CONFIG_GLOBAL_FILE_ENTRY = 0
+    VMI_CONFIG_STRING = 1
+    VMI_CONFIG_GHASHTABLE = 2
+
+
+# translation_mechanisms_t
+
+VMI_TM_INVALID = 0
+VMI_TM_NONE = 1
+VMI_TM_PROCESS_DTB = 2
+VMI_TM_PROCESS_PID = 3
+VMI_TM_KERNEL_SYMBOL = 4
+
+# access_context_t
+
+class AccessContext(Structure):
+    _fields_ = [
+        ("translation_mechanism", c_int),
+        ("addr", c_uint64),
+        ("ksym", charptr),
+        ("dtb", c_uint64),
+        ("pid", c_int32)
+    ]
 
 class LibvmiError(Exception):
     pass
@@ -56,6 +88,7 @@ class Libvmi:
         'processes',
         'hooks',
         'stats',
+        'failures'
     )
 
     def __init__(self, vm_name):
@@ -75,6 +108,8 @@ class Libvmi:
         self.libvmi.vmi_translate_ksym2v.restype = c_ulonglong
         self.libvmi.vmi_get_offset.restype = c_ulonglong
         self.libvmi.vmi_read_str_va.restype = charptr
+        self.libvmi.vmi_translate_v2ksym.restype = charptr
+        self.failures = 0
 
     def destroy(self):
         self.libvmi.vmi_destroy(self.vmi)
@@ -83,6 +118,15 @@ class Libvmi:
         symbol_c = create_string_buffer(symbol.encode('utf-8'))
         value = self.libvmi.vmi_translate_ksym2v(self.vmi, symbol_c)
         return value
+
+    def translate_v2ksym(self, vaddr):
+        context = AccessContext(VMI_TM_PROCESS_PID, 0, None, 0, 0)
+        vaddr = c_uint64(vaddr)
+        ptr = self.libvmi.vmi_translate_v2ksym(self.vmi, byref(context), vaddr)
+        if ptr:
+            return cast(ptr, c_char_p).value.decode('utf-8')
+        else:
+            logging.debug("Failed to find symbol associated with virtual address: {}".format(vaddr))
 
     def read_addr_ksym(self, symbol):
         symbol_c = create_string_buffer(symbol.encode('utf-8'))
@@ -98,6 +142,9 @@ class Libvmi:
         offset_name_c = create_string_buffer(offset.encode('utf-8'))
         value = self.libvmi.vmi_get_offset(self.vmi, offset_name_c)
         return value
+
+    def get_ostype(self):
+        return self.libvmi.vmi_get_ostype(self.vmi)
 
     def read_addr_va(self, vaddr, pid):
         if vaddr == 0:
@@ -159,5 +206,5 @@ class Libvmi:
     def rvacache_flush(self):
         self.libvmi.vmi_rvacache_flush(self.vmi)
 
-    def pagecache_flush(self):
-        self.libvmi.vmi_pagecache_flush(self.vmi)
+    # def pagecache_flush(self):
+    #     self.libvmi.vmi_pagecache_flush(self.vmi)

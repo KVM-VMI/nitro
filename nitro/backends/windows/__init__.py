@@ -1,73 +1,75 @@
+
 import logging
 import re
-import os
-import stat
 import libvirt
+import stat
+import os
 import subprocess
 import shutil
 import json
-from collections import defaultdict
+import struct
+
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
-from nitro.nitro import Nitro
-from nitro.event import SyscallDirection
-from nitro.syscall import Syscall
-from nitro.libvmi import Libvmi, LibvmiError
 from nitro.process import Process
-from nitro.win_types import InconsistentMemoryError
+from nitro.event import SyscallDirection, SyscallType
+from nitro.syscall import Syscall
 
-GETSYMBOLS_SCRIPT = 'symbols.py'
+from ..common import Backend, ArgumentMap, SyscallArgumentType
 
+GETSYMBOLS_SCRIPT = 'get_symbols.py'
 
-class Backend:
-
+class Windows(Backend):
     __slots__ = (
-        'domain',
-        'nb_vcpu',
-        'syscall_stack',
-        'sdt',
-        'libvmi',
-        'processes',
-        'hooks',
-        'stats',
-        'nitro',
-        'analyze'
+        "nb_vcpu",
+        "syscall_stack",
+        "sdt",
+        "processes"
     )
 
-    def __init__(self, domain, analyze=False):
-        self.domain = domain
-        self.analyze = analyze
-        # init Nitro
-        self.nitro = Nitro(self.domain)
-        if analyze:
-            vcpus_info = self.domain.vcpus()
-            self.nb_vcpu = len(vcpus_info[0])
-            # create on syscall stack per vcpu
-            self.syscall_stack = {}
-            for vcpu_nb in range(self.nb_vcpu):
-                self.syscall_stack[vcpu_nb] = []
-            self.sdt = None
-            self.load_symbols()
-            # run libvmi helper subprocess
-            self.libvmi = Libvmi(domain.name())
-            self.processes = {}
-            self.hooks = {
-                SyscallDirection.enter: {},
-                SyscallDirection.exit: {}
-            }
-            self.stats = defaultdict(int)
+    def __init__(self, domain):
+        super().__init__(domain)
 
-    def __enter__(self):
-        return self
+        vcpus_info = self.domain.vcpus()
+        self.nb_vcpu = len(vcpus_info[0])
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.stop()
+        # create on syscall stack per vcpu
+        self.syscall_stack = {}
+        for vcpu_nb in range(self.nb_vcpu):
+            self.syscall_stack[vcpu_nb] = []
+        self.sdt = None
+        self.load_symbols()
 
-    def stop(self):
-        logging.info(json.dumps(self.stats, indent=4))
-        if self.analyze:
-            self.libvmi.destroy()
-        self.nitro.stop()
+        # run libvmi helper subprocess
+        self.processes = {}
+
+    def process_event(self, event):
+        # invalidate libvmi cache
+        self.libvmi.v2pcache_flush()
+        self.libvmi.pidcache_flush()
+        self.libvmi.rvacache_flush()
+        self.libvmi.symcache_flush()
+        # self.libvmi.pagecache_flush()
+        # rebuild context
+        cr3 = event.sregs.cr3
+        # 1 find process
+        process = self.associate_process(cr3)
+        # 2 find syscall
+        if event.direction == SyscallDirection.exit:
+            try:
+                syscall_name = self.syscall_stack[event.vcpu_nb].pop()
+            except IndexError:
+                syscall_name = 'Unknown'
+        else:
+            syscall_name = self.get_syscall_name(event.regs.rax)
+            # push them to the stack
+            self.syscall_stack[event.vcpu_nb].append(syscall_name)
+        args = WindowsArgumentMap(event, syscall_name, process, self.nitro)
+        syscall = Syscall(event, syscall_name, process, self.nitro, args)
+        # dispatch on the hooks
+        self.dispatch_hooks(syscall)
+        return syscall
 
     def load_symbols(self):
         # we need to put the ram dump in our own directory
@@ -114,67 +116,6 @@ class Backend:
                     cur_ssdt[entry] = full_name
                     logging.debug('Add SSDT entry [{}] -> {}'.format(entry, full_name))
 
-    def process_event(self, event):
-        if not self.analyze:
-            raise RuntimeError('Syscall analyzing is disabled in the backend')
-        # invalidate libvmi cache
-        self.libvmi.v2pcache_flush()
-        self.libvmi.pidcache_flush()
-        self.libvmi.rvacache_flush()
-        self.libvmi.symcache_flush()
-        # rebuild context
-        cr3 = event.sregs.cr3
-        # 1 find process
-        process = self.associate_process(cr3)
-        # 2 find syscall
-        if event.direction == SyscallDirection.exit:
-            try:
-                syscall_name = self.syscall_stack[event.vcpu_nb].pop()
-            except IndexError:
-                syscall_name = 'Unknown'
-        else:
-            syscall_name = self.get_syscall_name(event.regs.rax)
-            # push them to the stack
-            self.syscall_stack[event.vcpu_nb].append(syscall_name)
-        syscall = Syscall(event, syscall_name, process, self.nitro)
-        # dispatch on the hooks
-        self.dispatch_hooks(syscall)
-        return syscall
-
-    def dispatch_hooks(self, syscall):
-        try:
-            hook = self.hooks[syscall.event.direction][syscall.name]
-        except KeyError:
-            pass
-        else:
-            try:
-                logging.debug('Processing hook {} - {}'.format(syscall.event.direction.name, hook.__name__))
-                hook(syscall)
-            except InconsistentMemoryError:
-                self.stats['memory_access_error'] += 1
-                logging.exception('Memory access error')
-            except LibvmiError:
-                self.stats['libvmi_failure'] += 1
-                logging.exception('VMI_FAILURE')
-            # misc failures
-            except ValueError:
-                self.stats['misc_error'] += 1
-                logging.exception('Misc error')
-            except Exception:
-                logging.exception('Unknown error while processing hook')
-            else:
-                self.stats['hooks_completed'] += 1
-            finally:
-                self.stats['hooks_processed'] += 1
-
-    def define_hook(self, name, callback, direction=SyscallDirection.enter):
-        logging.info('Defining hook on {}'.format(name))
-        self.hooks[direction][name] = callback
-
-    def undefine_hook(self, name, direction=SyscallDirection.enter):
-        logging.info('Removing hook on {}'.format(name))
-        self.hooks[direction].pop(name)
-
     def associate_process(self, cr3):
         try:
             p = self.processes[cr3]
@@ -220,3 +161,63 @@ class Backend:
             # the 2 others are NULL
             syscall_name = 'Table{}!Unknown'.format(idx)
         return syscall_name
+
+class WindowsArgumentMap(ArgumentMap):
+
+    CONVENTION = {
+        SyscallType.syscall: [
+            (SyscallArgumentType.register, 'rcx'),
+            (SyscallArgumentType.register, 'rdx'),
+            (SyscallArgumentType.register, 'r8'),
+            (SyscallArgumentType.register, 'r9'),
+            (SyscallArgumentType.memory, 5),
+        ],
+    }
+
+    ARG_SIZE = {
+        SyscallType.syscall: 'P',   # x64 -> 8 bytes
+        SyscallType.sysenter: 'I'   # x32 -> 4 bytes
+    }
+
+    __slots__ = (
+        "arg_size_format",
+    )
+    
+    def __init__(self, event, name, process, nitro):
+        super().__init__(event, name, process, nitro)
+        self.arg_size_format = self.ARG_SIZE[self.event.type]
+
+    def __getitem__(self, index):
+        try:
+            arg_type, opaque = self.CONVENTION[self.event.type][index]
+        except KeyError:
+            raise RuntimeError('Unknown covention')
+        except IndexError:
+            arg_type, opaque = self.CONVENTION[self.event.type][-1]
+            opaque += index - len(self.CONVENTION[self.event.type]) + 1
+        if arg_type == SyscallArgumentType.register:
+            value = self.event.get_register(opaque)
+        else:
+            # memory
+            size = struct.calcsize(self.arg_size_format)
+            addr = self.event.regs.rsp + (opaque * size)
+            value, *rest = struct.unpack(self.arg_size_format, self.process.read_memory(addr, size))
+        return value
+
+    def __setitem__(self, index, value):
+        try:
+            arg_type, opaque = self.CONVENTION[self.event.type][index]
+        except KeyError:
+            raise RuntimeError('Unknown covention')
+        except IndexError:
+            arg_type, opaque = self.CONVENTION[self.event.type][-1]
+            opaque += index - len(self.CONVENTION[self.event.type]) + 1
+        if arg_type == SyscallArgumentType.register:
+            self.event.update_register(opaque, value)
+        else:
+            # memory
+            size = struct.calcsize(self.arg_size_format)
+            addr = self.event.regs.rsp + (opaque * size)
+            buffer = struct.pack(self.arg_size_format, value)
+            self.process.write_memory(addr, buffer)
+        self.modified[index] = value
