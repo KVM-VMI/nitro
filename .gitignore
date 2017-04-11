@@ -40,4 +40,11 @@ venv/
 rekall_cache/
 
 events.json
-libvmi_helper.log
+
+# ide
+.idea/
+
+# package
+dist
+build
+*.egg-info
