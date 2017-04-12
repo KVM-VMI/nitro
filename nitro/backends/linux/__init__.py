@@ -49,7 +49,7 @@ class Linux(Backend):
         else:
             name = self.get_syscall_name(event.regs.rax)
             self.syscall_stack[event.vcpu_nb].append(name)
-        args = LinuxArgumentMap(event, name, None, self.nitro)
+        args = LinuxArgumentMap(event, name, process, self.nitro)
         syscall = Syscall(event, name, process, self.nitro, args)
         self.dispatch_hooks(syscall)
         return syscall
@@ -77,7 +77,7 @@ class Linux(Backend):
                 pgd_phys_addr = self.libvmi.translate_kv2p(pgd)
                 if cr3 == pgd_phys_addr:
                     # Eventually, I would like to look for the executable name from mm->exe_file->f_path
-                    name = self.libvmi.read_str_va(next + self.name_offset, 0) # This is not the best place to look for the name
+                    name = self.libvmi.read_str_va(next + self.name_offset, 0)
                     process = Process(cr3, next, name, pid, self.libvmi)
                     return process
             else:
