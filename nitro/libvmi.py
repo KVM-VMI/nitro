@@ -128,6 +128,9 @@ class Libvmi:
         else:
             logging.debug("Failed to find symbol associated with virtual address: {}".format(vaddr))
 
+    def translate_kv2p(self, vaddr):
+        return self.libvmi.vmi_translate_kv2p(self.vmi, c_uint64(vaddr))
+
     def read_addr_ksym(self, symbol):
         symbol_c = create_string_buffer(symbol.encode('utf-8'))
         value_c = c_ulonglong()
@@ -193,6 +196,16 @@ class Libvmi:
             logging.debug('VMI_FAILURE trying to write {}, with {}'.format(hex(vaddr), 'write_va'))
             raise LibvmiError('VMI_FAILURE')
         return nb_written
+
+    def read_32(self, vaddr, pid):
+        context = AccessContext(VMI_TM_PROCESS_PID, c_uint64(vaddr), None, 0, c_int32(pid))
+        result = c_uint32()
+        if self.libvmi.vmi_read_32(self.vmi, byref(context), byref(result)) == VMI_SUCCESS:
+            return result.value
+        else:
+            self.failures += 1
+            logging.debug('VMI_FAILURE trying to read_32 at 0x{:x} with pid {}'.format(vaddr, pid))
+            raise LibvmiError('VMI_FAILURE')
 
     def v2pcache_flush(self, dtb=0):
         self.libvmi.vmi_v2pcache_flush(self.vmi, dtb)
