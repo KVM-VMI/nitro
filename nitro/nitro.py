@@ -5,7 +5,7 @@ import logging
 import subprocess
 import time
 import threading
-from queue import Queue
+from queue import Queue, Empty
 from concurrent.futures import ThreadPoolExecutor, wait
 
 from nitro.event import NitroEvent
@@ -66,9 +66,10 @@ class Nitro:
         self.current_cont_event = None
 
     def set_traps(self, enabled):
-        self.domain.suspend()
-        self.vm_io.set_syscall_trap(enabled)
-        self.domain.resume()
+        if self.domain.isActive():
+            self.domain.suspend()
+            self.vm_io.set_syscall_trap(enabled)
+            self.domain.resume()
 
     def __enter__(self):
         return self
@@ -90,28 +91,37 @@ class Nitro:
 
         # while a thread is still running
         while [f for f in self.futures if f.running()]:
-            (event, continue_event) = self.queue.get()
-            # remember last continue_event for stop_listen()
-            self.current_cont_event = continue_event
-            yield event
-            continue_event.set()
+            try:
+                (event, continue_event) = self.queue.get(timeout=1)
+            except Empty:
+                # domain has crashed or is shutdown ?
+                if not self.domain.isActive():
+                    self.stop_request.set()
+            else:
+                # remember last continue_event for stop_listen()
+                self.current_cont_event = continue_event
+                yield event
+                continue_event.set()
+        logging.info('Stop Nitro listening')
 
     def listen_vcpu(self, vcpu_io, queue):
         logging.info('Start listening on VCPU {}'.format(vcpu_io.vcpu_nb))
         # we need a per thread continue event
         continue_event = threading.Event()
         while not self.stop_request.is_set():
-            nitro_raw_ev = vcpu_io.get_event()
-            e = NitroEvent(nitro_raw_ev, vcpu_io.vcpu_nb)
-            # put the event in the queue
-            # and wait for the event to be processed, when the main thread will set the continue_event
-            item = (e, continue_event)
-            queue.put(item)
-            continue_event.wait()
-            # reset continue_event
-            continue_event.clear()
-
-            vcpu_io.continue_vm()
+            try:
+                nitro_raw_ev = vcpu_io.get_event()
+                e = NitroEvent(nitro_raw_ev, vcpu_io.vcpu_nb)
+                # put the event in the queue
+                # and wait for the event to be processed, when the main thread will set the continue_event
+                item = (e, continue_event)
+                queue.put(item)
+                continue_event.wait()
+                # reset continue_event
+                continue_event.clear()
+                vcpu_io.continue_vm()
+            except ValueError as e:
+                logging.debug(str(e))
         logging.debug('stop listening on VCPU {}'.format(vcpu_io.vcpu_nb))
 
     def stop_listen(self):
