@@ -1,12 +1,12 @@
-from ..libvmi import VMI_OS_LINUX, VMI_OS_WINDOWS, Libvmi
+from ..libvmi import VMIOS, Libvmi
 
 from .linux import Linux
 from .windows import Windows
 from .common import Backend
 
 BACKENDS = {
-    VMI_OS_LINUX: Linux,
-    VMI_OS_WINDOWS: Windows
+    VMIOS.LINUX: Linux,
+    VMIOS.WINDOWS: Windows
 }
 
 

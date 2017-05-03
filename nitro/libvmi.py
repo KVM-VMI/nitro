@@ -1,6 +1,7 @@
 import logging
 from enum import Enum
 from ctypes import *
+from enum import Enum
 
 charptr = POINTER(c_char)
 
@@ -10,30 +11,16 @@ VMI_SUCCESS = 0
 VMI_FAILURE = 1
 
 class LibvmiInitError(Enum):
-    VMI_INIT_ERROR_NONE = 0                 # No error
-    VMI_INIT_ERROR_DRIVER_NOT_DETECTED = 1  # Failed to auto-detect hypervisor
-    VMI_INIT_ERROR_DRIVER = 2               # Failed to initialize hypervisor-driver
-    VMI_INIT_ERROR_VM_NOT_FOUND = 3         # Failed to find the specified VM
-    VMI_INIT_ERROR_PAGING = 4               # Failed to determine or initialize paging functions
-    VMI_INIT_ERROR_OS = 5                   # Failed to determine or initialize OS functions
-    VMI_INIT_ERROR_EVENTS = 6               # Failed to initialize events
-    VMI_INIT_ERROR_SHM = 7                  # Failed to initialize SHM
-    VMI_INIT_ERROR_NO_CONFIG = 8            # No configuration was found for OS initialization
-    VMI_INIT_ERROR_NO_CONFIG_ENTRY = 9      # Configuration contained no valid entry for VM
-
-# os_t
-
-VMI_OS_UNKNOWN = 0
-VMI_OS_LINUX = 1
-VMI_OS_WINDOWS = 2
-
-# vmi_mode_t
-
-class VMIMode(Enum):
-    VMI_XEN = 0
-    VMI_KVM = 1
-    VMI_FILE = 2
-
+    NONE = 0                 #No error
+    DRIVER_NOT_DETECTED = 1  # Failed to auto-detect hypervisor
+    DRIVER = 2               # Failed to initialize hypervisor-driver
+    VM_NOT_FOUND = 3         # Failed to find the specified VM
+    PAGING = 4               # Failed to determine or initialize paging functions
+    OS = 5                   # Failed to determine or initialize OS functions
+    EVENTS = 6               # Failed to initialize events
+    SHM = 7                  # Failed to initialize SHM
+    NO_CONFIG = 8            # No configuration was found for OS initialization
+    NO_CONFIG_ENTRY = 9      # Configuration contained no valid entry for VM
 
 # VMI_INIT
 
@@ -42,21 +29,35 @@ VMI_INIT_DOMAINID = (1 << 1)
 VMI_INIT_EVENT = (1 << 2)
 VMI_INIT_SHM = (1 << 3)
 
+# os_t
+
+class VMIOS(Enum):
+    UNKNOWN = 0
+    LINUX = 1
+    WINDOWS = 2
+
+# vmi_mode_t
+
+class VMIMode(Enum):
+    XEN = 0
+    KVM = 1
+    FILE = 2
+
 # vmi_config_t
 
 class VMIConfig(Enum):
-    VMI_CONFIG_GLOBAL_FILE_ENTRY = 0
-    VMI_CONFIG_STRING = 1
-    VMI_CONFIG_GHASHTABLE = 2
-
+    GLOBAL_FILE_ENTRY = 0
+    STRING = 1
+    GHASHTABLE = 2
 
 # translation_mechanisms_t
 
-VMI_TM_INVALID = 0
-VMI_TM_NONE = 1
-VMI_TM_PROCESS_DTB = 2
-VMI_TM_PROCESS_PID = 3
-VMI_TM_KERNEL_SYMBOL = 4
+class TranslationMechanism(Enum):
+    INVALID = 0
+    NONE = 1
+    PROCESS_DTB = 2
+    PROCESS_PID = 3
+    KERNEL_SYMBOL = 4
 
 # access_context_t
 
@@ -99,7 +100,7 @@ class Libvmi:
         # init libvmi
         vm_name_c = create_string_buffer(vm_name.encode('utf-8'))
         status = self.libvmi.vmi_init_complete(byref(self.vmi), vm_name_c, VMI_INIT_DOMAINNAME, 0,
-                                               VMIConfig.VMI_CONFIG_GLOBAL_FILE_ENTRY.value, 0, byref(init_error_c))
+                                      VMIConfig.GLOBAL_FILE_ENTRY.value, 0, byref(init_error_c))
         if status == VMI_FAILURE:
             error = init_error_c.value
             logging.error(format(LibvmiInitError(error).name))
@@ -120,7 +121,7 @@ class Libvmi:
         return value
 
     def translate_v2ksym(self, vaddr):
-        context = AccessContext(VMI_TM_PROCESS_PID, 0, None, 0, 0)
+        context = AccessContext(TranslationMechanism.PROCESS_PID.value, 0, None, 0, 0)
         vaddr = c_uint64(vaddr)
         ptr = self.libvmi.vmi_translate_v2ksym(self.vmi, byref(context), vaddr)
         if ptr:
@@ -147,7 +148,7 @@ class Libvmi:
         return value
 
     def get_ostype(self):
-        return self.libvmi.vmi_get_ostype(self.vmi)
+        return VMIOS(self.libvmi.vmi_get_ostype(self.vmi))
 
     def read_addr_va(self, vaddr, pid):
         if vaddr == 0:
@@ -198,7 +199,7 @@ class Libvmi:
         return nb_written
 
     def read_32(self, vaddr, pid):
-        context = AccessContext(VMI_TM_PROCESS_PID, c_uint64(vaddr), None, 0, c_int32(pid))
+        context = AccessContext(TranslationMechanism.PROCESS_PID.value, c_uint64(vaddr), None, 0, c_int32(pid))
         result = c_uint32()
         if self.libvmi.vmi_read_32(self.vmi, byref(context), byref(result)) == VMI_SUCCESS:
             return result.value
