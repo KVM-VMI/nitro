@@ -135,17 +135,18 @@ class Nitro:
         self.set_traps(False)
         self.stop_request.set()
         nb_threads = len([f for f in self.futures if f.running()])
-        # ack current thread
-        self.current_cont_event.set()
-        # wait for current thread to terminate
-        while [f for f in self.futures if f.running()] == nb_threads:
-            time.sleep(0.1)
-        # ack the rest of the threads
-        while [f for f in self.futures if f.running()]:
-            if self.queue.full():
-                (event, continue_event) = self.queue.get()
-                continue_event.set()
-            # let the threads terminate
-            time.sleep(0.1)
-        # wait for threads to exit
-        wait(self.futures)
+        if nb_threads:
+            # ack current thread
+            self.current_cont_event.set()
+            # wait for current thread to terminate
+            while [f for f in self.futures if f.running()] == nb_threads:
+                time.sleep(0.1)
+            # ack the rest of the threads
+            while [f for f in self.futures if f.running()]:
+                if self.queue.full():
+                    (event, continue_event) = self.queue.get()
+                    continue_event.set()
+                # let the threads terminate
+                time.sleep(0.1)
+            # wait for threads to exit
+            wait(self.futures)
