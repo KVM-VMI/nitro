@@ -187,9 +187,7 @@ class VCPU(IOCTL):
 
     def continue_vm(self):
         # logging.debug('continue_vm {}'.format(self.vcpu_nb))
-        ret = self.make_ioctl(self.KVM_NITRO_CONTINUE, 0)
-        if ret != 0:
-            raise ValueError('continue vm failed')
+        return self.make_ioctl(self.KVM_NITRO_CONTINUE, 0)
 
     def get_regs(self):
         regs = Regs()
