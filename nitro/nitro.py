@@ -102,6 +102,11 @@ class Nitro:
                 self.current_cont_event = continue_event
                 yield event
                 continue_event.set()
+
+        # raise listen_vcpu exceptions if any
+        for f in self.futures:
+            if f.exception() is not None:
+                raise f.exception()
         logging.info('Stop Nitro listening')
 
     def listen_vcpu(self, vcpu_io, queue):
