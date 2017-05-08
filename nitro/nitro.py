@@ -111,6 +111,9 @@ class Nitro:
         while not self.stop_request.is_set():
             try:
                 nitro_raw_ev = vcpu_io.get_event()
+            except ValueError as e:
+                logging.debug(str(e))
+            else:
                 e = NitroEvent(nitro_raw_ev, vcpu_io.vcpu_nb)
                 # put the event in the queue
                 # and wait for the event to be processed, when the main thread will set the continue_event
@@ -120,8 +123,7 @@ class Nitro:
                 # reset continue_event
                 continue_event.clear()
                 vcpu_io.continue_vm()
-            except ValueError as e:
-                logging.debug(str(e))
+
         logging.debug('stop listening on VCPU {}'.format(vcpu_io.vcpu_nb))
 
     def stop_listen(self):
