@@ -27,6 +27,8 @@ from nitro.nitro import Nitro
 from nitro.backend import Backend
 from nitro.win_types import ObjectAttributes, FileAccessMask
 
+SNAPSHOT_BASE = 'base'
+
 
 def wait_winrm(ip_addr, opened=True):
     while True:
@@ -138,6 +140,14 @@ class VMTest:
     def __init__(self, domain):
         # looking for a nitro_<vm> in qemu:///system
         self.domain = domain
+        # revert to base snapshot if present
+        try:
+            snap = self.domain.snapshotLookupByName(SNAPSHOT_BASE)
+            logging.info('Reverting to base snapshot')
+            self.domain.revertToSnapshot(snap)
+        except libvirt.libvirtError:
+            logging.warning('Missing snapshot "{}"'.format(SNAPSHOT_BASE))
+
 
     def wait_for_ip(self, network_name='default'):
         # find MAC address
@@ -196,6 +206,11 @@ class VMTest:
             time.sleep(1)
         result = (nitro.events, nitro.total_time)
         return result
+
+    def force_shutdown(self):
+        if self.domain.isActive():
+            logging.info('Force VM shutdown, the test probably failed')
+            self.domain.destroy()
 
 
 class NitroThread(Thread):
@@ -268,6 +283,8 @@ class TestNitro(unittest.TestCase):
         self.cdrom.cleanup()
         # chdir back to original wd
         os.chdir(self.origin_wd)
+        # force VM to stop if still running
+        self.vm_test.force_shutdown()
         # remove file handler
         logging.info('Ending test at {}'.format(datetime.datetime.now()))
         logging.getLogger().removeHandler(self.f_handler)
