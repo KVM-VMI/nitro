@@ -24,6 +24,19 @@ class VMIConfig(Enum):
     VMI_CONFIG_GHASHTABLE = 2
 
 
+class LibvmiInitError(Enum):
+    VMI_INIT_ERROR_NONE = 0                 #No error
+    VMI_INIT_ERROR_DRIVER_NOT_DETECTED = 1  # Failed to auto-detect hypervisor
+    VMI_INIT_ERROR_DRIVER = 2               # Failed to initialize hypervisor-driver
+    VMI_INIT_ERROR_VM_NOT_FOUND = 3         # Failed to find the specified VM
+    VMI_INIT_ERROR_PAGING = 4               # Failed to determine or initialize paging functions
+    VMI_INIT_ERROR_OS = 5                   # Failed to determine or initialize OS functions
+    VMI_INIT_ERROR_EVENTS = 6               # Failed to initialize events
+    VMI_INIT_ERROR_SHM = 7                  # Failed to initialize SHM
+    VMI_INIT_ERROR_NO_CONFIG = 8            # No configuration was found for OS initialization
+    VMI_INIT_ERROR_NO_CONFIG_ENTRY = 9      # Configuration contained no valid entry for VM
+
+
 class LibvmiError(Exception):
     pass
 
@@ -49,10 +62,15 @@ class Libvmi:
         self.libvmi = cdll.LoadLibrary('libvmi.so')
         self.vmi_instance = VMIInstance()
         self.vmi = pointer(self.vmi_instance)
+        init_error_c = c_uint()
         # init libvmi
         vm_name_c = create_string_buffer(vm_name.encode('utf-8'))
-        self.libvmi.vmi_init_complete(byref(self.vmi), vm_name_c, VMI_INIT_DOMAINNAME, 0,
-                                      VMIConfig.VMI_CONFIG_GLOBAL_FILE_ENTRY.value, 0, 0)
+        status = self.libvmi.vmi_init_complete(byref(self.vmi), vm_name_c, VMI_INIT_DOMAINNAME, 0,
+                                      VMIConfig.VMI_CONFIG_GLOBAL_FILE_ENTRY.value, 0, byref(init_error_c))
+        if status == VMI_FAILURE:
+            error = init_error_c.value
+            logging.error(format(LibvmiInitError(error).name))
+            raise LibvmiError('VMI_FAILURE')
         # small fixes
         self.libvmi.vmi_translate_ksym2v.restype = c_ulonglong
         self.libvmi.vmi_get_offset.restype = c_ulonglong
