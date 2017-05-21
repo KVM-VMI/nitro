@@ -39,8 +39,6 @@ def main(args):
     try:
         storage = con.storagePoolLookupByName(NITRO_POOL_NAME)
     except libvirt.libvirtError:
-        # create dir
-        os.makedirs(storage_path, exist_ok=True)
         # build nitro pool xml
         path_elem = tree.Element('path')
         path_elem.text = storage_path
@@ -55,6 +53,8 @@ def main(args):
         # define it
         storage = con.storagePoolDefineXML(pool_xml)
         storage.setAutostart(True)
+    # create dir
+    os.makedirs(storage_path, exist_ok=True)
     # make sure storage is running
     if not storage.isActive():
         storage.create()
