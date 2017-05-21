@@ -206,7 +206,8 @@ class NitroThread(Thread):
         self.analyze_enabled = analyze
         if self.analyze_enabled:
             self.backend = Backend(self.domain)
-            self.setup_hooks(hooks)
+            if hooks:
+                self.setup_hooks(hooks)
         self.stop_request = Event()
         self.total_time = None
         self.events = []
