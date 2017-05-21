@@ -19,6 +19,11 @@ import libvirt
 from docopt import docopt
 
 NITRO_POOL_NAME = 'nitro'
+SNAPSHOT_XML = """
+<domainsnapshot>
+    <name>base</name>
+</domainsnapshot>
+"""
 
 def main(args):
     logging.basicConfig(level=logging.DEBUG, format='%(message)s')
@@ -72,6 +77,9 @@ def main(args):
             domain_xml = domain_xml.format(domain_name, qemu_bin_path, nitro_image_path)
             con.defineXML(domain_xml)
             logging.info('Domain {} defined.'.format(domain_name))
+        domain = con.lookupByName(domain_name)
+        # take base snapshot
+        domain.snapshotCreateXML(SNAPSHOT_XML)
     else:
         logging.info('Domain {} already defined'.format(domain_name))
 
