@@ -139,18 +139,17 @@ class VMTest:
         # looking for a nitro_<vm> in qemu:///system
         self.domain = domain
 
-    def wait_for_ip(self):
+    def wait_for_ip(self, network_name='default'):
         # find MAC address
         dom_elem = tree.fromstring(self.domain.XMLDesc())
         mac_addr = dom_elem.find("./devices/interface[@type='network']/mac").get('address')
         logging.debug('MAC address : {}'.format(mac_addr))
         while True:
-            output = subprocess.check_output(["ip", "neigh"])
-            for line in output.splitlines():
-                m = re.match('(.*) dev [^ ]+ lladdr {} STALE'.format(mac_addr), line.decode('utf-8'))
-                if m:
-                    ip_addr = m.group(1)
-                    return ip_addr
+            net = self.domain.connect().networkLookupByName(network_name)
+            leases = net.DHCPLeases()
+            found = [l for l in leases if l['mac'] == mac_addr]
+            if found:
+                return found[0]['ipaddr']
             time.sleep(1)
 
     def mount_cdrom(self, cdrom_path):
