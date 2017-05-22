@@ -184,10 +184,6 @@ class Backend:
         return syscall
 
     def dispatch_hooks(self, syscall):
-        # don't dispatch if process is None
-        # TODO
-        if syscall.process is None:
-            return
 
         try:
             hook = self.hooks[syscall.event.direction][syscall.name]
