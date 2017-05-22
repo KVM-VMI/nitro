@@ -78,40 +78,44 @@ class Backend:
         'hooks',
         'stats',
         'nitro',
+        'analyze'
     )
 
-    def __init__(self, domain):
+    def __init__(self, domain, analyze=False):
         self.domain = domain
-        vcpus_info = self.domain.vcpus()
-        self.nb_vcpu = len(vcpus_info[0])
-        # create on syscall stack per vcpu
-        self.syscall_stack = {}
-        for vcpu_nb in range(self.nb_vcpu):
-            self.syscall_stack[vcpu_nb] = []
-        self.sdt = None
-        self.load_symbols()
-        # run libvmi helper subprocess
-        self.libvmi = Libvmi(domain.name())
-        self.processes = {}
-        self.hooks = {
-            SyscallDirection.enter: {},
-            SyscallDirection.exit: {}
-        }
-        self.stats = {
-            'hooks_processed': 0,
-            'hooks_completed': 0,
-            'memory_access_error': 0,
-            'libvmi_failure': 0,
-            'misc_error': 0
-        }
+        self.analyze = analyze
         # init Nitro
         self.nitro = Nitro(self.domain)
+        if analyze:
+            vcpus_info = self.domain.vcpus()
+            self.nb_vcpu = len(vcpus_info[0])
+            # create on syscall stack per vcpu
+            self.syscall_stack = {}
+            for vcpu_nb in range(self.nb_vcpu):
+                self.syscall_stack[vcpu_nb] = []
+            self.sdt = None
+            self.load_symbols()
+            # run libvmi helper subprocess
+            self.libvmi = Libvmi(domain.name())
+            self.processes = {}
+            self.hooks = {
+                SyscallDirection.enter: {},
+                SyscallDirection.exit: {}
+            }
+            self.stats = {
+                'hooks_processed': 0,
+                'hooks_completed': 0,
+                'memory_access_error': 0,
+                'libvmi_failure': 0,
+                'misc_error': 0
+            }
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.stop()
+        if self.analyze:
+            self.stop()
         self.nitro.stop()
 
     def stop(self):
@@ -164,6 +168,8 @@ class Backend:
                     logging.debug('Add SSDT entry [{}] -> {}'.format(entry, full_name))
 
     def process_event(self, event):
+        if not self.analyze:
+            raise RuntimeError('Syscall analyzing is disabled in the backend')
         # invalidate libvmi cache
         self.libvmi.v2pcache_flush()
         self.libvmi.pidcache_flush()
