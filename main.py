@@ -43,34 +43,41 @@ def main(args):
     domain = con.lookupByName(vm_name)
 
     events = []
-    # init backend if necessary
-    backend = None
-    if not args['--nobackend']:
-        backend = Backend(domain)
 
-    # start Nitro
-    with Nitro(domain) as nitro:
-        nitro.set_traps(True)
-        for event in nitro.listen():
-            ev_info = None
-            if backend:
+    if args['--nobackend']:
+        with Nitro(domain) as nitro:
+            nitro.set_traps(True)
+            for event in nitro.listen():
+                ev_info = event.info()
+
+                if args['--stdout']:
+                    pprint(ev_info, width=1)
+                else:
+                    events.append(ev_info)
+
+                # stop properly by CTRL+C
+                if not run:
+                    break
+    else:
+        with Backend(domain) as backend:
+            backend.nitro.set_traps(True)
+            for event in backend.nitro.listen():
                 syscall = backend.process_event(event)
                 ev_info = syscall.info()
-            else:
-                ev_info = event.info()
-            if args['--stdout']:
-                pprint(ev_info, width=1)
-            else:
-                events.append(ev_info)
 
-            # stop properly by CTRL+C
-            if not run:
-                break
+                if args['--stdout']:
+                    pprint(ev_info, width=1)
+                else:
+                    events.append(ev_info)
 
-    if events:
-        logging.info('Writing events')
-        with open('events.json', 'w') as f:
-            json.dump(events, f, indent=4)
+                # stop properly by CTRL+C
+                if not run:
+                    break
+
+        if events:
+            logging.info('Writing events')
+            with open('events.json', 'w') as f:
+                json.dump(events, f, indent=4)
 
 
 

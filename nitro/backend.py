@@ -7,9 +7,10 @@ import subprocess
 import shutil
 import json
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+
+from nitro.nitro import Nitro
 from nitro.event import SyscallDirection, SyscallType
 from nitro.libvmi import Libvmi, LibvmiError
-from nitro.win_types import ObjectAttributes
 from nitro.process import Process
 from nitro.win_types import InconsistentMemoryError
 
@@ -76,6 +77,7 @@ class Backend:
         'processes',
         'hooks',
         'stats',
+        'nitro',
     )
 
     def __init__(self, domain):
@@ -102,12 +104,15 @@ class Backend:
             'libvmi_failure': 0,
             'misc_error': 0
         }
+        # init Nitro
+        self.nitro = Nitro(self.domain)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.stop()
+        self.nitro.stop()
 
     def stop(self):
         logging.info(json.dumps(self.stats, indent=4))
@@ -184,7 +189,6 @@ class Backend:
         return syscall
 
     def dispatch_hooks(self, syscall):
-
         try:
             hook = self.hooks[syscall.event.direction][syscall.name]
         except KeyError:
