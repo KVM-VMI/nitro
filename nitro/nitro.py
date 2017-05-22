@@ -24,7 +24,7 @@ def find_qemu_pid(vm_name):
         # permission denied
         # find the PID using pgrep
         # pgrep --full to match the whole command line
-        cmd = ['pgrep', '--full', 'qemu.*-name {}'.format(vm_name)]
+        cmd = ['pgrep', '--full', 'qemu.*-name.*{}'.format(vm_name)]
         output = subprocess.check_output(cmd)
         try:
             pid = int(output)
