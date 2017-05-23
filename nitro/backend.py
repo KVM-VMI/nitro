@@ -6,6 +6,7 @@ import libvirt
 import subprocess
 import shutil
 import json
+import struct
 from collections import defaultdict
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
@@ -14,9 +15,13 @@ from nitro.event import SyscallDirection, SyscallType
 from nitro.libvmi import Libvmi, LibvmiError
 from nitro.process import Process
 from nitro.win_types import InconsistentMemoryError
+from enum import Enum
 
 GETSYMBOLS_SCRIPT = 'symbols.py'
 
+class SyscallArgumentType(Enum):
+    register = 0
+    memory = 1
 
 class Syscall:
 
@@ -26,9 +31,26 @@ class Syscall:
         'name',
         'process',
         'hook',
+        'args_convention',
     )
 
-    def __init__(self, event, name, process):
+    CONVENTION = {
+        SyscallType.syscall: [
+            (SyscallArgumentType.register, 'rcx'),
+            (SyscallArgumentType.register, 'rdx'),
+            (SyscallArgumentType.register, 'r8'),
+            (SyscallArgumentType.register, 'r9'),
+            (SyscallArgumentType.memory, '0'),
+            (SyscallArgumentType.memory, '1'),
+            (SyscallArgumentType.memory, '2'),
+            (SyscallArgumentType.memory, '3'),
+            (SyscallArgumentType.memory, '4'),
+            (SyscallArgumentType.memory, '5'),
+            (SyscallArgumentType.memory, '6'),
+        ],
+    }
+
+    def __init__(self, event, name, process, nitro):
         self.event = event
         self.full_name = name
         # clean rekall syscall name
@@ -36,6 +58,8 @@ class Syscall:
         # name will be NtOpenFile
         *rest, self.name = self.full_name.split('!')
         self.process = process
+        self.nitro = nitro
+        self.args_convention = dict
         self.hook = None
 
     def info(self):
@@ -49,23 +73,58 @@ class Syscall:
             info['hook'] = self.hook
         return info
 
-    def collect_args(self, count):
-        # collect args
-        if self.event.type == SyscallType.syscall:
-            # assume Windows here
-            # convention is first 4 args in rcx,rdx,r8,r9
-            # rest on stack
-            args = [self.event.regs.rcx,
-                    self.event.regs.rdx,
-                    self.event.regs.r8,
-                    self.event.regs.r9, ]
-            if count > 4:
-                raise ValueError('collecting more than 4 arguments is not implemented')
-            return args[:count]
+    def define_arguments(self, *args):
+        # check if exit
+        if self.event.direction == SyscallDirection.exit:
+            raise RuntimeError('You cannot define syscall arguments on the exit direction')
+
+        try:
+            convention = self.CONVENTION[self.event.type]
+        except KeyError:
+            raise RuntimeError('Syscall convention undefined')
+        # for each argument, associate the convention
+        for arg_name in args:
+            try:
+                self.args_convention[arg_name] = convention.pop(0)
+            except IndexError:
+                raise RuntimeError('Too much arguments')
         else:
             # sysenter is not handled
             raise ValueError('collecting SYSENTER arguments is not implemented')
 
+    def get_arg(self, arg_name):
+        type, opaque = self.args_convention[arg_name].pop(0)
+        if type == SyscallArgumentType.register:
+            try:
+                value = self.event.regs.getattr(opaque)
+            except AttributeError:
+                raise RuntimeError('Unknown register')
+        else:
+            # memory
+            reg, position = opaque
+            format = 'P'
+            size = struct.calcsize(format)
+            addr = self.event.regs.getattr(reg) + (position * size)
+            value, *rest = struct.unpack(self.process.read_memory(addr, size))
+        self.args[arg_name] = value
+
+    def set_arg(self, arg_name, value):
+        type, opaque = self.args_convention[arg_name].pop(0)
+        if type == SyscallArgumentType.register:
+            try:
+                self.event.regs.setattr(opaque, value)
+            except AttributeError:
+                raise RuntimeError('Unknwon register')
+            else:
+                self.nitro.vcpus_io[self.event.vcpu_nb].set_regs(self.event.regs)
+        else:
+            # memory
+            reg, position = opaque
+            format = 'P'
+            size = struct.calcsize(format)
+            addr = self.event.regs.getattr(reg) + (position * size)
+            buffer = struct.pack(format, value)
+            self.process.write_memory(addr, buffer)
 
 class Backend:
 
@@ -184,7 +243,7 @@ class Backend:
             syscall_name = self.get_syscall_name(event.regs.rax)
             # push them to the stack
             self.syscall_stack[event.vcpu_nb].append(syscall_name)
-        syscall = Syscall(event, syscall_name, process)
+        syscall = Syscall(event, syscall_name, process, self.nitro)
         # dispatch on the hooks
         self.dispatch_hooks(syscall)
         return syscall

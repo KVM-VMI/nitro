@@ -1,4 +1,3 @@
-from ctypes import *
 from enum import Enum
 
 class SyscallDirection(Enum):
