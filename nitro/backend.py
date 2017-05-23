@@ -103,7 +103,7 @@ class Backend:
                 SyscallDirection.enter: {},
                 SyscallDirection.exit: {}
             }
-            self.stats = defaultdict
+            self.stats = defaultdict(int)
 
     def __enter__(self):
         return self
