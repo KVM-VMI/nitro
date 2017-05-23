@@ -43,21 +43,16 @@ def main(args):
     domain = con.lookupByName(vm_name)
 
     events = []
-    # init backend if necessary
-    backend = None
-    if not args['--nobackend']:
-        backend = Backend(domain)
 
-    # start Nitro
-    with Nitro(domain) as nitro:
-        nitro.set_traps(True)
-        for event in nitro.listen():
-            ev_info = None
-            if backend:
+    analyze_enabled = True if not args['--nobackend'] else False
+    with Backend(domain, analyze_enabled) as backend:
+        backend.nitro.set_traps(True)
+        for event in backend.nitro.listen():
+            ev_info = event.info()
+            if analyze_enabled:
                 syscall = backend.process_event(event)
                 ev_info = syscall.info()
-            else:
-                ev_info = event.info()
+
             if args['--stdout']:
                 pprint(ev_info, width=1)
             else:
