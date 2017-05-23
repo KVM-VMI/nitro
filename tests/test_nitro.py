@@ -690,13 +690,12 @@ class TestNitro(unittest.TestCase):
 
         def enter_NtCreateFile(backend, syscall):
             if re.match("powershell", syscall.process.name):
-                syscall.define_arguments('KeyHandle', 'DesiredAccess', 'ObjectAttributes')
-                object_attributes = syscall['ObjectAttributes']
+                object_attributes = syscall.args[2]
                 obj = ObjectAttributes(object_attributes, syscall.process)
                 buffer = obj.ObjectName.Buffer
                 syscall.hook = buffer
                 if re.match('.*foobar.*', buffer):
-                    syscall['ObjectAttributes'] = 0
+                    syscall.args[2] = 0
 
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
