@@ -31,6 +31,7 @@ class Syscall:
         'name',
         'process',
         'hook',
+        'nitro',
         'args_convention',
     )
 
@@ -59,7 +60,7 @@ class Syscall:
         *rest, self.name = self.full_name.split('!')
         self.process = process
         self.nitro = nitro
-        self.args_convention = dict
+        self.args_convention = {}
         self.hook = None
 
     def info(self):
@@ -83,20 +84,17 @@ class Syscall:
         except KeyError:
             raise RuntimeError('Syscall convention undefined')
         # for each argument, associate the convention
-        for arg_name in args:
+        for i, arg_name in enumerate(args):
             try:
-                self.args_convention[arg_name] = convention.pop(0)
+                self.args_convention[arg_name] = convention[i]
             except IndexError:
                 raise RuntimeError('Too much arguments')
-        else:
-            # sysenter is not handled
-            raise ValueError('collecting SYSENTER arguments is not implemented')
 
-    def get_arg(self, arg_name):
-        type, opaque = self.args_convention[arg_name].pop(0)
+    def __getitem__(self, arg_name):
+        type, opaque = self.args_convention[arg_name]
         if type == SyscallArgumentType.register:
             try:
-                value = self.event.regs.getattr(opaque)
+                value = getattr(self.event.regs, opaque)
             except AttributeError:
                 raise RuntimeError('Unknown register')
         else:
@@ -104,15 +102,18 @@ class Syscall:
             reg, position = opaque
             format = 'P'
             size = struct.calcsize(format)
-            addr = self.event.regs.getattr(reg) + (position * size)
+            try:
+                addr = getattr(self.event.regs, reg) + (position * size)
+            except AttributeError:
+                raise RuntimeError('Unknown register')
             value, *rest = struct.unpack(self.process.read_memory(addr, size))
-        self.args[arg_name] = value
+        return value
 
-    def set_arg(self, arg_name, value):
-        type, opaque = self.args_convention[arg_name].pop(0)
+    def __setitem__(self, arg_name, value):
+        type, opaque = self.args_convention[arg_name]
         if type == SyscallArgumentType.register:
             try:
-                self.event.regs.setattr(opaque, value)
+                setattr(self.event.regs, opaque, value)
             except AttributeError:
                 raise RuntimeError('Unknwon register')
             else:
@@ -122,9 +123,13 @@ class Syscall:
             reg, position = opaque
             format = 'P'
             size = struct.calcsize(format)
-            addr = self.event.regs.getattr(reg) + (position * size)
+            try:
+                addr = getattr(self.event.regs, reg) + (position * size)
+            except AttributeError:
+                raise RuntimeError('Unkown register')
             buffer = struct.pack(format, value)
             self.process.write_memory(addr, buffer)
+
 
 class Backend:
 
