@@ -682,3 +682,36 @@ class TestNitro(unittest.TestCase):
         # checking if we find the event where the file is opened
         event_found = [e for e in events if e.get('hook') and e['hook'].find(key_path) != -1]
         self.assertTrue(event_found)
+
+    def test_change_register_syscall_parameter(self):
+        script = 'New-Item c:\\foobar.txt -type file -force'
+        self.cdrom.set_script(script, powershell=True)
+        cdrom_iso = self.cdrom.generate_iso()
+
+        def enter_NtCreateFile(backend, syscall):
+            if re.match("powershell", syscall.process.name):
+                KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+                obj = ObjectAttributes(object_attributes, syscall.process)
+                buffer = obj.ObjectName.Buffer
+                syscall.hook = buffer
+                if re.match('.*foobar.*', buffer):
+                    # get regs
+                    regs = backend.nitro.vcpus_io[syscall.event.vcpu_nb].get_regs()
+                    # set object attribute to 0 (3rd parameter, register r8)
+                    regs.r8 = 0
+                    # set regs
+                    backend.nitro.vcpus_io[syscall.event.vcpu_nb].set_regs(regs)
+
+
+        hooks = {
+            'NtCreateFile': enter_NtCreateFile,
+        }
+        events, exec_time = self.vm_test.run(cdrom_iso, hooks=hooks)
+        # writing events
+        logging.debug('Writing events...')
+        with open('events.json', 'w') as f:
+            json.dump(events, f, indent=4)
+        logging.info('Test execution time {}'.format(exec_time))
+        # checking if we find the event where the file is opened
+        #event_found = [e for e in events if e.get('hook') and e['hook'].find(key_path) != -1]
+        #self.assertTrue(event_found)
