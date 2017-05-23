@@ -6,129 +6,17 @@ import libvirt
 import subprocess
 import shutil
 import json
-import struct
 from collections import defaultdict
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from nitro.nitro import Nitro
-from nitro.event import SyscallDirection, SyscallType
+from nitro.event import SyscallDirection
 from nitro.libvmi import Libvmi, LibvmiError
 from nitro.process import Process
 from nitro.win_types import InconsistentMemoryError
-from enum import Enum
+from nitro.syscall import Syscall
 
 GETSYMBOLS_SCRIPT = 'symbols.py'
-
-class SyscallArgumentType(Enum):
-    register = 0
-    memory = 1
-
-class Syscall:
-
-    __slots__ = (
-        'event',
-        'full_name',
-        'name',
-        'process',
-        'hook',
-        'nitro',
-        'args_convention',
-    )
-
-    CONVENTION = {
-        SyscallType.syscall: [
-            (SyscallArgumentType.register, 'rcx'),
-            (SyscallArgumentType.register, 'rdx'),
-            (SyscallArgumentType.register, 'r8'),
-            (SyscallArgumentType.register, 'r9'),
-            (SyscallArgumentType.memory, '0'),
-            (SyscallArgumentType.memory, '1'),
-            (SyscallArgumentType.memory, '2'),
-            (SyscallArgumentType.memory, '3'),
-            (SyscallArgumentType.memory, '4'),
-            (SyscallArgumentType.memory, '5'),
-            (SyscallArgumentType.memory, '6'),
-        ],
-    }
-
-    def __init__(self, event, name, process, nitro):
-        self.event = event
-        self.full_name = name
-        # clean rekall syscall name
-        # full_name is 'nt!NtOpenFile'
-        # name will be NtOpenFile
-        *rest, self.name = self.full_name.split('!')
-        self.process = process
-        self.nitro = nitro
-        self.args_convention = {}
-        self.hook = None
-
-    def info(self):
-        info = {}
-        info['name'] = self.name
-        info['event'] = self.event.info()
-        if self.process:
-            info['process'] = self.process.info()
-        if self.hook:
-            # user added information, if any hook has been set
-            info['hook'] = self.hook
-        return info
-
-    def define_arguments(self, *args):
-        # check if exit
-        if self.event.direction == SyscallDirection.exit:
-            raise RuntimeError('You cannot define syscall arguments on the exit direction')
-
-        try:
-            convention = self.CONVENTION[self.event.type]
-        except KeyError:
-            raise RuntimeError('Syscall convention undefined')
-        # for each argument, associate the convention
-        for i, arg_name in enumerate(args):
-            try:
-                self.args_convention[arg_name] = convention[i]
-            except IndexError:
-                raise RuntimeError('Too much arguments')
-
-    def __getitem__(self, arg_name):
-        type, opaque = self.args_convention[arg_name]
-        if type == SyscallArgumentType.register:
-            try:
-                value = getattr(self.event.regs, opaque)
-            except AttributeError:
-                raise RuntimeError('Unknown register')
-        else:
-            # memory
-            reg, position = opaque
-            format = 'P'
-            size = struct.calcsize(format)
-            try:
-                addr = getattr(self.event.regs, reg) + (position * size)
-            except AttributeError:
-                raise RuntimeError('Unknown register')
-            value, *rest = struct.unpack(self.process.read_memory(addr, size))
-        return value
-
-    def __setitem__(self, arg_name, value):
-        type, opaque = self.args_convention[arg_name]
-        if type == SyscallArgumentType.register:
-            try:
-                setattr(self.event.regs, opaque, value)
-            except AttributeError:
-                raise RuntimeError('Unknwon register')
-            else:
-                self.nitro.vcpus_io[self.event.vcpu_nb].set_regs(self.event.regs)
-        else:
-            # memory
-            reg, position = opaque
-            format = 'P'
-            size = struct.calcsize(format)
-            try:
-                addr = getattr(self.event.regs, reg) + (position * size)
-            except AttributeError:
-                raise RuntimeError('Unkown register')
-            buffer = struct.pack(format, value)
-            self.process.write_memory(addr, buffer)
 
 
 class Backend:

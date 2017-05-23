@@ -40,5 +40,6 @@ class NitroEvent:
         info['direction'] = self.direction.name
         info['cr3'] = hex(self.sregs.cr3)
         info['rax'] = hex(self.regs.rax)
+        info['rip'] = hex(self.regs.rip)
         return info
 
