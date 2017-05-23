@@ -219,32 +219,31 @@ class NitroThread(Thread):
         super().__init__()
         self.domain = domain
         self.analyze_enabled = analyze
-        if self.analyze_enabled:
-            self.backend = Backend(self.domain)
-            if hooks:
-                self.setup_hooks(hooks)
+        self.backend = Backend(self.domain, analyze)
+        self.setup_hooks(hooks)
         self.stop_request = Event()
         self.total_time = None
         self.events = []
 
     def setup_hooks(self, hooks):
-        for name, callback in hooks.items():
-            self.backend.define_hook(name, callback)
+        if hooks:
+            for name, callback in hooks.items():
+                self.backend.define_hook(name, callback)
 
     def run(self):
         # start timer
         start_time = datetime.datetime.now()
-        with Nitro(self.domain) as nitro:
-            nitro.set_traps(True)
-            for event in nitro.listen():
-                if self.analyze_enabled:
-                    syscall = self.backend.process_event(event)
-                    ev_info = syscall.info()
-                else:
-                    ev_info = event.info()
-                self.events.append(ev_info)
-                if self.stop_request.isSet():
-                    break
+        self.backend.nitro.set_traps(True)
+        for event in self.backend.nitro.listen():
+            if self.analyze_enabled:
+                syscall = self.backend.process_event(event)
+                ev_info = syscall.info()
+            else:
+                ev_info = event.info()
+            self.events.append(ev_info)
+            if self.stop_request.isSet():
+                break
+        self.backend.stop()
         # stop timer
         stop_time = datetime.datetime.now()
         self.total_time = str(stop_time - start_time)
@@ -252,11 +251,6 @@ class NitroThread(Thread):
     def stop(self):
         self.stop_request.set()
         self.join()
-        if self.analyze_enabled:
-            self.backend.stop()
-
-
-
 
 
 class TestNitro(unittest.TestCase):
