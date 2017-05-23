@@ -6,6 +6,7 @@ import libvirt
 import subprocess
 import shutil
 import json
+from collections import defaultdict
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from nitro.nitro import Nitro
@@ -102,13 +103,7 @@ class Backend:
                 SyscallDirection.enter: {},
                 SyscallDirection.exit: {}
             }
-            self.stats = {
-                'hooks_processed': 0,
-                'hooks_completed': 0,
-                'memory_access_error': 0,
-                'libvmi_failure': 0,
-                'misc_error': 0
-            }
+            self.stats = defaultdict
 
     def __enter__(self):
         return self
