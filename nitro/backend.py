@@ -109,13 +109,13 @@ class Backend:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.analyze:
-            self.stop()
-        self.nitro.stop()
+        self.stop()
 
     def stop(self):
         logging.info(json.dumps(self.stats, indent=4))
-        self.libvmi.destroy()
+        if self.analyze:
+            self.libvmi.destroy()
+        self.nitro.stop()
 
     def load_symbols(self):
         # we need to put the ram dump in our own directory
