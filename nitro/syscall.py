@@ -16,13 +16,13 @@ class ArgumentMap:
             (SyscallArgumentType.register, 'rdx'),
             (SyscallArgumentType.register, 'r8'),
             (SyscallArgumentType.register, 'r9'),
-            (SyscallArgumentType.memory, '0'),
-            (SyscallArgumentType.memory, '1'),
-            (SyscallArgumentType.memory, '2'),
-            (SyscallArgumentType.memory, '3'),
-            (SyscallArgumentType.memory, '4'),
-            (SyscallArgumentType.memory, '5'),
-            (SyscallArgumentType.memory, '6'),
+            (SyscallArgumentType.memory, 0),
+            (SyscallArgumentType.memory, 1),
+            (SyscallArgumentType.memory, 2),
+            (SyscallArgumentType.memory, 3),
+            (SyscallArgumentType.memory, 4),
+            (SyscallArgumentType.memory, 5),
+            (SyscallArgumentType.memory, 6),
         ],
     }
 
@@ -58,10 +58,9 @@ class ArgumentMap:
                 raise RuntimeError('Unknown register')
         else:
             # memory
-            reg, position = opaque
             size = struct.calcsize(self.arg_size_format)
             try:
-                addr = getattr(self.event.regs, reg) + (position * size)
+                addr = self.event.regs.rsp + (opaque * size)
             except AttributeError:
                 raise RuntimeError('Unknown register')
             value, *rest = struct.unpack(self.arg_size_format, self.process.read_memory(addr, size))
@@ -83,13 +82,13 @@ class ArgumentMap:
                 self.nitro.vcpus_io[self.event.vcpu_nb].set_regs(self.event.regs)
         else:
             # memory
-            reg, position = opaque
             size = struct.calcsize(self.arg_size_format)
             try:
-                addr = getattr(self.event.regs, reg) + (position * size)
+                addr = self.event.regs.rsp + (opaque * size)
             except AttributeError:
                 raise RuntimeError('Unkown register')
             buffer = struct.pack(self.arg_size_format, value)
+            import pdb; pdb.set_trace()
             self.process.write_memory(addr, buffer)
 
 
