@@ -16,14 +16,16 @@ class NitroEvent:
         'regs',
         'sregs',
         'vcpu_nb',
+        'vcpu_io',
     )
 
-    def __init__(self, nitro_event_str, vcpu_nb=0):
+    def __init__(self, nitro_event_str, vcpu_io):
         self.direction = SyscallDirection(nitro_event_str.direction)
         self.type = SyscallType(nitro_event_str.type)
         self.regs = nitro_event_str.regs
         self.sregs = nitro_event_str.sregs
-        self.vcpu_nb = vcpu_nb
+        self.vcpu_io = vcpu_io
+        self.vcpu_nb = self.vcpu_io.vcpu_nb
 
     def __str__(self):
         type_msg = self.type.name.upper()
@@ -42,4 +44,24 @@ class NitroEvent:
         info['rax'] = hex(self.regs.rax)
         info['rip'] = hex(self.regs.rip)
         return info
+
+    def get_register(self, register):
+        try:
+            value = getattr(self.regs, register)
+        except AttributeError:
+            raise RuntimeError('Unknown register')
+        else:
+            return value
+
+    def update_register(self, register, value):
+        # get latest regs, to avoid replacing EIP by value before emulation
+        self.regs = self.vcpu_io.get_regs()
+        # update register if possible
+        try:
+            setattr(self.regs, register, value)
+        except AttributeError:
+            raise RuntimeError('Unknown register')
+        else:
+            # send new register to KVM VCPU
+            self.vcpu_io.set_regs(self.regs)
 

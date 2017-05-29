@@ -52,10 +52,7 @@ class ArgumentMap:
         except IndexError:
             raise RuntimeError('Syscall argument index out of bounds')
         if arg_type == SyscallArgumentType.register:
-            try:
-                value = getattr(self.event.regs, opaque)
-            except AttributeError:
-                raise RuntimeError('Unknown register')
+            value = self.event.get_register(opaque)
         else:
             # memory
             size = struct.calcsize(self.arg_size_format)
@@ -74,12 +71,7 @@ class ArgumentMap:
         except IndexError:
             raise RuntimeError('Syscall argument index out of bounds')
         if arg_type == SyscallArgumentType.register:
-            try:
-                setattr(self.event.regs, opaque, value)
-            except AttributeError:
-                raise RuntimeError('Unknwon register')
-            else:
-                self.nitro.vcpus_io[self.event.vcpu_nb].set_regs(self.event.regs)
+            self.event.update_register(opaque, value)
         else:
             # memory
             size = struct.calcsize(self.arg_size_format)
@@ -88,7 +80,6 @@ class ArgumentMap:
             except AttributeError:
                 raise RuntimeError('Unkown register')
             buffer = struct.pack(self.arg_size_format, value)
-            import pdb; pdb.set_trace()
             self.process.write_memory(addr, buffer)
 
 

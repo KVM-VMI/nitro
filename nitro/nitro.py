@@ -122,7 +122,7 @@ class Nitro:
             except ValueError as e:
                 logging.debug(str(e))
             else:
-                e = NitroEvent(nitro_raw_ev, vcpu_io.vcpu_nb)
+                e = NitroEvent(nitro_raw_ev, vcpu_io)
                 # put the event in the queue
                 # and wait for the event to be processed, when the main thread will set the continue_event
                 item = (e, continue_event)
