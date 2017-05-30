@@ -13,6 +13,7 @@ class CDROM:
         # create cdrom dir
         self.cdrom_dir_tmp = TemporaryDirectory()
         self.tmp_dir = TemporaryDirectory()
+        self.cdrom_iso_tmp = None
         # give qemu permission to execute and read in this directory
         os.chmod(self.tmp_dir.name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
                                     stat.S_IROTH | stat.S_IWOTH | stat.S_IXOTH)
@@ -30,7 +31,8 @@ class CDROM:
         self.cleanup()
 
     def cleanup(self):
-        self.cdrom_iso_tmp.close()
+        if self.cdrom_dir_tmp:
+            self.cdrom_iso_tmp.close()
         self.tmp_dir.cleanup()
         self.cdrom_dir_tmp.cleanup()
 

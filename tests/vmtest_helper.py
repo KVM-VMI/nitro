@@ -11,6 +11,7 @@ import xml.etree.ElementTree as tree
 # local
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from nitro.backend import Backend
+from cdrom import CDROM
 
 SNAPSHOT_BASE = 'base'
 
@@ -70,8 +71,9 @@ class NitroThread(Thread):
 class VMTestHelper:
 
     def __init__(self, domain):
-        # looking for a nitro_<vm> in qemu:///system
         self.domain = domain
+        if self.domain.isActive():
+            self.domain.destroy()
         # revert to base snapshot if present
         try:
             snap = self.domain.snapshotLookupByName(SNAPSHOT_BASE)
@@ -79,6 +81,16 @@ class VMTestHelper:
             self.domain.revertToSnapshot(snap)
         except libvirt.libvirtError:
             logging.warning('Missing snapshot "{}"'.format(SNAPSHOT_BASE))
+        # start domain
+        logging.info('Testing {}'.format(self.domain.name()))
+        self.domain.create()
+        # wait for IP address
+        self.ip = self.wait_for_ip()
+        logging.info('IP address : {}'.format(self.ip))
+        # wait for WinRM to be available
+        wait_winrm(self.ip, True)
+        # initialize CDROM
+        self.cdrom = CDROM()
 
     def wait_for_ip(self, network_name='default'):
         # find MAC address
@@ -107,38 +119,51 @@ class VMTestHelper:
         new_xml = tree.tostring(cdrom_elem).decode('utf-8')
         self.domain.updateDeviceFlags(new_xml, libvirt.VIR_DOMAIN_AFFECT_LIVE)
 
-    def run(self, cdrom_iso, analyze=True, idle=False, hooks=None):
-        # start domain
-        logging.info('Testing {}'.format(self.domain.name()))
-        self.domain.create()
-        # wait for IP address
-        ip = self.wait_for_ip()
-        logging.info('IP address : {}'.format(ip))
-        # wait for WinRM to be available
-        wait_winrm(ip, True)
-        if idle:
-            # wait for idle
-            idle_wait = 60 * 5
-            logging.info('Waiting for Windows to be idle (5 min)')
-            time.sleep(idle_wait)
-        # run nitro before inserting CDROM
-        nitro = NitroThread(self.domain, analyze, hooks)
-        nitro.start()
-        # mount cdrom, test is executed
-        self.mount_cdrom(cdrom_iso)
-        # test is executing under Nitro monitoring
-        # wait on WinRM to be closed
-        wait_winrm(ip, False)
-        # # wait for nitro thread to terminate properly
-        nitro.stop()
+    def run_test(self, wait=True, analyze=True, hooks=None):
+        """Run the test by mounting the cdrom into the guest
+        if wait is True, it will run the Nitro thread and wait for the test to terminate.
+        if wait is False, it will return an Event which will be set when the test will terminate"""
+        # get iso
+        cdrom_iso = self.cdrom.generate_iso()
+        if wait:
+            # run nitro before inserting CDROM
+            nitro = NitroThread(self.domain, analyze, hooks)
+            nitro.start()
+            # mount the cdrom
+            # the test is executed
+            self.mount_cdrom(cdrom_iso)
+            # wait on WinRM to be closed
+            wait_winrm(self.ip, False)
+            # wait for nitro thread to terminate properly
+            nitro.stop()
+            result = (nitro.events, nitro.total_time)
+            return result
+        else:
+            # mount the cdrom
+            # the test is executed
+            self.mount_cdrom(cdrom_iso)
+            # have to run wait_winrm in a separate Thread
+            # create threading Event
+            stop_event = Event()
+            self.wait_thread = WaitWinRMThread(self.ip, stop_event)
+            self.wait_thread.start()
+            return stop_event
+
+    def stop(self):
         self.domain.shutdown()
         # stop domain
         while self.domain.state()[0] != libvirt.VIR_DOMAIN_SHUTOFF:
             time.sleep(1)
-        result = (nitro.events, nitro.total_time)
-        return result
+        self.cdrom.cleanup()
 
-    def force_shutdown(self):
-        if self.domain.isActive():
-            logging.info('Force VM shutdown, the test probably failed')
-            self.domain.destroy()
+
+class WaitWinRMThread(Thread):
+
+    def __init__(self, ip, stop_event):
+        super().__init__()
+        self.ip = ip
+        self.stop_event = stop_event
+
+    def run(self):
+        wait_winrm(self.ip, False)
+        self.stop_event.set()
