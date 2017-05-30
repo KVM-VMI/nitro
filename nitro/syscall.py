@@ -36,6 +36,7 @@ class ArgumentMap:
         'process',
         'nitro',
         'arg_size_format',
+        'modified',
     )
 
     def __init__(self, event, process, nitro):
@@ -43,6 +44,7 @@ class ArgumentMap:
         self.process = process
         self.nitro = nitro
         self.arg_size_format = self.ARG_SIZE[self.event.type]
+        self.modified = {}
 
     def __getitem__(self, index):
         try:
@@ -81,6 +83,10 @@ class ArgumentMap:
                 raise RuntimeError('Unkown register')
             buffer = struct.pack(self.arg_size_format, value)
             self.process.write_memory(addr, buffer)
+        self.modified[index] = value
+
+    def info(self):
+        return self.modified
 
 
 class Syscall:
@@ -116,4 +122,7 @@ class Syscall:
         if self.hook:
             # user added information, if any hook has been set
             info['hook'] = self.hook
+        modified = self.args.info()
+        if modified:
+            info['modified'] = modified
         return info
