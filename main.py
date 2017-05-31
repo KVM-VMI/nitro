@@ -24,6 +24,8 @@ from nitro.nitro import Nitro
 from nitro.backend import Backend
 
 run = True
+
+
 # def new signal for SIGINT
 def sigint_handler(signal, frame):
     global run
@@ -35,6 +37,7 @@ def init_logger():
     logger = logging.getLogger()
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
+
 
 def main(args):
     vm_name = args['<vm_name>']
@@ -66,7 +69,6 @@ def main(args):
         logging.info('Writing events')
         with open('events.json', 'w') as f:
             json.dump(events, f, indent=4)
-
 
 
 if __name__ == '__main__':

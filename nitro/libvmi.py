@@ -9,7 +9,7 @@ VMI_FAILURE = 1
 
 VMI_INIT_DOMAINNAME = (1 << 0)  # initialize using domain name
 
-VMI_INIT_DOMAINID = (1 << 1) # initialize using domain id
+VMI_INIT_DOMAINID = (1 << 1)    # initialize using domain id
 
 
 class VMIMode(Enum):
@@ -66,7 +66,7 @@ class Libvmi:
         # init libvmi
         vm_name_c = create_string_buffer(vm_name.encode('utf-8'))
         status = self.libvmi.vmi_init_complete(byref(self.vmi), vm_name_c, VMI_INIT_DOMAINNAME, 0,
-                                      VMIConfig.VMI_CONFIG_GLOBAL_FILE_ENTRY.value, 0, byref(init_error_c))
+                                               VMIConfig.VMI_CONFIG_GLOBAL_FILE_ENTRY.value, 0, byref(init_error_c))
         if status == VMI_FAILURE:
             error = init_error_c.value
             logging.error(format(LibvmiInitError(error).name))

@@ -8,9 +8,10 @@ class Process:
         self.libvmi = libvmi
 
     def info(self):
-        info = {}
-        info['name'] = self.name
-        info['pid'] = self.pid
+        info = {
+            'name': self.name,
+            'pid': self.pid
+        }
         return info
 
     def read_memory(self, addr, count):

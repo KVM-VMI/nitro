@@ -1,12 +1,15 @@
 from enum import Enum
 
+
 class SyscallDirection(Enum):
     enter = 0
     exit = 1
 
+
 class SyscallType(Enum):
     sysenter = 0
     syscall = 1
+
 
 class NitroEvent:
 
@@ -32,16 +35,18 @@ class NitroEvent:
         dir_msg = self.direction.name.upper()
         cr3 = hex(self.sregs.cr3)
         rax = hex(self.regs.rax)
-        msg = 'vcpu: {} - type: {} - direction: {} - cr3: {} - rax: {}'.format(self.vcpu_nb, type_msg, dir_msg, cr3, rax)
+        msg = 'vcpu: {} - type: {} - direction: {} - cr3: {} - rax: {}'.format(
+            self.vcpu_nb, type_msg, dir_msg, cr3, rax)
         return msg
 
     def info(self):
-        info = {}
-        info['vcpu'] = self.vcpu_nb
-        info['type'] = self.type.name
-        info['direction'] = self.direction.name
-        info['cr3'] = hex(self.sregs.cr3)
-        info['rax'] = hex(self.regs.rax)
+        info = {
+            'vcpu': self.vcpu_nb,
+            'type': self.type.name,
+            'direction': self.direction.name,
+            'cr3': hex(self.sregs.cr3),
+            'rax': hex(self.regs.rax),
+        }
         return info
 
     def get_register(self, register):

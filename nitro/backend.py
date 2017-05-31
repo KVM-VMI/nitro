@@ -96,8 +96,8 @@ class Backend:
         # load output as json
         jdata = json.loads(output.decode('utf-8'))
         # load ssdt entries
-        nt_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
-        win32k_ssdt = {'ServiceTable' : {}, 'ArgumentTable' : {}}
+        nt_ssdt = {'ServiceTable': {}, 'ArgumentTable': {}}
+        win32k_ssdt = {'ServiceTable': {}, 'ArgumentTable': {}}
         self.sdt = [nt_ssdt, win32k_ssdt]
         cur_ssdt = None
         for e in jdata:
@@ -176,7 +176,6 @@ class Backend:
         self.hooks[direction].pop(name)
 
     def associate_process(self, cr3):
-        p = None
         try:
             p = self.processes[cr3]
         except KeyError:

@@ -110,9 +110,10 @@ class Syscall:
         self.hook = None
 
     def info(self):
-        info = {}
-        info['name'] = self.name
-        info['event'] = self.event.info()
+        info = {
+            'name': self.name,
+            'event': self.event.info(),
+        }
         if self.process:
             info['process'] = self.process.info()
         if self.hook:
