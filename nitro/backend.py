@@ -10,61 +10,13 @@ from collections import defaultdict
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from nitro.nitro import Nitro
-from nitro.event import SyscallDirection, SyscallType
+from nitro.event import SyscallDirection
+from nitro.syscall import Syscall
 from nitro.libvmi import Libvmi, LibvmiError
 from nitro.process import Process
 from nitro.win_types import InconsistentMemoryError
 
 GETSYMBOLS_SCRIPT = 'symbols.py'
-
-
-class Syscall:
-
-    __slots__ = (
-        'event',
-        'full_name',
-        'name',
-        'process',
-        'hook',
-    )
-
-    def __init__(self, event, name, process):
-        self.event = event
-        self.full_name = name
-        # clean rekall syscall name
-        # full_name is 'nt!NtOpenFile'
-        # name will be NtOpenFile
-        *rest, self.name = self.full_name.split('!')
-        self.process = process
-        self.hook = None
-
-    def info(self):
-        info = {}
-        info['name'] = self.name
-        info['event'] = self.event.info()
-        if self.process:
-            info['process'] = self.process.info()
-        if self.hook:
-            # user added information, if any hook has been set
-            info['hook'] = self.hook
-        return info
-
-    def collect_args(self, count):
-        # collect args
-        if self.event.type == SyscallType.syscall:
-            # assume Windows here
-            # convention is first 4 args in rcx,rdx,r8,r9
-            # rest on stack
-            args = [self.event.regs.rcx,
-                    self.event.regs.rdx,
-                    self.event.regs.r8,
-                    self.event.regs.r9, ]
-            if count > 4:
-                raise ValueError('collecting more than 4 arguments is not implemented')
-            return args[:count]
-        else:
-            # sysenter is not handled
-            raise ValueError('collecting SYSENTER arguments is not implemented')
 
 
 class Backend:
@@ -184,7 +136,7 @@ class Backend:
             syscall_name = self.get_syscall_name(event.regs.rax)
             # push them to the stack
             self.syscall_stack[event.vcpu_nb].append(syscall_name)
-        syscall = Syscall(event, syscall_name, process)
+        syscall = Syscall(event, syscall_name, process, self.nitro)
         # dispatch on the hooks
         self.dispatch_hooks(syscall)
         return syscall
