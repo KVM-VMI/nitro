@@ -18,7 +18,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_script(script, powershell=True)
 
         def enter_NtOpenFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -28,7 +29,8 @@ class TestWindows(unittest.TestCase):
             }
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -60,13 +62,15 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_script(script, powershell=True)
 
         def enter_NtOpenKey(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             syscall.hook = buffer
 
         def enter_NtCreateKey(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             syscall.hook = buffer
@@ -90,7 +94,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_executable(binary_path)
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -119,7 +124,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_executable(binary_path)
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -148,7 +154,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_executable(binary_path)
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -177,7 +184,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_executable(binary_path)
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -206,7 +214,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_executable(binary_path)
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -235,7 +244,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_executable(binary_path)
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -264,7 +274,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_executable(binary_path)
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -322,7 +333,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_executable(binary_path)
 
         def enter_NtOpenFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
@@ -332,7 +344,8 @@ class TestWindows(unittest.TestCase):
             }
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)
