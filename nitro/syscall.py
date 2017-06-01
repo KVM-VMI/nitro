@@ -75,10 +75,6 @@ class ArgumentMap:
             self.process.write_memory(addr, buffer)
         self.modified[index] = value
 
-    def info(self):
-        return self.modified
-
-
 class Syscall:
 
     __slots__ = (
@@ -103,17 +99,17 @@ class Syscall:
         self.args = ArgumentMap(self.event, self.process, self.nitro)
         self.hook = None
 
-    def info(self):
+    def as_dict(self):
         info = {
             'name': self.name,
-            'event': self.event.info(),
+            'event': self.event.as_dict(),
         }
         if self.process:
-            info['process'] = self.process.info()
+            info['process'] = self.process.as_dict()
         if self.hook:
             # user added information, if any hook has been set
             info['hook'] = self.hook
-        modified = self.args.info()
+        modified = self.args.modified
         if modified:
             info['modified'] = modified
         return info

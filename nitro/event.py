@@ -39,7 +39,7 @@ class NitroEvent:
             self.vcpu_nb, type_msg, dir_msg, cr3, rax)
         return msg
 
-    def info(self):
+    def as_dict(self):
         info = {
             'vcpu': self.vcpu_nb,
             'type': self.type.name,

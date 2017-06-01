@@ -51,10 +51,10 @@ def main(args):
     with Backend(domain, analyze_enabled) as backend:
         backend.nitro.set_traps(True)
         for event in backend.nitro.listen():
-            ev_info = event.info()
+            ev_info = event.as_dict()
             if analyze_enabled:
                 syscall = backend.process_event(event)
-                ev_info = syscall.info()
+                ev_info = syscall.as_dict()
 
             if args['--stdout']:
                 pprint(ev_info, width=1)

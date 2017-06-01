@@ -52,9 +52,9 @@ class NitroThread(Thread):
         for event in self.backend.nitro.listen():
             if self.analyze_enabled:
                 syscall = self.backend.process_event(event)
-                ev_info = syscall.info()
+                ev_info = syscall.as_dict()
             else:
-                ev_info = event.info()
+                ev_info = event.as_dict()
             self.events.append(ev_info)
             if self.stop_request.isSet():
                 break

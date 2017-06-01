@@ -7,7 +7,7 @@ class Process:
         self.pid = pid
         self.libvmi = libvmi
 
-    def info(self):
+    def as_dict(self):
         info = {
             'name': self.name,
             'pid': self.pid
