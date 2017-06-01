@@ -7,11 +7,15 @@ class Process:
         self.pid = pid
         self.libvmi = libvmi
 
-    def info(self):
-        info = {}
-        info['name'] = self.name
-        info['pid'] = self.pid
+    def as_dict(self):
+        info = {
+            'name': self.name,
+            'pid': self.pid
+        }
         return info
 
     def read_memory(self, addr, count):
         return self.libvmi.read_va(addr, self.pid, count)
+
+    def write_memory(self, addr, buffer):
+        return self.libvmi.write_va(addr, self.pid, buffer)

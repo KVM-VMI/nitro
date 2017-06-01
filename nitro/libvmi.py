@@ -9,7 +9,7 @@ VMI_FAILURE = 1
 
 VMI_INIT_DOMAINNAME = (1 << 0)  # initialize using domain name
 
-VMI_INIT_DOMAINID = (1 << 1) # initialize using domain id
+VMI_INIT_DOMAINID = (1 << 1)    # initialize using domain id
 
 
 class VMIMode(Enum):
@@ -25,7 +25,7 @@ class VMIConfig(Enum):
 
 
 class LibvmiInitError(Enum):
-    VMI_INIT_ERROR_NONE = 0                 #No error
+    VMI_INIT_ERROR_NONE = 0                 # No error
     VMI_INIT_ERROR_DRIVER_NOT_DETECTED = 1  # Failed to auto-detect hypervisor
     VMI_INIT_ERROR_DRIVER = 2               # Failed to initialize hypervisor-driver
     VMI_INIT_ERROR_VM_NOT_FOUND = 3         # Failed to find the specified VM
@@ -66,7 +66,7 @@ class Libvmi:
         # init libvmi
         vm_name_c = create_string_buffer(vm_name.encode('utf-8'))
         status = self.libvmi.vmi_init_complete(byref(self.vmi), vm_name_c, VMI_INIT_DOMAINNAME, 0,
-                                      VMIConfig.VMI_CONFIG_GLOBAL_FILE_ENTRY.value, 0, byref(init_error_c))
+                                               VMIConfig.VMI_CONFIG_GLOBAL_FILE_ENTRY.value, 0, byref(init_error_c))
         if status == VMI_FAILURE:
             error = init_error_c.value
             logging.error(format(LibvmiInitError(error).name))
@@ -132,6 +132,20 @@ class Libvmi:
             raise LibvmiError('VMI_FAILURE')
         value = bytes(buffer)[:nb_read]
         return value
+
+    def write_va(self, vaddr, pid, buffer):
+        if vaddr == 0:
+            raise ValueError('Nullptr')
+        vaddr_c = c_ulonglong(vaddr)
+        pid_c = c_int(pid)
+        count = len(buffer)
+        count_c = c_int(count)
+        buffer_c = create_string_buffer(buffer)
+        nb_written = self.libvmi.vmi_write_va(self.vmi, vaddr_c, pid_c, buffer_c, count_c)
+        if nb_written == 0 or nb_written != count:
+            logging.debug('VMI_FAILURE trying to write {}, with {}'.format(hex(vaddr), 'write_va'))
+            raise LibvmiError('VMI_FAILURE')
+        return nb_written
 
     def v2pcache_flush(self, dtb=0):
         self.libvmi.vmi_v2pcache_flush(self.vmi, dtb)

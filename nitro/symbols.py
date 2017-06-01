@@ -23,6 +23,7 @@ from docopt import docopt
 from rekall import session
 from rekall import plugins
 
+
 def main(args):
     ram_dump = args['<ram_dump>']
     s = session.Session(
@@ -34,7 +35,6 @@ def main(args):
             profile_path=[
                 "http://profiles.rekall-forensic.com"
             ])
-
 
     # get ssdt
     output = StringIO.StringIO()
