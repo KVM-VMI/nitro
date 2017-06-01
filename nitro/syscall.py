@@ -53,10 +53,7 @@ class ArgumentMap:
         else:
             # memory
             size = struct.calcsize(self.arg_size_format)
-            try:
-                addr = self.event.regs.rsp + (opaque * size)
-            except AttributeError:
-                raise RuntimeError('Unknown register')
+            addr = self.event.regs.rsp + (opaque * size)
             value, *rest = struct.unpack(self.arg_size_format, self.process.read_memory(addr, size))
         return value
 
@@ -73,10 +70,7 @@ class ArgumentMap:
         else:
             # memory
             size = struct.calcsize(self.arg_size_format)
-            try:
-                addr = self.event.regs.rsp + (opaque * size)
-            except AttributeError:
-                raise RuntimeError('Unkown register')
+            addr = self.event.regs.rsp + (opaque * size)
             buffer = struct.pack(self.arg_size_format, value)
             self.process.write_memory(addr, buffer)
         self.modified[index] = value
