@@ -12,9 +12,9 @@ import struct
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
-from nitro.process import Process
 from nitro.event import SyscallDirection, SyscallType
 from nitro.syscall import Syscall
+from nitro.process import Process
 
 from ..common import Backend, ArgumentMap, SyscallArgumentType
 
