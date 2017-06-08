@@ -1,12 +1,12 @@
-from ..libvmi import VMIOS, Libvmi
 
-from .linux import Linux
-from .windows import Windows
-from .common import Backend
+from nitro.libvmi import VMIOS, Libvmi
+from nitro.backends.linux import LinuxBackend
+from nitro.backends.windows import WindowsBackend
+from nitro.backends.backend import Backend
 
 BACKENDS = {
-    VMIOS.LINUX: Linux,
-    VMIOS.WINDOWS: Windows
+    VMIOS.LINUX: LinuxBackend,
+    VMIOS.WINDOWS: WindowsBackend
 }
 
 

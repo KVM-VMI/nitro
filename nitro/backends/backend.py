@@ -1,12 +1,10 @@
-
 import logging
 import json
-from enum import Enum
 from collections import defaultdict
 
-from ..nitro import Nitro
-from ..libvmi import Libvmi
-from ..event import SyscallDirection, SyscallType
+from nitro.nitro import Nitro
+from nitro.libvmi import Libvmi
+from nitro.event import SyscallDirection, SyscallType
 
 class Backend:
     __slots__ = (
@@ -76,26 +74,3 @@ class Backend:
         logging.info(json.dumps(self.stats, indent=4))
         self.libvmi.destroy()
         self.nitro.stop()
-
-
-class SyscallArgumentType(Enum):
-    register = 0
-    memory = 1
-
-
-class ArgumentMap:
-    __slots__ = (
-        "event",
-        "name",
-        "process",
-        "nitro",
-        "modified"
-    )
-
-    def __init__(self, event, name, process, nitro):
-        self.event = event
-        self.name = name
-        self.process = process
-        self.nitro = nitro
-        self.modified = {}
-
