@@ -45,7 +45,7 @@ def main(args):
     domain = con.lookupByName(vm_name)
 
     events = []
-    # init backend if necessary
+
     analyze_enabled = not args['--nobackend']
     backend = get_backend(domain, analyze_enabled)
     if backend is None:
