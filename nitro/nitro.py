@@ -59,6 +59,8 @@ class Nitro:
         self.vm_io = VM(vm_fd)
         # get VCPU fds
         self.vcpus_io = self.vm_io.attach_vcpus()
+        if len(self.vcpus_io) == 0:
+            raise RuntimeError('Error while attaching to vcpus')
         logging.info('Detected {} VCPUs'.format(len(self.vcpus_io)))
         self.stop_request = None
         self.futures = None
