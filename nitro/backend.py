@@ -64,8 +64,8 @@ class Backend:
         self.stop()
 
     def stop(self):
+        logging.info(json.dumps(self.stats, indent=4))
         if self.analyze:
-            logging.info(json.dumps(self.stats, indent=4))
             self.libvmi.destroy()
         self.nitro.stop()
 
