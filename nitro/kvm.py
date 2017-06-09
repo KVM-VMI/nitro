@@ -130,6 +130,9 @@ class KVM(IOCTL):
         logging.debug('attach_vm PID = {}'.format(pid))
         c_pid = c_int(pid)
         r = self.make_ioctl(self.KVM_NITRO_ATTACH_VM, byref(c_pid))
+        if r < 0:
+            # invalid vm fd
+            raise RuntimeError('Error: fail to attach to the VM')
         return r
 
 class VM(IOCTL):
@@ -151,7 +154,6 @@ class VM(IOCTL):
         r = self.make_ioctl(self.KVM_NITRO_ATTACH_VCPUS, byref(self.vcpus_struct))
         if r != 0:
             raise RuntimeError('Error: fail to attach to vcpus')
-        logging.debug('r = {}'.format(r))
         vcpus = [VCPU(i, self.vcpus_struct.fds[i]) for i in range(self.vcpus_struct.num_vcpus)]
         return vcpus
 
