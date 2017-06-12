@@ -36,7 +36,7 @@ class Backend:
             pass
         else:
             try:
-                logging.debug('Processing hook {} - {}'.format(syscall.event.direction.name, hook.__name__))
+                logging.debug('Processing hook %s - %s', syscall.event.direction.name, hook.__name__)
                 hook(syscall)
             # FIXME: There should be a way for OS specific backends to report these
             # except InconsistentMemoryError: #
@@ -67,7 +67,7 @@ class Backend:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, *args):
         self.stop()
 
     def stop(self):

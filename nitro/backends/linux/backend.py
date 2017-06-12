@@ -1,4 +1,5 @@
 import logging
+import re
 
 from ctypes import sizeof, c_void_p
 
@@ -10,6 +11,8 @@ from nitro.backends.linux.arguments import LinuxArgumentMap
 
 # Technically, I do not think using this the way I do is correct
 VOID_P_SIZE = sizeof(c_void_p)
+
+HANDLER_NAME_REGEX = re.compile(r"^(SyS|sys)_(?P<name>.+)")
 
 class LinuxBackend(Backend):
     __slots__ = (
@@ -31,7 +34,7 @@ class LinuxBackend(Backend):
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
 
-        self.syscall_stack = [[] for _ in range(self.nb_vcpu)]
+        self.syscall_stack = tuple([] for _ in range(self.nb_vcpu))
 
         self.tasks_offset = self.libvmi.get_offset("linux_tasks")
         self.pid_offset = self.libvmi.get_offset("linux_pid")
@@ -50,7 +53,8 @@ class LinuxBackend(Backend):
             name = self.get_syscall_name(event.regs.rax)
             self.syscall_stack[event.vcpu_nb].append(name)
         args = LinuxArgumentMap(event, name, process, self.nitro)
-        syscall = Syscall(event, name, process, self.nitro, args)
+        cleaned = clean_name(name) if name is not None else None
+        syscall = Syscall(event, name, cleaned, process, self.nitro, args)
         self.dispatch_hooks(syscall)
         return syscall
 
@@ -65,24 +69,27 @@ class LinuxBackend(Backend):
     def associate_process(self, cr3):
         """Get Process associated with CR3"""
         head = self.libvmi.translate_ksym2v("init_task") # get the address of swapper's task_struct
-        next = head
+        next_ = head
         while True: # Maybe this should have a sanity check stopping it
-            pid = self.libvmi.read_32(next + self.pid_offset, 0)
+            pid = self.libvmi.read_32(next_ + self.pid_offset, 0)
 
-            mm = self.libvmi.read_addr_va(next + self.mm_offset, 0)
+            mm = self.libvmi.read_addr_va(next_ + self.mm_offset, 0)
             if not mm:
-                mm = self.libvmi.read_addr_va(next + self.mm_offset + VOID_P_SIZE, 0)
+                mm = self.libvmi.read_addr_va(next_ + self.mm_offset + VOID_P_SIZE, 0)
             if mm:
                 pgd = self.libvmi.read_addr_va(mm + self.pgd_offset, 0)
                 pgd_phys_addr = self.libvmi.translate_kv2p(pgd)
                 if cr3 == pgd_phys_addr:
                     # Eventually, I would like to look for the executable name from mm->exe_file->f_path
-                    name = self.libvmi.read_str_va(next + self.name_offset, 0)
-                    process = Process(cr3, next, name, pid, self.libvmi)
+                    name = self.libvmi.read_str_va(next_ + self.name_offset, 0)
+                    process = Process(cr3, next_, name, pid, self.libvmi)
                     return process
             else:
-                logging.debug("no mm found for pid {}".format(pid))
-            next = self.libvmi.read_addr_va(next + self.tasks_offset, 0) - self.tasks_offset
-            if next == head:
+                logging.debug("no mm found for pid %s", pid)
+            next_ = self.libvmi.read_addr_va(next_ + self.tasks_offset, 0) - self.tasks_offset
+            if next_ == head:
                 break
 
+def clean_name(name):
+    matches = HANDLER_NAME_REGEX.search(name)
+    return matches.group("name") if matches is not None else name
