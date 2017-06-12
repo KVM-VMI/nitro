@@ -32,9 +32,7 @@ class WindowsBackend(Backend):
         self.nb_vcpu = len(vcpus_info[0])
 
         # create on syscall stack per vcpu
-        self.syscall_stack = {}
-        for vcpu_nb in range(self.nb_vcpu):
-            self.syscall_stack[vcpu_nb] = []
+        self.syscall_stack = tuple([] for _ in range(self.nb_vcpu))
         self.sdt = None
         self.load_symbols()
 
@@ -57,13 +55,14 @@ class WindowsBackend(Backend):
             try:
                 syscall_name = self.syscall_stack[event.vcpu_nb].pop()
             except IndexError:
-                syscall_name = 'Unknown'
+                syscall_name = 'Unknown' # Maybe None would be better
         else:
             syscall_name = self.get_syscall_name(event.regs.rax)
             # push them to the stack
             self.syscall_stack[event.vcpu_nb].append(syscall_name)
         args = WindowsArgumentMap(event, syscall_name, process, self.nitro)
-        syscall = Syscall(event, syscall_name, process, self.nitro, args)
+        cleaned = clean_name(syscall_name)
+        syscall = Syscall(event, syscall_name, cleaned, process, self.nitro, args)
         # dispatch on the hooks
         self.dispatch_hooks(syscall)
         return syscall
@@ -79,7 +78,7 @@ class WindowsBackend(Backend):
                                         stat.S_IRGRP | stat.S_IWGRP |
                                         stat.S_IROTH | stat.S_IWOTH)
                 # take a ram dump
-                logging.info('Dumping physical memory to {}'.format(ram_dump.name))
+                logging.info('Dumping physical memory to %s', ram_dump.name)
                 flags = libvirt.VIR_DUMP_MEMORY_ONLY
                 dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
                 self.domain.coreDumpWithFormat(ram_dump.name, dumpformat, flags)
@@ -111,7 +110,7 @@ class WindowsBackend(Backend):
                     full_name = e[1]["symbol"]["symbol"]
                     # add entry  to our current ssdt
                     cur_ssdt[entry] = full_name
-                    logging.debug('Add SSDT entry [{}] -> {}'.format(entry, full_name))
+                    logging.debug('Add SSDT entry [%s] -> %s', entry, full_name)
 
     def associate_process(self, cr3):
         if cr3 in self.processes:
@@ -159,3 +158,5 @@ class WindowsBackend(Backend):
             syscall_name = 'Table{}!Unknown'.format(idx)
         return syscall_name
 
+def clean_name(name):
+    return name.split('!')[-1]

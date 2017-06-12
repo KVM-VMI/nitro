@@ -1,10 +1,10 @@
 
 # FIXME:
-# Maybe we should have OS specific Syscall classes
-# Tests are currently broken as collect_args got removed
+# Maybe we should subclass this for different backends
 class Syscall:
     __slots__ = (
         "event",
+        "full_name",
         "name",
         "process",
         "nitro",
@@ -12,8 +12,9 @@ class Syscall:
         "hook"
     )
 
-    def __init__(self, event, name, process, nitro, args):
+    def __init__(self, event, full_name, name, process, nitro, args):
         self.event = event
+        self.full_name = full_name
         self.name = name
         self.process = process
         self.nitro = nitro
@@ -22,6 +23,7 @@ class Syscall:
 
     def as_dict(self):
         info = {
+            "full_name": self.full_name,
             "name": self.name,
             "event": self.event.as_dict(),
         }

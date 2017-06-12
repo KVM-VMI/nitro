@@ -31,8 +31,8 @@ class WindowsArgumentMap(ArgumentMap):
     def __getitem__(self, index):
         try:
             arg_type, opaque = self.CONVENTION[self.event.type][index]
-        except KeyError:
-            raise RuntimeError('Unknown covention')
+        except KeyError as error:
+            raise RuntimeError('Unknown covention') from error
         except IndexError:
             arg_type, opaque = self.CONVENTION[self.event.type][-1]
             opaque += index - len(self.CONVENTION[self.event.type]) + 1
@@ -48,8 +48,8 @@ class WindowsArgumentMap(ArgumentMap):
     def __setitem__(self, index, value):
         try:
             arg_type, opaque = self.CONVENTION[self.event.type][index]
-        except KeyError:
-            raise RuntimeError('Unknown covention')
+        except KeyError as error:
+            raise RuntimeError('Unknown covention') from error
         except IndexError:
             arg_type, opaque = self.CONVENTION[self.event.type][-1]
             opaque += index - len(self.CONVENTION[self.event.type]) + 1
