@@ -15,7 +15,7 @@ def get_backend(domain, analyze):
     if analyze:
         backend = BACKENDS.get(libvmi.get_ostype())
         if backend is not None:
-            return backend(domain)
+            return backend(domain, libvmi)
     else:
-        return Backend(domain)
+        return Backend(domain, libvmi)
 
