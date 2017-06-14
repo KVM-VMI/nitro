@@ -8,14 +8,15 @@ BACKENDS = {
     VMIOS.WINDOWS: WindowsBackend
 }
 
+def BackendNotFoundError(Exception):
+    pass
 
-def get_backend(domain, analyze):
+def get_backend(domain, listener):
     """Return backend based on libvmi configuration. If analyze if False, returns a dummy backend that does not analyze system calls. Returns None if the backend is missing"""
     libvmi = Libvmi(domain.name())
-    if analyze:
-        backend = BACKENDS.get(libvmi.get_ostype())
-        if backend is not None:
-            return backend(domain, libvmi)
-    else:
-        return Backend(domain, libvmi)
-
+    os_type = libvmi.get_ostype()
+    try:
+        return BACKENDS[os_type](domain, listener, libvmi)
+    except KeyError:
+        raise BackendNotFoundError('Unable to find an appropritate backend for'
+                                   'this OS: {}'.format(os_type))
