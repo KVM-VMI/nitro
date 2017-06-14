@@ -12,45 +12,13 @@ This directory contains the test suite for Nitro, based on the `Nose2` framework
 
 The tests only targets `Windows_7_x64` for now.
 
-Also, the test procedure expects to find a VM named `nitro_win7x64` in libvirt `qemu:///system`.
-Here is how to build it.
+The test procedure expects to find a VM named `nitro_win7x64` in libvirt `qemu:///system`.
 
-## Building test VMs
-
-In the `packer-windows` directory you will find a `packer` binary and templates
+In the `vm_templates` directory you will find a `packer` binary and templates
 to build ready to test Windows VMs.
 
-The templates apply the following modifications:
+Check `vm_templates/README` for detailed instructions.
 
-- Disable Windows Updates (to reduce noise)
-- Open the WinRM service on public networks
-
-To build a vm, run `./packer build <template.json>`.
-Once the build is done, the image will be available in `packer-windows/output-qemu` directory.
-
-_You can build the Windows 7 x64 VM here: `./packer build windows_7_x64`_
-
-## Importing VMs
-
-To easily import the vm in libvirt, you can use the script `import_libvirt.py`,
-which will do the following modifications:
-- create a storage pool named `nitro` associated with a subdirectory named `images` under `tests`
-- move the disk image from `output-qemu` to `images`
-- set the name of the vm to `nitro_<vm_name>`
-- create a new VM based on `template_domain.xml`
-- specifiy custom QEMU binary if needed
-
-To import the test VM once `Packer` is done building it:
-
-~~~
-./import_libvirt.py packer-windows/output-qemu/win7x64
-~~~
-
-To specify a custom QEMU, if the `kvm-vmi` one is not installed in `/usr/bin/qemu-system-x86`, 
-use the `--qemu` switch
-~~~
-./import_libvirt.py --qemu /home/kvm-vmi/qemu/x86_64-softmmu/qemu-system-x86_64 packer-windows/output-qemu/win7x64
-~~~
 
 # Running tests
 
