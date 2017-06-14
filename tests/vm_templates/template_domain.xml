@@ -11,8 +11,6 @@
     <apic/>
     <pae/>
   </features>
-  <cpu mode='host-passthrough'>
-  </cpu>
   <clock offset='localtime'>
     <timer name='rtc' tickpolicy='catchup'/>
     <timer name='pit' tickpolicy='delay'/>
