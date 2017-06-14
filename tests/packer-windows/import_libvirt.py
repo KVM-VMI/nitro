@@ -19,6 +19,7 @@ import libvirt
 from docopt import docopt
 
 NITRO_POOL_NAME = 'nitro'
+PACKER_OUTPUT_DIR = 'output-qemu'
 SNAPSHOT_XML = """
 <domainsnapshot>
     <name>base</name>
@@ -34,7 +35,7 @@ def main(args):
         sys.exit(1)
     con = libvirt.open('qemu:///system')
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    storage_path = os.path.join(script_dir, 'images')
+    storage_path = os.path.join(script_dir, '..', 'images')
     # check for storage pool nitro
     try:
         storage = con.storagePoolLookupByName(NITRO_POOL_NAME)
@@ -81,8 +82,7 @@ def main(args):
         # take base snapshot
         domain.snapshotCreateXML(SNAPSHOT_XML)
         # remove output-qemu
-        output_qemu_path = os.path.join(script_dir, 'packer-windows',
-                'output-qemu')
+        output_qemu_path = os.path.join(script_dir, PACKER_OUTPUT_DIR)
         shutil.rmtree(output_qemu_path)
     else:
         logging.info('Domain {} already defined'.format(domain_name))
