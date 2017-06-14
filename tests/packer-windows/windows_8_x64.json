@@ -1,63 +1,11 @@
 {
-    "builders": [
-        {
-            "type": "qemu",
-            "accelerator": "kvm",
-            "vm_name": "win8x64",
-            "iso_url": "{{user `iso_url`}}",
-            "iso_checksum_type": "{{user `iso_checksum_type`}}",
-            "iso_checksum": "{{user `iso_checksum`}}",
-            "headless": true,
-            "skip_compaction": true,
-            "boot_wait": "2m",
-            "communicator": "winrm",
-            "winrm_username": "vagrant",
-            "winrm_password": "vagrant",
-            "winrm_timeout": "8h",
-            "shutdown_command": "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\"",
-            "disk_size": 61440,
-            "disk_interface": "ide",
-            "net_device": "e1000",
-            "vnc_bind_address": "0.0.0.0",
-            "qemuargs": [
-                [ "-smp", "2" ],
-                [ "-m", "1500" ]
-            ],
-            "floppy_files": [
-                "{{user `autounattend`}}"
-            ]
-        }
-    ],
-    "provisioners": [
-        {
-            "type": "windows-shell",
-            "inline": [
-                "reg ADD HKLM\\System\\CurrentControlSet\\Control\\Network\\NewNetworkWindowOff /f",
-                "reg ADD HKLM\\Software\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU /v NoAutoUpdate /d 1 /t REG_DWORD /f",
-                "sc config \"WSearch\" start= disabled",
-                "reg ADD HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer /v NoDriveTypeAutoRun /d 0 /t REG_DWORD /f",
-                "reg ADD HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoplayHandlers\\UserChosenExecuteHandlers\\AutorunINFLegacyArrival /ve /d MSAutoRun /t REG_SZ /f",
-                "reg ADD HKLM\\SYSTEM\\CurrentControlSet\\services\\WinRM /v DelayedAutoStart /d 300 /t REG_DWORD /f",
-                "netsh advfirewall firewall add rule name=\"WinRM Public\" dir=in action=allow profile=any protocol=TCP localport=5985",
-                "reg ADD HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PublicProfile /v DisableStealthMode /d 1 /t REG_DWORD /f",
-                "reg ADD HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\DomainProfile /v DisableStealthMode /d 1 /t REG_DWORD /f",
-                "reg ADD HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsFirewall\\PrivateProfile /v DisableStealthMode /d 1 /t REG_DWORD /f"
-            ]
-        },
-        {
-            "type": "ansible",
-            "playbook_file": "./playbook/playbook.yml",
-            "extra_arguments": [
-                "--connection", "packer",
-                "--extra-vars", "ansible_shell_type=powershell ansible_shell_executable=None"
-            ]
-        }
-
-    ],
-    "variables": {
-        "iso_url": "http://download.microsoft.com/download/B/9/9/B999286E-0A47-406D-8B3D-5B5AD7373A4A/9600.16384.WINBLUE_RTM.130821-1623_X64FRE_ENTERPRISE_EVAL_EN-US-IRM_CENA_X64FREE_EN-US_DV5.ISO",
-        "iso_checksum_type": "md5",
-        "iso_checksum": "5e4ecb86fd8619641f1d58f96e8561ec",
-        "autounattend": "./answer_files/8/Autounattend.xml"
-    }
+  "_comment": "Build with `packer build -var-file=windows_8_x64.json windows.json`",
+  "vm_name": "win8x64",
+  "cpus": "1",
+  "disk_size": "65536",
+  "iso_name": "9600.16384.WINBLUE_RTM.130821-1623_X64FRE_ENTERPRISE_EVAL_EN-US-IRM_CENA_X64FREE_EN-US_DV5.ISO",
+  "iso_url": "http://download.microsoft.com/download/B/9/9/B999286E-0A47-406D-8B3D-5B5AD7373A4A/9600.16384.WINBLUE_RTM.130821-1623_X64FRE_ENTERPRISE_EVAL_EN-US-IRM_CENA_X64FREE_EN-US_DV5.ISO",
+  "iso_checksum_type": "md5",
+  "iso_checksum": "5e4ecb86fd8619641f1d58f96e8561ec",
+  "autounattend": "./answer_files/8/Autounattend.xml"
 }
