@@ -35,7 +35,7 @@ def find_qemu_pid(vm_name):
             raise e
 
 
-class Nitro:
+class Listener:
 
     __slots__ = (
         'domain',
