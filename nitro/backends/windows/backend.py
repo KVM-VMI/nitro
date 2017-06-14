@@ -25,8 +25,8 @@ class WindowsBackend(Backend):
         "processes"
     )
 
-    def __init__(self, domain):
-        super().__init__(domain)
+    def __init__(self, domain, libvmi):
+        super().__init__(domain, libvmi)
 
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])

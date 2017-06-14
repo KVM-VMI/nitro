@@ -15,10 +15,10 @@ class Backend:
         "nitro"
     )
 
-    def __init__(self, domain):
+    def __init__(self, domain, libvmi):
         self.domain = domain
         self.nitro = Nitro(self.domain)
-        self.libvmi = Libvmi(domain.name())
+        self.libvmi = libvmi
         self.hooks = {
             SyscallDirection.enter: {},
             SyscallDirection.exit: {}
