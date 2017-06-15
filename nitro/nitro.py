@@ -6,6 +6,7 @@ class Nitro:
     def __init__(self, domain, introspection=True):
         self.listener = Listener(domain)
         self.introspection = introspection
+        self.backend = None
         if self.introspection:
             self.backend = get_backend(domain)
 
@@ -16,6 +17,6 @@ class Nitro:
         return self
 
     def __exit__(self, type, value, traceback):
-        if self.introspection:
+        if self.backend is not None:
             self.backend.stop()
         self.listener.stop()
