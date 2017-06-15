@@ -11,13 +11,11 @@ class ArgumentMap:
         "event",
         "name",
         "process",
-        "nitro",
         "modified"
     )
 
-    def __init__(self, event, name, process, nitro):
+    def __init__(self, event, name, process):
         self.event = event
         self.name = name
         self.process = process
-        self.nitro = nitro
         self.modified = {}

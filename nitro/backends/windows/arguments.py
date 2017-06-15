@@ -24,8 +24,8 @@ class WindowsArgumentMap(ArgumentMap):
         "arg_size_format",
     )
     
-    def __init__(self, event, name, process, nitro):
-        super().__init__(event, name, process, nitro)
+    def __init__(self, event, name, process):
+        super().__init__(event, name, process)
         self.arg_size_format = self.ARG_SIZE[self.event.type]
 
     def __getitem__(self, index):

@@ -7,17 +7,15 @@ class Syscall:
         "full_name",
         "name",
         "process",
-        "nitro",
         "args",
         "hook"
     )
 
-    def __init__(self, event, full_name, name, process, nitro, args):
+    def __init__(self, event, full_name, name, process, args):
         self.event = event
         self.full_name = full_name
         self.name = name
         self.process = process
-        self.nitro = nitro
         self.args = args
         self.hook = None
 
