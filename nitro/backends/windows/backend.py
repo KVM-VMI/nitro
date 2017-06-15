@@ -27,7 +27,6 @@ class WindowsBackend(Backend):
 
     def __init__(self, domain, libvmi):
         super().__init__(domain, libvmi)
-
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
 
@@ -60,9 +59,9 @@ class WindowsBackend(Backend):
             syscall_name = self.get_syscall_name(event.regs.rax)
             # push them to the stack
             self.syscall_stack[event.vcpu_nb].append(syscall_name)
-        args = WindowsArgumentMap(event, syscall_name, process, self.nitro)
+        args = WindowsArgumentMap(event, syscall_name, process)
         cleaned = clean_name(syscall_name)
-        syscall = Syscall(event, syscall_name, cleaned, process, self.nitro, args)
+        syscall = Syscall(event, syscall_name, cleaned, process, args)
         # dispatch on the hooks
         self.dispatch_hooks(syscall)
         return syscall

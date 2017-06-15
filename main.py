@@ -21,7 +21,6 @@ from pprint import pprint
 from docopt import docopt
 
 from nitro.nitro import Nitro
-from nitro.backends import get_backend
 
 run = True
 
@@ -47,16 +46,13 @@ def main(args):
     events = []
 
     analyze_enabled = not args['--nobackend']
-    backend = get_backend(domain, analyze_enabled)
-    if backend is None:
-        logging.critical("Failed to select backend")
 
-    with backend:
-        backend.nitro.set_traps(True)
-        for event in backend.nitro.listen():
+    with Nitro(domain, analyze_enabled) as nitro:
+        nitro.listener.set_traps(True)
+        for event in nitro.listen():
             event_info = event.as_dict()
             if analyze_enabled:
-                syscall = backend.process_event(event)
+                syscall = nitro.backend.process_event(event)
                 event_info = syscall.as_dict()
 
             if args['--stdout']:

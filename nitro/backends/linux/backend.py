@@ -29,7 +29,7 @@ class LinuxBackend(Backend):
     def __init__(self, domain, libvmi):
         super().__init__(domain, libvmi)
         self.sys_call_table_addr = self.libvmi.translate_ksym2v("sys_call_table")
-        logging.debug("sys_call_table at {:f}".format(self.sys_call_table_addr))
+        logging.debug("sys_call_table at %s", hex(self.sys_call_table_addr))
 
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
@@ -52,9 +52,9 @@ class LinuxBackend(Backend):
         else:
             name = self.get_syscall_name(event.regs.rax)
             self.syscall_stack[event.vcpu_nb].append(name)
-        args = LinuxArgumentMap(event, name, process, self.nitro)
+        args = LinuxArgumentMap(event, name, process)
         cleaned = clean_name(name) if name is not None else None
-        syscall = Syscall(event, name, cleaned, process, self.nitro, args)
+        syscall = Syscall(event, name, cleaned, process, args)
         self.dispatch_hooks(syscall)
         return syscall
 

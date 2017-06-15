@@ -2,8 +2,6 @@ import logging
 import json
 from collections import defaultdict
 
-from nitro.nitro import Nitro
-from nitro.libvmi import Libvmi
 from nitro.event import SyscallDirection, SyscallType
 
 class Backend:
@@ -12,12 +10,11 @@ class Backend:
         "libvmi",
         "hooks",
         "stats",
-        "nitro"
+        "listener"
     )
 
     def __init__(self, domain, libvmi):
         self.domain = domain
-        self.nitro = Nitro(self.domain)
         self.libvmi = libvmi
         self.hooks = {
             SyscallDirection.enter: {},
@@ -57,11 +54,11 @@ class Backend:
                 self.stats['hooks_processed'] += 1
 
     def define_hook(self, name, callback, direction=SyscallDirection.enter):
-        logging.info('Defining hook on {}'.format(name))
+        logging.info('Defining hook on %s', name)
         self.hooks[direction][name] = callback
 
     def undefine_hook(self, name, direction=SyscallDirection.enter):
-        logging.info('Removing hook on {}'.format(name))
+        logging.info('Removing hook on %s', name)
         self.hooks[direction].pop(name)
 
     def __enter__(self):
@@ -73,4 +70,3 @@ class Backend:
     def stop(self):
         logging.info(json.dumps(self.stats, indent=4))
         self.libvmi.destroy()
-        self.nitro.stop()
