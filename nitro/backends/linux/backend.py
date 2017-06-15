@@ -26,8 +26,8 @@ class LinuxBackend(Backend):
         "name_offset"
     )
 
-    def __init__(self, domain, listener, libvmi):
-        super().__init__(domain, listener, libvmi)
+    def __init__(self, domain, libvmi):
+        super().__init__(domain, libvmi)
         self.sys_call_table_addr = self.libvmi.translate_ksym2v("sys_call_table")
         logging.debug("sys_call_table at {:f}".format(self.sys_call_table_addr))
 

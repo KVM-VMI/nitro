@@ -13,9 +13,8 @@ class Backend:
         "listener"
     )
 
-    def __init__(self, domain, listener, libvmi):
+    def __init__(self, domain, libvmi):
         self.domain = domain
-        self.listener = listener
         self.libvmi = libvmi
         self.hooks = {
             SyscallDirection.enter: {},
@@ -71,4 +70,3 @@ class Backend:
     def stop(self):
         logging.info(json.dumps(self.stats, indent=4))
         self.libvmi.destroy()
-        self.listener.stop()
