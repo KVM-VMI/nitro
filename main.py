@@ -46,24 +46,23 @@ def main(args):
     events = []
 
     analyze_enabled = not args['--nobackend']
-    nitro = Nitro(domain, analyze_enabled)
 
-    nitro.listener.set_traps(True)
-    for event in nitro.listen():
-        event_info = event.as_dict()
-        if analyze_enabled:
-            syscall = nitro.backend.process_event(event)
-            event_info = syscall.as_dict()
+    with Nitro(domain, analyze_enabled) as nitro:
+        nitro.listener.set_traps(True)
+        for event in nitro.listen():
+            event_info = event.as_dict()
+            if analyze_enabled:
+                syscall = nitro.backend.process_event(event)
+                event_info = syscall.as_dict()
 
-        if args['--stdout']:
-            pprint(event_info, width=1)
-        else:
-            events.append(event_info)
+            if args['--stdout']:
+                pprint(event_info, width=1)
+            else:
+                events.append(event_info)
 
-        # stop properly by CTRL+C
-        if not run:
-            break
-    nitro.listener.stop()
+            # stop properly by CTRL+C
+            if not run:
+                break
 
     if events:
         logging.info('Writing events')
