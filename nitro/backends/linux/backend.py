@@ -52,9 +52,9 @@ class LinuxBackend(Backend):
         else:
             name = self.get_syscall_name(event.regs.rax)
             self.syscall_stack[event.vcpu_nb].append(name)
-        args = LinuxArgumentMap(event, name, process, self.listener)
+        args = LinuxArgumentMap(event, name, process)
         cleaned = clean_name(name) if name is not None else None
-        syscall = Syscall(event, name, cleaned, process, self.listener, args)
+        syscall = Syscall(event, name, cleaned, process, args)
         self.dispatch_hooks(syscall)
         return syscall
 
