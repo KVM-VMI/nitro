@@ -31,7 +31,7 @@ def find_qemu_pid(vm_name):
             return pid
         except ValueError as e:
             # output issue
-            logging.critical('Cannot find PID with pgrep output: {}'.format(output))
+            logging.critical('Cannot find PID with pgrep output: %s', output)
             raise e
 
 
@@ -59,7 +59,7 @@ class Listener:
         self.vm_io = VM(vm_fd)
         # get VCPU fds
         self.vcpus_io = self.vm_io.attach_vcpus()
-        logging.info('Detected {} VCPUs'.format(len(self.vcpus_io)))
+        logging.info('Detected %s VCPUs', len(self.vcpus_io))
         self.stop_request = None
         self.futures = None
         self.queue = None
@@ -113,7 +113,7 @@ class Listener:
         logging.info('Stop Nitro listening')
 
     def listen_vcpu(self, vcpu_io, queue):
-        logging.info('Start listening on VCPU {}'.format(vcpu_io.vcpu_nb))
+        logging.info('Start listening on VCPU %s', vcpu_io.vcpu_nb)
         # we need a per thread continue event
         continue_event = threading.Event()
         while not self.stop_request.is_set():
@@ -132,7 +132,7 @@ class Listener:
                 continue_event.clear()
                 vcpu_io.continue_vm()
 
-        logging.debug('stop listening on VCPU {}'.format(vcpu_io.vcpu_nb))
+        logging.debug('stop listening on VCPU %s', vcpu_io.vcpu_nb)
 
     def stop_listen(self):
         self.set_traps(False)

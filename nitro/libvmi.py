@@ -127,7 +127,7 @@ class Libvmi:
         if ptr:
             return cast(ptr, c_char_p).value.decode('utf-8')
         else:
-            logging.debug("Failed to find symbol associated with virtual address: {}".format(vaddr))
+            logging.debug("Failed to find symbol associated with virtual address: %s", vaddr)
 
     def translate_kv2p(self, vaddr):
         return self.libvmi.vmi_translate_kv2p(self.vmi, c_uint64(vaddr))
@@ -137,7 +137,7 @@ class Libvmi:
         value_c = c_ulonglong()
         status = self.libvmi.vmi_read_addr_ksym(self.vmi, symbol_c, byref(value_c))
         if status == VMI_FAILURE:
-            logging.debug('VMI_FAILURE trying to read {}, with {}'.format(symbol, 'read_addr_ksym'))
+            logging.debug('VMI_FAILURE trying to read %s, with %s', symbol, 'read_addr_ksym')
             raise LibvmiError('VMI_FAILURE')
 
         return value_c.value
@@ -158,7 +158,7 @@ class Libvmi:
         value_c = c_ulonglong()
         status = self.libvmi.vmi_read_addr_va(self.vmi, vaddr_c, pid_c, byref(value_c))
         if status == VMI_FAILURE:
-            logging.debug('VMI_FAILURE trying to read {}, with {}'.format(hex(vaddr), 'read_addr_va'))
+            logging.debug('VMI_FAILURE trying to read %s, with %s', hex(vaddr), 'read_addr_va')
             raise LibvmiError('VMI_FAILURE')
         return value_c.value
 
@@ -179,7 +179,7 @@ class Libvmi:
         buffer = (c_char * count)()
         nb_read = self.libvmi.vmi_read_va(self.vmi, vaddr_c, pid_c, byref(buffer), count)
         if nb_read == 0:
-            logging.debug('VMI_FAILURE trying to read {}, with {}'.format(hex(vaddr), 'read_va'))
+            logging.debug('VMI_FAILURE trying to read %s, with %s', hex(vaddr), 'read_va')
             raise LibvmiError('VMI_FAILURE')
         value = bytes(buffer)[:nb_read]
         return value
@@ -194,7 +194,7 @@ class Libvmi:
         buffer_c = create_string_buffer(buffer)
         nb_written = self.libvmi.vmi_write_va(self.vmi, vaddr_c, pid_c, buffer_c, count_c)
         if nb_written == 0 or nb_written != count:
-            logging.debug('VMI_FAILURE trying to write {}, with {}'.format(hex(vaddr), 'write_va'))
+            logging.debug('VMI_FAILURE trying to write %s, with %s', hex(vaddr), 'write_va')
             raise LibvmiError('VMI_FAILURE')
         return nb_written
 
@@ -205,7 +205,7 @@ class Libvmi:
             return result.value
         else:
             self.failures += 1
-            logging.debug('VMI_FAILURE trying to read_32 at 0x{:x} with pid {}'.format(vaddr, pid))
+            logging.debug('VMI_FAILURE trying to read_32 at %s with pid %s', hex(vaddr), pid)
             raise LibvmiError('VMI_FAILURE')
 
     def v2pcache_flush(self, dtb=0):
