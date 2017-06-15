@@ -9,13 +9,13 @@ class WinStruct(object):
     _fields_ = []
 
     def __init__(self, addr, process):
-        # logging.debug('Building {} from {}'.format(self.__class__.__name__, hex(addr)))
+        # logging.debug('Building %s from %s', self.__class__.__name__, hex(addr))
         for f_offset, f_name, f_format in self._fields_:
-            # logging.debug('Field {}, {}, at {} + {}'.format(f_name, f_format, hex(addr), hex(f_offset)))
+            # logging.debug('Field %s, %s, at %s + %s', f_name, f_format, hex(addr), hex(f_offset))
             f_size = struct.calcsize(f_format)
             content = process.read_memory(addr + f_offset, f_size)
             f_value, *rest = struct.unpack(f_format, content)
-            # logging.debug('Value: {}'.format(hex(f_value)))
+            # logging.debug('Value: %s', hex(f_value))
             setattr(self, f_name, f_value)
 
 

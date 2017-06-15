@@ -54,11 +54,11 @@ class Backend:
                 self.stats['hooks_processed'] += 1
 
     def define_hook(self, name, callback, direction=SyscallDirection.enter):
-        logging.info('Defining hook on {}'.format(name))
+        logging.info('Defining hook on %s', name)
         self.hooks[direction][name] = callback
 
     def undefine_hook(self, name, direction=SyscallDirection.enter):
-        logging.info('Removing hook on {}'.format(name))
+        logging.info('Removing hook on %s', name)
         self.hooks[direction].pop(name)
 
     def __enter__(self):
