@@ -7,7 +7,15 @@ class Nitro:
         self.listener = Listener(domain)
         self.introspection = introspection
         if self.introspection:
-            self.backend = get_backend(domain, self.listener)
+            self.backend = get_backend(domain)
 
     def listen(self):
         yield from self.listener.listen()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        if self.introspection:
+            self.backend.stop()
+        self.listener.stop()
