@@ -1,12 +1,15 @@
-
 class Process:
 
-    def __init__(self, cr3, descriptor, name, pid, libvmi):
+    __slots__ = (
+        "libvmi",
+        "cr3",
+        "descriptor",
+    )
+
+    def __init__(self, libvmi, cr3, descriptor):
+        self.libvmi = libvmi
         self.cr3 = cr3
         self.descriptor = descriptor
-        self.name = name
-        self.pid = pid
-        self.libvmi = libvmi
 
     def as_dict(self):
         info = {
