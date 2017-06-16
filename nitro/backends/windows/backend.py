@@ -22,7 +22,9 @@ class WindowsBackend(Backend):
         "nb_vcpu",
         "syscall_stack",
         "sdt",
-        "processes"
+        "tasks_offset",
+        "pdbase_offset",
+        "processes",
     )
 
     def __init__(self, domain, libvmi):
@@ -35,7 +37,10 @@ class WindowsBackend(Backend):
         self.sdt = None
         self.load_symbols()
 
-        # run libvmi helper subprocess
+        # get offsets
+        self.tasks_offset = self.libvmi.get_offset("win_tasks")
+        self.pdbase_offset = self.libvmi.get_offset("win_pdbase")
+
         self.processes = {}
 
     def process_event(self, event):
@@ -126,9 +131,9 @@ class WindowsBackend(Backend):
 
         while flink != ps_head:
             # get start of EProcess
-            start_eproc = flink - self.libvmi.get_offset('win_tasks')
+            start_eproc = flink - self.tasks_offset
             # move to start of DirectoryTableBase
-            directory_table_base_off = start_eproc + self.libvmi.get_offset('win_pdbase')
+            directory_table_base_off = start_eproc + self.pdbase_offset
             # read directory_table_base
             directory_table_base = self.libvmi.read_addr_va(directory_table_base_off, 0)
             # compare to our cr3
