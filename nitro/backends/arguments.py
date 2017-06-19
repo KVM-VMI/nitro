@@ -1,5 +1,5 @@
 from enum import Enum
-
+from nitro.event import SyscallType
 
 class SyscallArgumentType(Enum):
     register = 0
@@ -7,6 +7,12 @@ class SyscallArgumentType(Enum):
 
 
 class ArgumentMap:
+
+    ARG_SIZE = {
+        SyscallType.syscall: 'P',   # x64 -> 8 bytes
+        SyscallType.sysenter: 'I'   # x32 -> 4 bytes
+    }
+
     __slots__ = (
         "event",
         "name",
