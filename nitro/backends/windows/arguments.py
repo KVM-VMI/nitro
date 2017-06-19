@@ -3,6 +3,7 @@ import struct
 from nitro.event import SyscallType
 from nitro.backends.arguments import ArgumentMap, SyscallArgumentType
 
+
 class WindowsArgumentMap(ArgumentMap):
 
     CONVENTION = {
@@ -15,15 +16,10 @@ class WindowsArgumentMap(ArgumentMap):
         ],
     }
 
-    ARG_SIZE = {
-        SyscallType.syscall: 'P',   # x64 -> 8 bytes
-        SyscallType.sysenter: 'I'   # x32 -> 4 bytes
-    }
-
     __slots__ = (
         "arg_size_format",
     )
-    
+
     def __init__(self, event, name, process):
         super().__init__(event, name, process)
         self.arg_size_format = self.ARG_SIZE[self.event.type]
