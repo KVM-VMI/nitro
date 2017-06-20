@@ -10,7 +10,7 @@ import xml.etree.ElementTree as tree
 
 # local
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from nitro.backend import Backend
+from nitro.nitro import Nitro
 from cdrom import CDROM
 
 SNAPSHOT_BASE = 'base'
@@ -34,7 +34,7 @@ class NitroThread(Thread):
         super().__init__()
         self.domain = domain
         self.analyze_enabled = analyze
-        self.backend = Backend(self.domain, analyze)
+        self.nitro = Nitro(self.domain, analyze)
         self.setup_hooks(hooks)
         self.stop_request = Event()
         self.total_time = None
@@ -43,22 +43,22 @@ class NitroThread(Thread):
     def setup_hooks(self, hooks):
         if hooks:
             for name, callback in hooks.items():
-                self.backend.define_hook(name, callback)
+                self.nitro.backend.define_hook(name, callback)
 
     def run(self):
         # start timer
         start_time = datetime.datetime.now()
-        self.backend.nitro.set_traps(True)
-        for event in self.backend.nitro.listen():
+        self.nitro.listener.set_traps(True)
+        for event in self.nitro.listen():
             if self.analyze_enabled:
-                syscall = self.backend.process_event(event)
+                syscall = self.nitro.backend.process_event(event)
                 ev_info = syscall.as_dict()
             else:
                 ev_info = event.as_dict()
             self.events.append(ev_info)
             if self.stop_request.isSet():
                 break
-        self.backend.stop()
+        self.nitro.stop()
         # stop timer
         stop_time = datetime.datetime.now()
         self.total_time = str(stop_time - start_time)
