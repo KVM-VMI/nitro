@@ -16,30 +16,19 @@ class WindowsArgumentMap(ArgumentMap):
         ],
     }
 
-    __slots__ = (
-        "arg_size_format",
-    )
-
     def __init__(self, event, name, process):
         super().__init__(event, name, process)
-        self.arg_size_format = self.ARG_SIZE[self.event.type]
 
     def __getitem__(self, index):
         try:
             arg_type, opaque = self.CONVENTION[self.event.type][index]
         except KeyError as error:
-            raise RuntimeError('Unknown covention') from error
+            raise RuntimeError('Unknown convention') from error
         except IndexError:
             arg_type, opaque = self.CONVENTION[self.event.type][-1]
             opaque += index - len(self.CONVENTION[self.event.type]) + 1
-        if arg_type == SyscallArgumentType.register:
-            value = self.event.get_register(opaque)
-        else:
-            # memory
-            size = struct.calcsize(self.arg_size_format)
-            addr = self.event.regs.rsp + (opaque * size)
-            value, *rest = struct.unpack(self.arg_size_format, self.process.read_memory(addr, size))
-        return value
+
+        return self.get_argument_value(arg_type, opaque)
 
     def __setitem__(self, index, value):
         try:
@@ -49,13 +38,6 @@ class WindowsArgumentMap(ArgumentMap):
         except IndexError:
             arg_type, opaque = self.CONVENTION[self.event.type][-1]
             opaque += index - len(self.CONVENTION[self.event.type]) + 1
-        if arg_type == SyscallArgumentType.register:
-            self.event.update_register(opaque, value)
-        else:
-            # memory
-            size = struct.calcsize(self.arg_size_format)
-            addr = self.event.regs.rsp + (opaque * size)
-            buffer = struct.pack(self.arg_size_format, value)
-            self.process.write_memory(addr, buffer)
-        self.modified[index] = value
 
+        self.set_argument_value(arg_type, opaque, value)
+        self.modified[index] = value
