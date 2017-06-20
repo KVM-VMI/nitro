@@ -33,8 +33,9 @@ class CDROM:
     def cleanup(self):
         if self.cdrom_dir_tmp:
             self.cdrom_iso_tmp.close()
+            self.cdrom_dir_tmp.cleanup()
         self.tmp_dir.cleanup()
-        self.cdrom_dir_tmp.cleanup()
+
 
     def write_autorun(self):
         # write autorun.inf
