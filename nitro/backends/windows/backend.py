@@ -11,7 +11,7 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from nitro.event import SyscallDirection, SyscallType
 from nitro.syscall import Syscall
-from nitro.process import Process
+from nitro.backends.windows.process import WindowsProcess
 from nitro.backends.backend import Backend
 from nitro.backends.windows.arguments import WindowsArgumentMap
 
@@ -22,7 +22,9 @@ class WindowsBackend(Backend):
         "nb_vcpu",
         "syscall_stack",
         "sdt",
-        "processes"
+        "tasks_offset",
+        "pdbase_offset",
+        "processes",
     )
 
     def __init__(self, domain, libvmi):
@@ -35,7 +37,10 @@ class WindowsBackend(Backend):
         self.sdt = None
         self.load_symbols()
 
-        # run libvmi helper subprocess
+        # get offsets
+        self.tasks_offset = self.libvmi.get_offset("win_tasks")
+        self.pdbase_offset = self.libvmi.get_offset("win_pdbase")
+
         self.processes = {}
 
     def process_event(self, event):
@@ -126,22 +131,14 @@ class WindowsBackend(Backend):
 
         while flink != ps_head:
             # get start of EProcess
-            start_eproc = flink - self.libvmi.get_offset('win_tasks')
+            start_eproc = flink - self.tasks_offset
             # move to start of DirectoryTableBase
-            directory_table_base_off = start_eproc + self.libvmi.get_offset('win_pdbase')
+            directory_table_base_off = start_eproc + self.pdbase_offset
             # read directory_table_base
             directory_table_base = self.libvmi.read_addr_va(directory_table_base_off, 0)
             # compare to our cr3
             if cr3 == directory_table_base:
-                # get name
-                image_file_name_off = start_eproc + self.libvmi.get_offset('win_pname')
-                image_file_name = self.libvmi.read_str_va(image_file_name_off, 0)
-                # get pid
-                unique_processid_off = start_eproc + self.libvmi.get_offset('win_pid')
-                pid = self.libvmi.read_addr_va(unique_processid_off, 0)
-                eprocess = Process(cr3, start_eproc, image_file_name, pid, self.libvmi)
-                return eprocess
-
+                return WindowsProcess(self.libvmi, cr3, start_eproc)
             # read new flink
             flink = self.libvmi.read_addr_va(flink, 0)
         raise RuntimeError('Process not found')

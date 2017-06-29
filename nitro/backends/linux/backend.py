@@ -5,7 +5,7 @@ from ctypes import sizeof, c_void_p
 
 from nitro.syscall import Syscall
 from nitro.event import SyscallDirection
-from nitro.process import Process
+from nitro.backends.linux.process import LinuxProcess
 from nitro.backends.backend import Backend
 from nitro.backends.linux.arguments import LinuxArgumentMap
 
@@ -20,10 +20,8 @@ class LinuxBackend(Backend):
         "nb_vcpu",
         "syscall_stack",
         "tasks_offset",
-        "pid_offset",
         "mm_offset",
         "pgd_offset",
-        "name_offset"
     )
 
     def __init__(self, domain, libvmi):
@@ -37,10 +35,8 @@ class LinuxBackend(Backend):
         self.syscall_stack = tuple([] for _ in range(self.nb_vcpu))
 
         self.tasks_offset = self.libvmi.get_offset("linux_tasks")
-        self.pid_offset = self.libvmi.get_offset("linux_pid")
         self.mm_offset = self.libvmi.get_offset("linux_mm")
         self.pgd_offset = self.libvmi.get_offset("linux_pgd")
-        self.name_offset = self.libvmi.get_offset("linux_name")
 
     def process_event(self, event):
         process = self.associate_process(event.sregs.cr3)
@@ -71,8 +67,6 @@ class LinuxBackend(Backend):
         head = self.libvmi.translate_ksym2v("init_task") # get the address of swapper's task_struct
         next_ = head
         while True: # Maybe this should have a sanity check stopping it
-            pid = self.libvmi.read_32(next_ + self.pid_offset, 0)
-
             mm = self.libvmi.read_addr_va(next_ + self.mm_offset, 0)
             if not mm:
                 mm = self.libvmi.read_addr_va(next_ + self.mm_offset + VOID_P_SIZE, 0)
@@ -81,11 +75,9 @@ class LinuxBackend(Backend):
                 pgd_phys_addr = self.libvmi.translate_kv2p(pgd)
                 if cr3 == pgd_phys_addr:
                     # Eventually, I would like to look for the executable name from mm->exe_file->f_path
-                    name = self.libvmi.read_str_va(next_ + self.name_offset, 0)
-                    process = Process(cr3, next_, name, pid, self.libvmi)
-                    return process
+                    return LinuxProcess(self.libvmi, cr3, next_)
             else:
-                logging.debug("no mm found for pid %s", pid)
+                logging.debug("missing mm")
             next_ = self.libvmi.read_addr_va(next_ + self.tasks_offset, 0) - self.tasks_offset
             if next_ == head:
                 break
