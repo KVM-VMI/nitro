@@ -11,8 +11,8 @@ class LinuxArgumentMap(ArgumentMap):
             (SyscallArgumentType.register, 'rsi'),
             (SyscallArgumentType.register, 'rdx'),
             (SyscallArgumentType.register, 'r10'),
-            (SyscallArgumentType.register, 'r9'),
             (SyscallArgumentType.register, 'r8'),
+            (SyscallArgumentType.register, 'r9'),
         ],
         SyscallType.sysenter: [
             (SyscallArgumentType.register, 'rbx'),
