@@ -5,7 +5,7 @@ from ctypes import sizeof, c_void_p
 
 from nitro.syscall import Syscall
 from nitro.event import SyscallDirection
-from nitro.process import Process
+from nitro.backends.process import Process
 from nitro.backends.backend import Backend
 from nitro.backends.linux.arguments import LinuxArgumentMap
 
