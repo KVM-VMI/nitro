@@ -12,7 +12,6 @@ Options:
 
 import os
 import logging
-import re
 import StringIO 
 import json
 
@@ -23,9 +22,17 @@ from docopt import docopt
 from rekall import session
 from rekall import plugins
 
-
 def main(args):
     ram_dump = args['<ram_dump>']
+    home = os.getenv('HOME')
+    # we need to make sure the directory exists otherwise rekall will complain
+    # when we specify it in the profile_path
+    local_cache_path = os.path.join(home, '.rekall_cache')
+    try:
+        os.makedirs(local_cache_path)
+    except OSError: # already exists
+        pass
+
     s = session.Session(
             filename=ram_dump,
             autodetect=["rsds"],
@@ -33,6 +40,7 @@ def main(args):
             autodetect_build_local='none',
             format='data',
             profile_path=[
+                local_cache_path,
                 "http://profiles.rekall-forensic.com"
             ])
 
