@@ -1,5 +1,0 @@
----
-- hosts: default
-  tasks:
-    - name: ping test
-      win_ping:
