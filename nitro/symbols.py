@@ -14,6 +14,7 @@ import os
 import logging
 import StringIO 
 import json
+from collections import defaultdict
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -44,12 +45,26 @@ def main(args):
                 "http://profiles.rekall-forensic.com"
             ])
 
-    # get ssdt
+    symbols = {}
     output = StringIO.StringIO()
     s.RunPlugin("ssdt", output=output)
-    jdata = json.loads(output.getvalue())
+    symbols['syscall_table'] = json.loads(output.getvalue())
+    symbols['offsets'] = get_offsets(s)
 
-    print(json.dumps(jdata))
+    print(json.dumps(symbols))
+
+
+def get_offsets(session):
+    offsets = defaultdict(dict)
+    offsets['KPROCESS']['DirectoryTableBase'] = session.profile.get_obj_offset('_KPROCESS',
+                                                                   'DirectoryTableBase')
+    offsets['EPROCESS']['ActiveProcessLinks'] = session.profile.get_obj_offset('_EPROCESS',
+                                                      'ActiveProcessLinks')
+    offsets['EPROCESS']['ImageFileName'] = session.profile.get_obj_offset('_EPROCESS',
+                                                              'ImageFileName')
+    offsets['EPROCESS']['UniqueProcessId'] = session.profile.get_obj_offset('_EPROCESS',
+                                                   'UniqueProcessId')
+    return offsets
 
 if __name__ == '__main__':
     main(docopt(__doc__))
