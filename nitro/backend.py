@@ -94,13 +94,13 @@ class Backend:
                 output = subprocess.check_output(symbols_process)
         logging.info('Loading symbols')
         # load output as json
-        jdata = json.loads(output.decode('utf-8'))
+        symbols = json.loads(output.decode('utf-8'))
         # load ssdt entries
         nt_ssdt = {'ServiceTable': {}, 'ArgumentTable': {}}
         win32k_ssdt = {'ServiceTable': {}, 'ArgumentTable': {}}
         self.sdt = [nt_ssdt, win32k_ssdt]
         cur_ssdt = None
-        for e in jdata:
+        for e in symbols['syscall_table']:
             if isinstance(e, list) and e[0] == 'r':
                 if e[1]["divider"] is not None:
                     # new table
