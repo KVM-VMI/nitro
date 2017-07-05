@@ -31,7 +31,8 @@ class Backend:
         'hooks',
         'stats',
         'nitro',
-        'analyze'
+        'analyze',
+        'symbols'
     )
 
     def __init__(self, domain, analyze=False):
@@ -113,6 +114,8 @@ class Backend:
                     # add entry  to our current ssdt
                     cur_ssdt[entry] = full_name
                     logging.debug('Add SSDT entry [{}] -> {}'.format(entry, full_name))
+        # save rekall symbols
+        self.symbols = symbols
 
     def process_event(self, event):
         if not self.analyze:
@@ -190,18 +193,18 @@ class Backend:
 
         while flink != ps_head:
             # get start of EProcess
-            start_eproc = flink - self.libvmi.get_offset('win_tasks')
+            start_eproc = flink - self.symbols['offsets']['EPROCESS']['ActiveProcessLinks']
             # move to start of DirectoryTableBase
-            directory_table_base_off = start_eproc + self.libvmi.get_offset('win_pdbase')
+            directory_table_base_off = start_eproc + self.symbols['offsets']['KPROCESS']['DirectoryTableBase']
             # read directory_table_base
             directory_table_base = self.libvmi.read_addr_va(directory_table_base_off, 0)
             # compare to our cr3
             if cr3 == directory_table_base:
                 # get name
-                image_file_name_off = start_eproc + self.libvmi.get_offset('win_pname')
+                image_file_name_off = start_eproc + self.symbols['offsets']['EPROCESS']['ImageFileName']
                 image_file_name = self.libvmi.read_str_va(image_file_name_off, 0)
                 # get pid
-                unique_processid_off = start_eproc + self.libvmi.get_offset('win_pid')
+                unique_processid_off = start_eproc + self.symbols['offsets']['EPROCESS']['UniqueProcessId']
                 pid = self.libvmi.read_addr_va(unique_processid_off, 0)
                 eprocess = Process(cr3, start_eproc, image_file_name, pid, self.libvmi)
                 return eprocess
