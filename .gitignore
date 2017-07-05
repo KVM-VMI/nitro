@@ -43,6 +43,7 @@ events.json
 
 # ide
 .idea/
+.vscode/
 
 # package
 dist

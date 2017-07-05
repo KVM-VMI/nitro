@@ -31,7 +31,7 @@
         "{{ user `iso_url` }}"
       ],
       "output_directory": "output-qemu",
-      "shutdown_command": "echo '{{ user `ssh_password` }}'|sudo -S shutdown -P now",
+      "shutdown_command": "echo '{{ user `ssh_password` }}'| sudo -S shutdown -P now",
       "ssh_password": "{{ user `ssh_password` }}",
       "ssh_username": "{{ user `ssh_username` }}",
       "ssh_wait_timeout": "10000s",
@@ -39,6 +39,22 @@
       "qemuargs": [
         [ "-m", "{{ user `memory` }}" ],
         [ "-smp", "cpus={{ user `cpus`}}"]
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "linux/",
+      "destination": "/tmp"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo '{{ user `ssh_password` }}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+      "inline": [
+        "mv /tmp/cdrom.rules /etc/udev/rules.d/cdrom.rules",
+        "mv /tmp/cdrom_autoexec.sh /usr/local/sbin/cdrom_autoexec.sh",
+        "chmod +x /usr/local/sbin/cdrom_autoexec.sh"
       ]
     }
   ],
