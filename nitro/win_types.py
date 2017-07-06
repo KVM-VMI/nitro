@@ -41,6 +41,25 @@ class ObjectAttributes(WinStruct):
         self.ObjectName = UnicodeString(self.ObjectName, process)
 
 
+class LargeInteger(WinStruct):
+
+    __slots__ = (
+        'LowPart',
+        'HighPart'
+        'QuadPart'
+    )
+
+    _fields_ = [
+        (0, 'LowPart', 'I'),
+        (4, 'HighPart', 'I'),
+        (0, 'QuadPart', 'q')
+        ]
+
+    def __init__(self, addr, process):
+        super(LargeInteger, self).__init__(addr, process)
+
+
+
 class UnicodeString(WinStruct):
 
     __slots__ = (
