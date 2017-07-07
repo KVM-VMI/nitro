@@ -5,21 +5,21 @@ import time
 import libvirt
 import socket
 import datetime
+from functools import partial
 from threading import Thread, Event
 import xml.etree.ElementTree as tree
 
 # local
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from nitro.backend import Backend
-from cdrom import CDROM
+from cdrom import WindowsCDROM, LinuxCDROM
 
 SNAPSHOT_BASE = 'base'
 
-
-def wait_winrm(ip_addr, opened=True):
+def wait_socket(port, ip_addr, opened=True):
     while True:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        state = s.connect_ex((ip_addr, 5985))
+        state = s.connect_ex((ip_addr, port))
         if state == 0 and opened:
             break
         elif state != 0 and not opened:
@@ -27,6 +27,9 @@ def wait_winrm(ip_addr, opened=True):
             break
         time.sleep(1)
 
+wait_winrm = partial(wait_socket, 5985)
+# I need to test if this actually works
+wait_sshd = partial(wait_socket, 22)
 
 class NitroThread(Thread):
 
@@ -69,8 +72,7 @@ class NitroThread(Thread):
 
 
 class VMTestHelper:
-
-    def __init__(self, domain):
+    def __init__(self, domain, wait, cdrom):
         self.domain = domain
         if self.domain.isActive():
             self.domain.destroy()
@@ -86,11 +88,10 @@ class VMTestHelper:
         self.domain.create()
         # wait for IP address
         self.ip = self.wait_for_ip()
+        self.wait = wait
         logging.info('IP address : {}'.format(self.ip))
-        # wait for WinRM to be available
-        wait_winrm(self.ip, True)
-        # initialize CDROM
-        self.cdrom = CDROM()
+        self.wait(self.ip, True)
+        self.cdrom = cdrom
 
     def wait_for_ip(self, network_name='default'):
         # find MAC address
@@ -133,7 +134,7 @@ class VMTestHelper:
             # the test is executed
             self.mount_cdrom(cdrom_iso)
             # wait on WinRM to be closed
-            wait_winrm(self.ip, False)
+            self.wait(self.ip, False)
             # wait for nitro thread to terminate properly
             nitro.stop()
             result = (nitro.events, nitro.total_time)
@@ -145,7 +146,7 @@ class VMTestHelper:
             # have to run wait_winrm in a separate Thread
             # create threading Event
             stop_event = Event()
-            self.wait_thread = WaitWinRMThread(self.ip, stop_event)
+            self.wait_thread = WaitThread(self.wait, self.ip, stop_event)
             self.wait_thread.start()
             return stop_event
 
@@ -156,14 +157,21 @@ class VMTestHelper:
             time.sleep(1)
         self.cdrom.cleanup()
 
+class WindowsVMTestHelper(VMTestHelper):
+    def __init__(self, domain):
+        super().__init__(self, domain, wait_winrm, WindowsCDROM)
 
-class WaitWinRMThread(Thread):
+class LinuxVMTestHelper(VMTestHelper):
+    def __init__(self, domain):
+        super().__init__(self, domain, wait_sshd, LinuxCDROM)
 
-    def __init__(self, ip, stop_event):
+class WaitThread(Thread):
+    def __init__(self, wait, ip, stop_event):
         super().__init__()
+        self.wait = wait
         self.ip = ip
         self.stop_event = stop_event
 
     def run(self):
-        wait_winrm(self.ip, False)
+        self.wait(self.ip, False)
         self.stop_event.set()

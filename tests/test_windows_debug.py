@@ -3,14 +3,14 @@ import sys
 import unittest
 import logging
 import json
-from layers import VMLayer
+from layers import WindowsVMLayer
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from nitro.win_types import ObjectAttributes, FileAccessMask
 from nitro.backend import Backend
 
 class TestWindowsDebug(unittest.TestCase):
-    layer = VMLayer
+    layer = WindowsVMLayer
 
     def test_NtCreateFile(self):
         script = 'New-Item c:\\Windows\\foobar.txt -type file -force'

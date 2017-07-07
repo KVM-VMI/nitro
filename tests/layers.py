@@ -4,9 +4,7 @@ import shutil
 import datetime
 import libvirt
 
-from vmtest_helper import VMTestHelper
-from cdrom import CDROM
-
+from vmtest_helper import WindowsVMTestHelper, LinuxVMTestHelper
 
 class LoggingLayer(object):
 
@@ -33,14 +31,28 @@ class LoggingLayer(object):
         logging.info('Ending test at {}'.format(datetime.datetime.now()))
         logging.getLogger().removeHandler(test_class.f_handler)
 
+# These could probably be structured in a nicer way
+# I don't like the repetition and hard coding of VM names
 
-class VMLayer(LoggingLayer):
+class WindowsVMLayer(LoggingLayer):
 
     @classmethod
     def testSetUp(cls, test_class):
         con = libvirt.open('qemu:///system')
         test_class.domain = con.lookupByName('nitro_win7x64')
-        test_class.vm = VMTestHelper(test_class.domain)
+        test_class.vm = WindowsVMTestHelper(test_class.domain)
+
+    @classmethod
+    def testTearDown(cls, test_class):
+        test_class.vm.stop()
+
+class LinuxVMLayer(LoggingLayer):
+
+    @classmethod
+    def testSetUp(cls, test_class):
+        con = libvirt.open('qemu:///system')
+        test_class.domain = con.lookupByName('nitro_ubuntu')
+        test_class.vm = LinuxVMTestHelper(test_class.domain)
 
 
     @classmethod
