@@ -40,7 +40,23 @@ class ObjectAttributes(WinStruct):
             raise InconsistentMemoryError()
         self.ObjectName = UnicodeString(self.ObjectName, process)
 
+        
+class ClientID(WinStruct):
 
+    __slots__ = (
+        'UniqueProcess',
+        'UniqueThread'
+    )
+    
+    _fields_ = [
+        (0, 'UniqueProcess', 'P'),
+        (8, 'UniqueThread', 'P'),
+    ]
+
+    def __init__(self, addr, process):
+        super(ClientID, self).__init__(addr, process)
+
+        
 class LargeInteger(WinStruct):
 
     __slots__ = (
