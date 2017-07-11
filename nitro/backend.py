@@ -134,14 +134,18 @@ class Backend:
         # 2 find syscall
         if event.direction == SyscallDirection.exit:
             try:
-                syscall_name = self.syscall_stack[event.vcpu_nb].pop()
+                syscall = self.syscall_stack[event.vcpu_nb].pop()
+                # replace register values
+                syscall.event = event
             except IndexError:
-                syscall_name = 'Unknown'
+                # build a new syscall object using 'Unknown' as syscall name
+                syscall = Syscall(event, 'Unknown', process, self.nitro)
         else:
             syscall_name = self.get_syscall_name(event.regs.rax)
-            # push them to the stack
-            self.syscall_stack[event.vcpu_nb].append(syscall_name)
-        syscall = Syscall(event, syscall_name, process, self.nitro)
+            # build syscall
+            syscall = Syscall(event, syscall_name, process, self.nitro)
+            # push syscall to the stack to retrieve it at exit
+            self.syscall_stack[event.vcpu_nb].append(syscall)
         # dispatch on the hooks
         self.dispatch_hooks(syscall)
         return syscall
