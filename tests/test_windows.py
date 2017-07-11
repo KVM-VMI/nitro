@@ -43,7 +43,7 @@ class TestWindows(unittest.TestCase):
             'NtOpenFile': enter_NtOpenFile,
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
