@@ -95,7 +95,7 @@ def test_01(self):
     self.vm.cdrom.set_script(script, powershell=True)
     
     # 2. define your Nitro callbacks
-    def enter_NtOpenFile(syscall):
+    def enter_NtOpenFile(syscall, backend):
         logging.info('enter in NtOpenFile')
         syscall.hook = 'foobar'
         
