@@ -56,14 +56,45 @@ def main(args):
 
 def get_offsets(session):
     offsets = defaultdict(dict)
+
     offsets['KPROCESS']['DirectoryTableBase'] = session.profile.get_obj_offset('_KPROCESS',
                                                                    'DirectoryTableBase')
+
     offsets['EPROCESS']['ActiveProcessLinks'] = session.profile.get_obj_offset('_EPROCESS',
                                                       'ActiveProcessLinks')
+
     offsets['EPROCESS']['ImageFileName'] = session.profile.get_obj_offset('_EPROCESS',
                                                               'ImageFileName')
+
     offsets['EPROCESS']['UniqueProcessId'] = session.profile.get_obj_offset('_EPROCESS',
                                                    'UniqueProcessId')
+
+    offsets['EPROCESS']['InheritedFromUniqueProcessId'] = \
+        session.profile.get_obj_offset('_EPROCESS', 'InheritedFromUniqueProcessId')
+
+    offsets['EPROCESS']['Wow64Process'] = \
+        session.profile.get_obj_offset('_EPROCESS', 'Wow64Process')
+
+    offsets['EPROCESS']['CreateTime'] = \
+        session.profile.get_obj_offset('_EPROCESS', 'CreateTime')
+
+    offsets['EPROCESS']['SeAuditProcessCreationInfo'] = \
+        session.profile.get_obj_offset('_EPROCESS', 'SeAuditProcessCreationInfo')
+
+    offsets['SE_AUDIT_PROCESS_CREATION_INFO']['ImageFileName'] = \
+        session.profile.get_obj_offset('_SE_AUDIT_PROCESS_CREATION_INFO', 'ImageFileName')
+
+    offsets['OBJECT_NAME_INFORMATION']['Name'] = \
+        session.profile.get_obj_offset('_OBJECT_NAME_INFORMATION', 'Name')
+
+    offsets['EPROCESS']['Peb'] = session.profile.get_obj_offset('_EPROCESS', 'Peb')
+
+    offsets['PEB']['ProcessParameters'] = \
+        session.profile.get_obj_offset('_PEB', 'ProcessParameters')
+
+    offsets['RTL_USER_PROCESS_PARAMETERS']['CommandLine'] = \
+        session.profile.get_obj_offset('_RTL_USER_PROCESS_PARAMETERS', 'CommandLine')
+
     return offsets
 
 if __name__ == '__main__':
