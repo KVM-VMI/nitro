@@ -4,6 +4,7 @@ import struct
 class InconsistentMemoryError(Exception):
     pass
 
+
 class WinStruct(object):
 
     _fields_ = []
@@ -11,11 +12,16 @@ class WinStruct(object):
     def __init__(self, addr, process):
         # logging.debug('Building {} from {}'.format(self.__class__.__name__, hex(addr)))
         for f_offset, f_name, f_format in self._fields_:
-            # logging.debug('Field {}, {}, at {} + {}'.format(f_name, f_format, hex(addr), hex(f_offset)))
-            f_size = struct.calcsize(f_format)
-            content = process.read_memory(addr + f_offset, f_size)
-            f_value, *rest = struct.unpack(f_format, content)
-            # logging.debug('Value: {}'.format(hex(f_value)))
+            if isinstance(f_format, str):
+                # logging.debug('Field {}, {}, at {} + {}'.format(f_name, f_format, hex(addr), hex(f_offset)))
+                f_size = struct.calcsize(f_format)
+                content = process.read_memory(addr + f_offset, f_size)
+                f_value, *rest = struct.unpack(f_format, content)
+            else:
+                # our struct
+                # f_format is a class
+                f_value = f_format(addr + f_offset, process)
+                # logging.debug('Value: {}'.format(hex(f_value)))
             setattr(self, f_name, f_value)
 
 
@@ -34,29 +40,29 @@ class ObjectAttributes(WinStruct):
             ]
 
     def __init__(self, addr, process):
-        super(ObjectAttributes, self).__init__(addr, process)
+        super().__init__(addr, process)
         if self.Length != 0x30:
             # memory inconsistent
             raise InconsistentMemoryError()
         self.ObjectName = UnicodeString(self.ObjectName, process)
 
-        
+
 class ClientID(WinStruct):
 
     __slots__ = (
         'UniqueProcess',
         'UniqueThread'
     )
-    
+
     _fields_ = [
         (0, 'UniqueProcess', 'P'),
         (8, 'UniqueThread', 'P'),
     ]
 
     def __init__(self, addr, process):
-        super(ClientID, self).__init__(addr, process)
+        super().__init__(addr, process)
 
-        
+
 class LargeInteger(WinStruct):
 
     __slots__ = (
@@ -72,8 +78,7 @@ class LargeInteger(WinStruct):
         ]
 
     def __init__(self, addr, process):
-        super(LargeInteger, self).__init__(addr, process)
-
+        super().__init__(addr, process)
 
 
 class UnicodeString(WinStruct):
@@ -91,13 +96,43 @@ class UnicodeString(WinStruct):
             ]
 
     def __init__(self, addr, process):
-        super(UnicodeString, self).__init__(addr, process)
+        super().__init__(addr, process)
         buffer = process.read_memory(self.Buffer, self.Length)
         try:
             string = buffer.decode('utf-16-le')
         except UnicodeDecodeError:
             raise ValueError('UnicodeDecodeError')
         self.Buffer = string
+
+
+class PEB(WinStruct):
+
+    __slots__ = (
+        'ProcessParameters'
+    )
+
+    _fields_ = [
+        (0x20, 'ProcessParameters', 'P')
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+        self.ProcessParameters = RtlUserProcessParameters(
+            self.ProcessParameters, process)
+
+
+class RtlUserProcessParameters(WinStruct):
+
+    __slots__ = (
+        'CommandLine'
+    )
+
+    _fields_ = [
+        (0x70, 'CommandLine', UnicodeString)
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
 
 
 class AccessMask:
