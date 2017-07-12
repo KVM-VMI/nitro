@@ -4,6 +4,7 @@ import struct
 class InconsistentMemoryError(Exception):
     pass
 
+
 class WinStruct(object):
 
     _fields_ = []
@@ -11,11 +12,16 @@ class WinStruct(object):
     def __init__(self, addr, process):
         # logging.debug('Building {} from {}'.format(self.__class__.__name__, hex(addr)))
         for f_offset, f_name, f_format in self._fields_:
-            # logging.debug('Field {}, {}, at {} + {}'.format(f_name, f_format, hex(addr), hex(f_offset)))
-            f_size = struct.calcsize(f_format)
-            content = process.read_memory(addr + f_offset, f_size)
-            f_value, *rest = struct.unpack(f_format, content)
-            # logging.debug('Value: {}'.format(hex(f_value)))
+            if isinstance(f_format, str):
+                # logging.debug('Field {}, {}, at {} + {}'.format(f_name, f_format, hex(addr), hex(f_offset)))
+                f_size = struct.calcsize(f_format)
+                content = process.read_memory(addr + f_offset, f_size)
+                f_value, *rest = struct.unpack(f_format, content)
+            else:
+                # our struct
+                # f_format is a class
+                f_value = f_format(addr + f_offset, process)
+                # logging.debug('Value: {}'.format(hex(f_value)))
             setattr(self, f_name, f_value)
 
 
@@ -97,6 +103,36 @@ class UnicodeString(WinStruct):
         except UnicodeDecodeError:
             raise ValueError('UnicodeDecodeError')
         self.Buffer = string
+
+
+class PEB(WinStruct):
+
+    __slots__ = (
+        'ProcessParameters'
+    )
+
+    _fields_ = [
+        (0x20, 'ProcessParameters', 'P')
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+        self.ProcessParameters = RtlUserProcessParameters(
+            self.ProcessParameters, process)
+
+
+class RtlUserProcessParameters(WinStruct):
+
+    __slots__ = (
+        'CommandLine'
+    )
+
+    _fields_ = [
+        (0x70, 'CommandLine', UnicodeString)
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
 
 
 class AccessMask:
