@@ -34,29 +34,29 @@ class ObjectAttributes(WinStruct):
             ]
 
     def __init__(self, addr, process):
-        super(ObjectAttributes, self).__init__(addr, process)
+        super().__init__(addr, process)
         if self.Length != 0x30:
             # memory inconsistent
             raise InconsistentMemoryError()
         self.ObjectName = UnicodeString(self.ObjectName, process)
 
-        
+
 class ClientID(WinStruct):
 
     __slots__ = (
         'UniqueProcess',
         'UniqueThread'
     )
-    
+
     _fields_ = [
         (0, 'UniqueProcess', 'P'),
         (8, 'UniqueThread', 'P'),
     ]
 
     def __init__(self, addr, process):
-        super(ClientID, self).__init__(addr, process)
+        super().__init__(addr, process)
 
-        
+
 class LargeInteger(WinStruct):
 
     __slots__ = (
@@ -72,8 +72,7 @@ class LargeInteger(WinStruct):
         ]
 
     def __init__(self, addr, process):
-        super(LargeInteger, self).__init__(addr, process)
-
+        super().__init__(addr, process)
 
 
 class UnicodeString(WinStruct):
@@ -91,7 +90,7 @@ class UnicodeString(WinStruct):
             ]
 
     def __init__(self, addr, process):
-        super(UnicodeString, self).__init__(addr, process)
+        super().__init__(addr, process)
         buffer = process.read_memory(self.Buffer, self.Length)
         try:
             string = buffer.decode('utf-16-le')
