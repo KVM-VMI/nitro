@@ -158,7 +158,7 @@ class Backend:
         else:
             try:
                 logging.debug('Processing hook {} - {}'.format(syscall.event.direction.name, hook.__name__))
-                hook(syscall)
+                hook(syscall, self)
             except InconsistentMemoryError:
                 self.stats['memory_access_error'] += 1
                 logging.exception('Memory access error')
