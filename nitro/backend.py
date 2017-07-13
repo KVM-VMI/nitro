@@ -206,13 +206,7 @@ class Backend:
             directory_table_base = self.libvmi.read_addr_va(directory_table_base_off, 0)
             # compare to our cr3
             if cr3 == directory_table_base:
-                # get name
-                image_file_name_off = start_eproc + self.symbols['offsets']['EPROCESS']['ImageFileName']
-                image_file_name = self.libvmi.read_str_va(image_file_name_off, 0)
-                # get pid
-                unique_processid_off = start_eproc + self.symbols['offsets']['EPROCESS']['UniqueProcessId']
-                pid = self.libvmi.read_addr_va(unique_processid_off, 0)
-                eprocess = Process(cr3, start_eproc, image_file_name, pid, self.libvmi)
+                eprocess = Process(cr3, start_eproc, self.libvmi, self.symbols)
                 return eprocess
 
             # read new flink
