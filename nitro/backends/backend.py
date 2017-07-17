@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 
 from nitro.event import SyscallDirection, SyscallType
+from nitro.libvmi import LibvmiError
 
 class Backend:
     __slots__ = (
