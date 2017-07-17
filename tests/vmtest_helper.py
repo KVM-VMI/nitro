@@ -10,8 +10,9 @@ from threading import Thread, Event
 import xml.etree.ElementTree as tree
 
 # local
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from nitro.backend import Backend
+sys.path.insert(1, os.path.realpath('..'))
+from nitro.nitro import Nitro
+from nitro.backends.backend import Backend
 from cdrom import WindowsCDROM, LinuxCDROM
 
 SNAPSHOT_BASE = 'base'
@@ -21,8 +22,10 @@ def wait_socket(port, ip_addr, opened=True):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         state = s.connect_ex((ip_addr, port))
         if state == 0 and opened:
+            logging.info("Monitored service became available")
             break
         elif state != 0 and not opened:
+            logging.info("Monitored service went down")
             # received a RST, port is closed
             break
         time.sleep(1)
@@ -37,31 +40,30 @@ class NitroThread(Thread):
         super().__init__()
         self.domain = domain
         self.analyze_enabled = analyze
-        self.backend = Backend(self.domain, analyze)
-        self.setup_hooks(hooks)
+        self.hooks = hooks or {}
         self.stop_request = Event()
         self.total_time = None
         self.events = []
 
-    def setup_hooks(self, hooks):
-        if hooks:
-            for name, callback in hooks.items():
-                self.backend.define_hook(name, callback)
-
     def run(self):
         # start timer
         start_time = datetime.datetime.now()
-        self.backend.nitro.set_traps(True)
-        for event in self.backend.nitro.listen():
-            if self.analyze_enabled:
-                syscall = self.backend.process_event(event)
-                ev_info = syscall.as_dict()
-            else:
-                ev_info = event.as_dict()
-            self.events.append(ev_info)
-            if self.stop_request.isSet():
-                break
-        self.backend.stop()
+
+        with Nitro(self.domain, self.analyze_enabled) as nitro:
+            for name, callback in self.hooks.items():
+                nitro.backend.define_hook(name, callback)
+            nitro.listener.set_traps(True)
+            for event in nitro.listen():
+                if self.analyze_enabled:
+                    syscall = nitro.backend.process_event(event)
+                    ev_info = syscall.as_dict()
+                else:
+                    ev_info = event.as_dict()
+                self.events.append(ev_info)
+                if self.stop_request.isSet():
+                    print("Stopping")
+                    break
+
         # stop timer
         stop_time = datetime.datetime.now()
         self.total_time = str(stop_time - start_time)
@@ -82,14 +84,14 @@ class VMTestHelper:
             logging.info('Reverting to base snapshot')
             self.domain.revertToSnapshot(snap)
         except libvirt.libvirtError:
-            logging.warning('Missing snapshot "{}"'.format(SNAPSHOT_BASE))
+            logging.warning('Missing snapshot "%s"', SNAPSHOT_BASE)
         # start domain
         logging.info('Testing {}'.format(self.domain.name()))
         self.domain.create()
         # wait for IP address
         self.ip = self.wait_for_ip()
         self.wait = wait
-        logging.info('IP address : {}'.format(self.ip))
+        logging.info('IP address : %s', self.ip)
         self.wait(self.ip, True)
         self.cdrom = cdrom
 
@@ -159,11 +161,11 @@ class VMTestHelper:
 
 class WindowsVMTestHelper(VMTestHelper):
     def __init__(self, domain):
-        super().__init__(self, domain, wait_winrm, WindowsCDROM)
+        super().__init__(domain, wait_winrm, WindowsCDROM())
 
 class LinuxVMTestHelper(VMTestHelper):
     def __init__(self, domain):
-        super().__init__(self, domain, wait_sshd, LinuxCDROM)
+        super().__init__(domain, wait_sshd, LinuxCDROM())
 
 class WaitThread(Thread):
     def __init__(self, wait, ip, stop_event):

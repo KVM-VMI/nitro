@@ -51,7 +51,7 @@ class LinuxVMLayer(LoggingLayer):
     @classmethod
     def testSetUp(cls, test_class):
         con = libvirt.open('qemu:///system')
-        test_class.domain = con.lookupByName('nitro_ubuntu')
+        test_class.domain = con.lookupByName('nitro_ubuntu1604')
         test_class.vm = LinuxVMTestHelper(test_class.domain)
 
 

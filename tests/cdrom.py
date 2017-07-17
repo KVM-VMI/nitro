@@ -47,6 +47,7 @@ class CDROM:
         source = Path(path)
         destination = os.path.join(self.cdrom_dir, source.name)
         shutil.copyfile(str(source), destination)
+        shutil.copymode(str(source), destination)
 
     def generate_iso(self, cleanup=True):
         self.cdrom_iso_tmp = NamedTemporaryFile(delete=False, dir=self.tmp_dir.name)
@@ -54,17 +55,33 @@ class CDROM:
         # chmod to be r/w by everyone
         # so we can remove the file even when qemu takes the ownership
 
+        tools = {
+            "genisoimage": self.__genisoimage,
+            "mkisofs": self.__mkisofs
+        }
+
+        available = next(bin for bin in tools.keys() 
+                         if shutil.which(bin) is not None)
+                
         # generate iso
-        genisoimage_bin = shutil.which('genisoimage')
-        if genisoimage_bin is None:
-            raise Exception('Cannot find genisoimage executable')
-        args = [genisoimage_bin, '-o', cdrom_iso, '-iso-level', '4', '-r', self.cdrom_dir]
-        subprocess.check_call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if available is None:
+            raise Exception('Cannot find tools for creating ISO images')
+
+        tools[available](cdrom_iso)
+
         logging.debug('ISO generated at %s', cdrom_iso)
         # cleanup
         if cleanup:
             self.cdrom_dir_tmp.cleanup()
         return cdrom_iso
+
+    def __genisoimage(self, cdrom_iso):
+        args = ['genisoimage', '-o', cdrom_iso, '-iso-level', '4', '-r', self.cdrom_dir]
+        subprocess.check_call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def __mkisofs(self, cdrom_iso):
+        args = ['mkisofs', '-o', cdrom_iso, '-iso-level', '4', '-r', self.cdrom_dir]
+        subprocess.check_call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 class WindowsCDROM(CDROM):
     def __init__(self):
@@ -121,7 +138,7 @@ class LinuxCDROM(CDROM):
         bash_script = """
         #!/usr/bin/env bash
         "$(dirname "$(realpath "$0")")/{}"
-        """.format(exe_path.name)[:1]
+        """.format(exe_path.name)[1:]
         self.add_file_from_str("test.sh", bash_script, executable=True, dedent=True)
 
     # It's a bit ugly that these do not share the same signature

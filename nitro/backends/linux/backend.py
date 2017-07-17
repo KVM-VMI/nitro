@@ -77,7 +77,8 @@ class LinuxBackend(Backend):
                     # Eventually, I would like to look for the executable name from mm->exe_file->f_path
                     return LinuxProcess(self.libvmi, cr3, next_)
             else:
-                logging.debug("missing mm")
+                #logging.debug("missing mm")
+                pass
             next_ = self.libvmi.read_addr_va(next_ + self.tasks_offset, 0) - self.tasks_offset
             if next_ == head:
                 break

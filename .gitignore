@@ -56,3 +56,5 @@ TAGS
 GPATH
 GRTAGS
 GTAGS
+
+tests/linux_binaries/build/
