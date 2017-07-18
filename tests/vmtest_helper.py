@@ -146,7 +146,6 @@ class VMTestHelper:
             # mount the cdrom
             # the test is executed
             self.mount_cdrom(cdrom_iso)
-            # have to run wait_winrm in a separate Thread
             # create threading Event
             stop_event = Event()
             self.wait_thread = WaitThread(self.wait, False, self.ip, stop_event)

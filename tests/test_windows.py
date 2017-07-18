@@ -4,12 +4,14 @@ import unittest
 import logging
 import json
 from layers import VMLayer
+from vmtest_helper import WindowsVMTestHelper
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from nitro.backends.windows.types import ObjectAttributes, FileAccessMask
 
 class TestWindows(unittest.TestCase):
     domain_name = "nitro_win7x64"
+    test_helper = WindowsVMTestHelper
     layer = VMLayer
 
     def test_hook_openfile(self):

@@ -4,10 +4,11 @@ import unittest
 import logging
 import json
 from layers import VMLayer
-
+from vmtest_helper import LinuxVMTestHelper
 
 class TestLinux(unittest.TestCase):
     domain_name = "nitro_ubuntu1604"
+    test_helper = LinuxVMTestHelper
     layer = VMLayer
 
     def test_open(self):

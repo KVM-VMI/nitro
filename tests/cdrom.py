@@ -72,8 +72,7 @@ class CDROM:
         logging.debug('ISO generated at %s', cdrom_iso)
         # cleanup
         if cleanup:
-            pass
-            #self.cdrom_dir_tmp.cleanup()
+            self.cdrom_dir_tmp.cleanup()
         return cdrom_iso
 
     def __genisoimage(self, cdrom_iso):

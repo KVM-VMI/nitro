@@ -37,7 +37,7 @@ class VMLayer(LoggingLayer):
     def testSetUp(cls, test_class):
         con = libvirt.open('qemu:///system')
         test_class.domain = con.lookupByName(test_class.domain_name)
-        test_class.vm = LinuxVMTestHelper(test_class.domain)
+        test_class.vm = test_class.test_helper(test_class.domain)
 
     @classmethod
     def testTearDown(cls, test_class):
