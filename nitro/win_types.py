@@ -124,10 +124,12 @@ class PEB(WinStruct):
 class RtlUserProcessParameters(WinStruct):
 
     __slots__ = (
+        'ImagePathName',
         'CommandLine'
     )
 
     _fields_ = [
+        (0x60, 'ImagePathName', UnicodeString),
         (0x70, 'CommandLine', UnicodeString)
     ]
 
@@ -172,3 +174,66 @@ class FileAccessMask(AccessMask):
     def __init__(self, desired_access):
         super().__init__(desired_access)
         self.rights.extend([right for mask, right in self.SPECIFIC_RIGHTS if desired_access & mask])
+
+class FileRenameInformation(WinStruct):
+
+    __slots__ = (
+        'ReplaceIfExists',
+        'RootDirectory',
+        'FileNameLength',
+        'FileName'
+    )
+
+    _fields_ = [
+        (0x0, 'ReplaceIfExists', "B"),
+        (0x8, 'RootDirectory', "q"),
+        (0x10, 'FileNameLength', "I"),
+        (0x14, 'FileName', "B")
+
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+        buffer = process.read_memory(addr + 0x14, self.FileNameLength)
+        try:
+            string = buffer.decode('utf-16-le')
+            self.FileName = string
+        except:
+            raise ValueError('UnicodeDecodeError')
+
+
+class FileDispositionInformation(WinStruct):
+
+    __slots__ = (
+        'DeleteFile'
+    )
+
+    _fields_ = [
+        (0, 'DeleteFile', "B")
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+
+class FileBasicInformation(WinStruct):
+
+    __slots__ = (
+        'CreationTime',
+        'LastAccessTime',
+        'LastWriteTime',
+        'ChangeTime',
+        'FileAttributes'
+    )
+
+    _fields_ = [
+        (0x0, 'CreationTime', LargeInteger),
+        (0x8, 'LastAccessTime', LargeInteger),
+        (0x10, 'LastWriteTime', LargeInteger),
+        (0x18, 'ChangeTime', LargeInteger),
+        (0x20, 'FileAttributes', 'I')
+
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+
