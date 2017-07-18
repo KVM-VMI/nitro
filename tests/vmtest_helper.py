@@ -25,10 +25,10 @@ def wait_socket(port, ip_addr, opened=True):
         state = sock.connect_ex((ip_addr, port))
         logging.debug("Wait state was %d", state)
         if state == 0 and opened:
-            logging.info("Monitored service became available")
+            logging.info("Monitored service on port %d became available", port)
             break
         elif state != 0 and not opened:
-            logging.info("Monitored service went down")
+            logging.info("Monitored service on port %d went down", port)
             break
         time.sleep(1)
 

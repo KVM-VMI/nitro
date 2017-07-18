@@ -37,9 +37,8 @@ class TestLinux(unittest.TestCase):
             and e["name"] == "write")
         self.assertTrue(result)
 
-    def run_binary_test(self, bin, hooks=None):
-        binary_path = os.path.join(self.script_dir, "linux_binaries", "build",
-                                   bin)
+    def run_binary_test(self, binary, hooks=None):
+        binary_path = os.path.join(self.script_dir, "linux_binaries", "build", binary)
         self.vm.cdrom.set_executable(binary_path)
 
         events, exec_time = self.vm.run_test(hooks=hooks)
