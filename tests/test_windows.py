@@ -3,13 +3,14 @@ import sys
 import unittest
 import logging
 import json
-from layers import WindowsVMLayer
+from layers import VMLayer
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from nitro.backends.windows.types import ObjectAttributes, FileAccessMask
 
 class TestWindows(unittest.TestCase):
-    layer = WindowsVMLayer
+    domain_name = "nitro_win7x64"
+    layer = VMLayer
 
     def test_hook_openfile(self):
         file_path = 'C:\\Program Files\\Windows Sidebar\\Gadgets\\PicturePuzzle.Gadget\\en-US\\gadget.xml'

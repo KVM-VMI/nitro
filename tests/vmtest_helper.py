@@ -18,20 +18,21 @@ from cdrom import WindowsCDROM, LinuxCDROM
 SNAPSHOT_BASE = 'base'
 
 def wait_socket(port, ip_addr, opened=True):
+    logging.info("Waiting for the monitored service on port %d to %s", port,
+        "become available" if opened else "shutdown")
     while True:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        state = s.connect_ex((ip_addr, port))
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        state = sock.connect_ex((ip_addr, port))
+        logging.debug("Wait state was %d", state)
         if state == 0 and opened:
             logging.info("Monitored service became available")
             break
         elif state != 0 and not opened:
             logging.info("Monitored service went down")
-            # received a RST, port is closed
             break
         time.sleep(1)
 
 wait_winrm = partial(wait_socket, 5985)
-# I need to test if this actually works
 wait_sshd = partial(wait_socket, 22)
 
 class NitroThread(Thread):
@@ -61,7 +62,7 @@ class NitroThread(Thread):
                     ev_info = event.as_dict()
                 self.events.append(ev_info)
                 if self.stop_request.isSet():
-                    print("Stopping")
+                    logging.info("Stopping")
                     break
 
         # stop timer
@@ -91,7 +92,7 @@ class VMTestHelper:
         # wait for IP address
         self.ip = self.wait_for_ip()
         self.wait = wait
-        logging.info('IP address : %s', self.ip)
+        logging.info('IP address: %s', self.ip)
         self.wait(self.ip, True)
         self.cdrom = cdrom
 
@@ -99,7 +100,7 @@ class VMTestHelper:
         # find MAC address
         dom_elem = tree.fromstring(self.domain.XMLDesc())
         mac_addr = dom_elem.find("./devices/interface[@type='network']/mac").get('address')
-        logging.debug('MAC address : {}'.format(mac_addr))
+        logging.debug('MAC address: {}'.format(mac_addr))
         while True:
             net = self.domain.connect().networkLookupByName(network_name)
             leases = net.DHCPLeases()
@@ -135,7 +136,7 @@ class VMTestHelper:
             # mount the cdrom
             # the test is executed
             self.mount_cdrom(cdrom_iso)
-            # wait on WinRM to be closed
+            # wait on monitered to be closed
             self.wait(self.ip, False)
             # wait for nitro thread to terminate properly
             nitro.stop()
@@ -148,7 +149,7 @@ class VMTestHelper:
             # have to run wait_winrm in a separate Thread
             # create threading Event
             stop_event = Event()
-            self.wait_thread = WaitThread(self.wait, self.ip, stop_event)
+            self.wait_thread = WaitThread(self.wait, False, self.ip, stop_event)
             self.wait_thread.start()
             return stop_event
 
@@ -168,12 +169,13 @@ class LinuxVMTestHelper(VMTestHelper):
         super().__init__(domain, wait_sshd, LinuxCDROM())
 
 class WaitThread(Thread):
-    def __init__(self, wait, ip, stop_event):
+    def __init__(self, wait, opened, ip, stop_event):
         super().__init__()
         self.wait = wait
+        self.opened = opened
         self.ip = ip
         self.stop_event = stop_event
 
     def run(self):
-        self.wait(self.ip, False)
+        self.wait(self.ip, self.opened)
         self.stop_event.set()

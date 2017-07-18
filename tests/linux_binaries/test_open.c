@@ -7,6 +7,7 @@
 int main(void) {
     int fd = open(PATH, O_RDONLY);
     if (fd < 0) {
+        perror("open failed");
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
