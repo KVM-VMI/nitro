@@ -1,5 +1,5 @@
 
-class Process():
+class Process:
 
     __slots__ = (
         "libvmi",

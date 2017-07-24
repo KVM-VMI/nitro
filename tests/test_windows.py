@@ -45,7 +45,7 @@ class TestWindows(unittest.TestCase):
             'NtOpenFile': enter_NtOpenFile,
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -306,7 +306,8 @@ class TestWindows(unittest.TestCase):
         self.vm.cdrom.set_executable(binary_path)
 
         def enter_NtCreateFile(syscall):
-            KeyHandle, DesiredAccess, object_attributes = syscall.collect_args(3)
+            DesiredAccess = syscall.args[1]
+            object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             access = FileAccessMask(DesiredAccess)

@@ -25,6 +25,7 @@ class WindowsBackend(Backend):
         "tasks_offset",
         "pdbase_offset",
         "processes",
+        "symbols"
     )
 
     def __init__(self, domain, libvmi):
@@ -42,34 +43,6 @@ class WindowsBackend(Backend):
         self.pdbase_offset = self.libvmi.get_offset("win_pdbase")
 
         self.processes = {}
-
-    def process_event(self, event):
-        # invalidate libvmi cache
-        self.libvmi.v2pcache_flush()
-        self.libvmi.pidcache_flush()
-        self.libvmi.rvacache_flush()
-        self.libvmi.symcache_flush()
-        # self.libvmi.pagecache_flush()
-        # rebuild context
-        cr3 = event.sregs.cr3
-        # 1 find process
-        process = self.associate_process(cr3)
-        # 2 find syscall
-        if event.direction == SyscallDirection.exit:
-            try:
-                syscall_name = self.syscall_stack[event.vcpu_nb].pop()
-            except IndexError:
-                syscall_name = 'Unknown' # Maybe None would be better
-        else:
-            syscall_name = self.get_syscall_name(event.regs.rax)
-            # push them to the stack
-            self.syscall_stack[event.vcpu_nb].append(syscall_name)
-        args = WindowsArgumentMap(event, syscall_name, process)
-        cleaned = clean_name(syscall_name)
-        syscall = Syscall(event, syscall_name, cleaned, process, args)
-        # dispatch on the hooks
-        self.dispatch_hooks(syscall)
-        return syscall
 
     def load_symbols(self):
         # we need to put the ram dump in our own directory
@@ -96,13 +69,13 @@ class WindowsBackend(Backend):
                 output = subprocess.check_output(symbols_process)
         logging.info('Loading symbols')
         # load output as json
-        jdata = json.loads(output.decode('utf-8'))
+        symbols = json.loads(output.decode('utf-8'))
         # load ssdt entries
         nt_ssdt = {'ServiceTable': {}, 'ArgumentTable': {}}
         win32k_ssdt = {'ServiceTable': {}, 'ArgumentTable': {}}
         self.sdt = [nt_ssdt, win32k_ssdt]
         cur_ssdt = None
-        for e in jdata:
+        for e in symbols['syscall_table']:
             if isinstance(e, list) and e[0] == 'r':
                 if e[1]["divider"] is not None:
                     # new table
@@ -115,6 +88,39 @@ class WindowsBackend(Backend):
                     # add entry  to our current ssdt
                     cur_ssdt[entry] = full_name
                     logging.debug('Add SSDT entry [%s] -> %s', entry, full_name)
+        # save rekall symbols
+        self.symbols = symbols
+
+    def process_event(self, event):
+        # invalidate libvmi cache
+        self.libvmi.v2pcache_flush()
+        self.libvmi.pidcache_flush()
+        self.libvmi.rvacache_flush()
+        self.libvmi.symcache_flush()
+        # rebuild context
+        cr3 = event.sregs.cr3
+        # 1 find process
+        process = self.associate_process(cr3)
+        # 2 find syscall
+        if event.direction == SyscallDirection.exit:
+            try:
+                syscall = self.syscall_stack[event.vcpu_nb].pop()
+                # replace register values
+                syscall.event = event
+            except IndexError:
+                # FIXME: This is ugly, names should be None
+                syscall = Syscall(event, 'Unknown', 'Unknown', process, None)
+        else:
+            syscall_name = self.get_syscall_name(event.regs.rax)
+            # build syscall
+            args = WindowsArgumentMap(event, syscall_name, process)
+            cleaned = clean_name(syscall_name)
+            syscall = Syscall(event, syscall_name, cleaned, process, args)
+            # push syscall to the stack to retrieve it at exit
+            self.syscall_stack[event.vcpu_nb].append(syscall)
+        # dispatch on the hooks
+        self.dispatch_hooks(syscall)
+        return syscall
 
     def associate_process(self, cr3):
         if cr3 in self.processes:
@@ -131,14 +137,14 @@ class WindowsBackend(Backend):
 
         while flink != ps_head:
             # get start of EProcess
-            start_eproc = flink - self.tasks_offset
+            start_eproc = flink - self.symbols['offsets']['EPROCESS']['ActiveProcessLinks']
             # move to start of DirectoryTableBase
-            directory_table_base_off = start_eproc + self.pdbase_offset
+            directory_table_base_off = start_eproc + self.symbols['offsets']['KPROCESS']['DirectoryTableBase']
             # read directory_table_base
             directory_table_base = self.libvmi.read_addr_va(directory_table_base_off, 0)
             # compare to our cr3
             if cr3 == directory_table_base:
-                return WindowsProcess(self.libvmi, cr3, start_eproc)
+                return WindowsProcess(self.libvmi, cr3, start_eproc, self.symbols)
             # read new flink
             flink = self.libvmi.read_addr_va(flink, 0)
         raise RuntimeError('Process not found')

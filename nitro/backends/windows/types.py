@@ -4,6 +4,7 @@ import struct
 class InconsistentMemoryError(Exception):
     pass
 
+
 class WinStruct(object):
 
     _fields_ = []
@@ -11,11 +12,16 @@ class WinStruct(object):
     def __init__(self, addr, process):
         # logging.debug('Building %s from %s', self.__class__.__name__, hex(addr))
         for f_offset, f_name, f_format in self._fields_:
-            # logging.debug('Field %s, %s, at %s + %s', f_name, f_format, hex(addr), hex(f_offset))
-            f_size = struct.calcsize(f_format)
-            content = process.read_memory(addr + f_offset, f_size)
-            f_value, *rest = struct.unpack(f_format, content)
-            # logging.debug('Value: %s', hex(f_value))
+            if isinstance(f_format, str):
+                # logging.debug('Field {}, {}, at {} + {}'.format(f_name, f_format, hex(addr), hex(f_offset)))
+                f_size = struct.calcsize(f_format)
+                content = process.read_memory(addr + f_offset, f_size)
+                f_value, *rest = struct.unpack(f_format, content)
+            else:
+                # our struct
+                # f_format is a class
+                f_value = f_format(addr + f_offset, process)
+                # logging.debug('Value: {}'.format(hex(f_value)))
             setattr(self, f_name, f_value)
 
 
@@ -34,11 +40,45 @@ class ObjectAttributes(WinStruct):
             ]
 
     def __init__(self, addr, process):
-        super(ObjectAttributes, self).__init__(addr, process)
+        super().__init__(addr, process)
         if self.Length != 0x30:
             # memory inconsistent
             raise InconsistentMemoryError()
         self.ObjectName = UnicodeString(self.ObjectName, process)
+
+
+class ClientID(WinStruct):
+
+    __slots__ = (
+        'UniqueProcess',
+        'UniqueThread'
+    )
+
+    _fields_ = [
+        (0, 'UniqueProcess', 'P'),
+        (8, 'UniqueThread', 'P'),
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+
+
+class LargeInteger(WinStruct):
+
+    __slots__ = (
+        'LowPart',
+        'HighPart'
+        'QuadPart'
+    )
+
+    _fields_ = [
+        (0, 'LowPart', 'I'),
+        (4, 'HighPart', 'I'),
+        (0, 'QuadPart', 'q')
+        ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
 
 
 class UnicodeString(WinStruct):
@@ -56,13 +96,45 @@ class UnicodeString(WinStruct):
             ]
 
     def __init__(self, addr, process):
-        super(UnicodeString, self).__init__(addr, process)
+        super().__init__(addr, process)
         buffer = process.read_memory(self.Buffer, self.Length)
         try:
             string = buffer.decode('utf-16-le')
         except UnicodeDecodeError:
             raise ValueError('UnicodeDecodeError')
         self.Buffer = string
+
+
+class PEB(WinStruct):
+
+    __slots__ = (
+        'ProcessParameters'
+    )
+
+    _fields_ = [
+        (0x20, 'ProcessParameters', 'P')
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+        self.ProcessParameters = RtlUserProcessParameters(
+            self.ProcessParameters, process)
+
+
+class RtlUserProcessParameters(WinStruct):
+
+    __slots__ = (
+        'ImagePathName',
+        'CommandLine'
+    )
+
+    _fields_ = [
+        (0x60, 'ImagePathName', UnicodeString),
+        (0x70, 'CommandLine', UnicodeString)
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
 
 
 class AccessMask:
@@ -102,3 +174,66 @@ class FileAccessMask(AccessMask):
     def __init__(self, desired_access):
         super().__init__(desired_access)
         self.rights.extend([right for mask, right in self.SPECIFIC_RIGHTS if desired_access & mask])
+
+class FileRenameInformation(WinStruct):
+
+    __slots__ = (
+        'ReplaceIfExists',
+        'RootDirectory',
+        'FileNameLength',
+        'FileName'
+    )
+
+    _fields_ = [
+        (0x0, 'ReplaceIfExists', "B"),
+        (0x8, 'RootDirectory', "q"),
+        (0x10, 'FileNameLength', "I"),
+        (0x14, 'FileName', "B")
+
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+        buffer = process.read_memory(addr + 0x14, self.FileNameLength)
+        try:
+            string = buffer.decode('utf-16-le')
+            self.FileName = string
+        except:
+            raise ValueError('UnicodeDecodeError')
+
+
+class FileDispositionInformation(WinStruct):
+
+    __slots__ = (
+        'DeleteFile'
+    )
+
+    _fields_ = [
+        (0, 'DeleteFile', "B")
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+
+class FileBasicInformation(WinStruct):
+
+    __slots__ = (
+        'CreationTime',
+        'LastAccessTime',
+        'LastWriteTime',
+        'ChangeTime',
+        'FileAttributes'
+    )
+
+    _fields_ = [
+        (0x0, 'CreationTime', LargeInteger),
+        (0x8, 'LastAccessTime', LargeInteger),
+        (0x10, 'LastWriteTime', LargeInteger),
+        (0x18, 'ChangeTime', LargeInteger),
+        (0x20, 'FileAttributes', 'I')
+
+    ]
+
+    def __init__(self, addr, process):
+        super().__init__(addr, process)
+

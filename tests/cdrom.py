@@ -26,7 +26,7 @@ class CDROM:
         self.cleanup()
 
     def cleanup(self):
-        if self.cdrom_dir_tmp:
+        if self.cdrom_iso_tmp:
             self.cdrom_iso_tmp.close()
         self.tmp_dir.cleanup()
         self.cdrom_dir_tmp.cleanup()

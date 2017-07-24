@@ -29,8 +29,7 @@ class Syscall:
             info['process'] = self.process.as_dict()
         if self.hook:
             info['hook'] = self.hook
-        modified = self.args.modified
-        if modified:
-            info['modified'] = modified
+        if self.args is not None and self.args.modified:
+            info['modified'] = self.args.modified
         return info
 

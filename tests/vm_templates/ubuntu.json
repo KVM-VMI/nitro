@@ -63,6 +63,8 @@
     "cleanup_pause": "",
     "cpus": "1",
     "desktop": "false",
+    "install_vagrant_key": "true",
+    "install_dev_packages": "false",
     "disk_size": "65536",
     "headless": "true",
     "locale": "en_US",
