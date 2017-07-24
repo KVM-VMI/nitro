@@ -53,8 +53,10 @@ def main(args):
             event_info = event.as_dict()
             if analyze_enabled:
                 syscall = nitro.backend.process_event(event)
-                event_info = syscall.as_dict()
-
+                if syscall is not None:
+                    event_info = syscall.as_dict()
+                else:
+                    logging.error("Backend event processing failure")
             if args['--stdout']:
                 pprint(event_info, width=1)
             else:

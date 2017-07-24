@@ -12,6 +12,7 @@ import xml.etree.ElementTree as tree
 # local
 sys.path.insert(1, os.path.realpath('..'))
 from nitro.nitro import Nitro
+from nitro.libvmi import LibvmiError
 from nitro.backends.backend import Backend
 from cdrom import WindowsCDROM, LinuxCDROM
 
@@ -20,10 +21,13 @@ SNAPSHOT_BASE = 'base'
 def wait_socket(port, ip_addr, opened=True):
     logging.info("Waiting for the monitored service on port %d to %s", port,
         "become available" if opened else "shutdown")
+    prev_state = None
     while True:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         state = sock.connect_ex((ip_addr, port))
-        logging.debug("Wait state was %d", state)
+        if prev_state != state:
+            logging.debug("Monitor state changed to %d", state)
+            prev_state = state
         if state == 0 and opened:
             logging.info("Monitored service on port %d became available", port)
             break
@@ -56,8 +60,12 @@ class NitroThread(Thread):
             nitro.listener.set_traps(True)
             for event in nitro.listen():
                 if self.analyze_enabled:
-                    syscall = nitro.backend.process_event(event)
-                    ev_info = syscall.as_dict()
+                    try:
+                        syscall = nitro.backend.process_event(event)
+                    except LibvmiError:
+                        ev_info = event.as_dict()
+                    else:
+                        ev_info = syscall.as_dict()
                 else:
                     ev_info = event.as_dict()
                 self.events.append(ev_info)

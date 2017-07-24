@@ -187,7 +187,8 @@ class VCPU(IOCTL):
         nitro_ev = NitroEventStr()
         ret = self.make_ioctl(self.KVM_NITRO_GET_EVENT, byref(nitro_ev))
         if ret != 0:
-            raise ValueError('get_event failed')
+            logging.error("get_event failed (vcpu: %d; returned: %d)", self.vcpu_nb, ret)
+            raise ValueError("get_event failed")
         return nitro_ev
 
     def continue_vm(self):

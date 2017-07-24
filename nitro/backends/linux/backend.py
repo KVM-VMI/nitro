@@ -5,6 +5,7 @@ from ctypes import sizeof, c_void_p
 
 from nitro.syscall import Syscall
 from nitro.event import SyscallDirection
+from nitro.libvmi import LibvmiError
 from nitro.backends.linux.process import LinuxProcess
 from nitro.backends.backend import Backend
 from nitro.backends.linux.arguments import LinuxArgumentMap
@@ -39,14 +40,22 @@ class LinuxBackend(Backend):
         self.pgd_offset = self.libvmi.get_offset("linux_pgd")
 
     def process_event(self, event):
-        process = self.associate_process(event.sregs.cr3)
+        try:
+            process = self.associate_process(event.sregs.cr3)
+        except LibvmiError:
+            logging.error("LinuxBackend: failed to associate_process (LibvmiError)")
+            return None
         if event.direction == SyscallDirection.exit:
             try:
                 name = self.syscall_stack[event.vcpu_nb].pop()
             except IndexError:
                 name = None
         else:
-            name = self.get_syscall_name(event.regs.rax)
+            try:
+                name = self.get_syscall_name(event.regs.rax)
+            except LibvmiError:
+                logging.error("LinuxBackend: failed to get_syscall_name (LibvmiError)")
+                return None
             self.syscall_stack[event.vcpu_nb].append(name)
         args = LinuxArgumentMap(event, name, process)
         cleaned = clean_name(name) if name is not None else None
