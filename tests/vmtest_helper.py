@@ -41,7 +41,7 @@ wait_sshd = partial(wait_socket, 22)
 
 class NitroThread(Thread):
 
-    def __init__(self, domain, analyze=False, hooks=None):
+    def __init__(self, domain, analyze=False, hooks=None, ready_event=None):
         super().__init__()
         self.domain = domain
         self.analyze_enabled = analyze
@@ -49,6 +49,7 @@ class NitroThread(Thread):
         self.stop_request = Event()
         self.total_time = None
         self.events = []
+        self.ready_event = ready_event
 
     def run(self):
         # start timer
@@ -58,6 +59,8 @@ class NitroThread(Thread):
             for name, callback in self.hooks.items():
                 nitro.backend.define_hook(name, callback)
             nitro.listener.set_traps(True)
+            if self.ready_event is not None:
+                self.ready_event.set() # is this really necessary
             for event in nitro.listen():
                 if self.analyze_enabled:
                     try:
@@ -74,6 +77,7 @@ class NitroThread(Thread):
                     break
 
         # stop timer
+        self.ready_event.clear()
         stop_time = datetime.datetime.now()
         self.total_time = str(stop_time - start_time)
 
@@ -129,7 +133,8 @@ class VMTestHelper:
             source_elem = cdrom_elem.find('./source')
         source_elem.set('file', cdrom_path)
         new_xml = tree.tostring(cdrom_elem).decode('utf-8')
-        self.domain.updateDeviceFlags(new_xml, libvirt.VIR_DOMAIN_AFFECT_LIVE)
+        result = self.domain.updateDeviceFlags(new_xml, libvirt.VIR_DOMAIN_AFFECT_LIVE)
+        logging.debug("updateDeviceFlags returned %s", result)
 
     def run_test(self, wait=True, analyze=True, hooks=None):
         """Run the test by mounting the cdrom into the guest
@@ -137,10 +142,14 @@ class VMTestHelper:
         if wait is False, it will return an Event which will be set when the test will terminate"""
         # get iso
         cdrom_iso = self.cdrom.generate_iso()
+        logging.debug("ISO path: %s", cdrom_iso)
         if wait:
             # run nitro before inserting CDROM
-            nitro = NitroThread(self.domain, analyze, hooks)
+            ready = Event()
+            nitro = NitroThread(self.domain, analyze, hooks, ready)
             nitro.start()
+            # wait for nitro to attach before mounting the CDROM
+            ready.wait()
             # mount the cdrom
             # the test is executed
             self.mount_cdrom(cdrom_iso)

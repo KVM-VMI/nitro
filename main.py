@@ -21,6 +21,7 @@ from pprint import pprint
 from docopt import docopt
 
 from nitro.nitro import Nitro
+from nitro.libvmi import LibvmiError
 
 run = True
 
@@ -52,11 +53,12 @@ def main(args):
         for event in nitro.listen():
             event_info = event.as_dict()
             if analyze_enabled:
-                syscall = nitro.backend.process_event(event)
-                if syscall is not None:
-                    event_info = syscall.as_dict()
-                else:
+                try:
+                    syscall = nitro.backend.process_event(event)
+                except LibvmiError:
                     logging.error("Backend event processing failure")
+                else:
+                    event_info = syscall.as_dict()
             if args['--stdout']:
                 pprint(event_info, width=1)
             else:

@@ -42,9 +42,9 @@ class LinuxBackend(Backend):
     def process_event(self, event):
         try:
             process = self.associate_process(event.sregs.cr3)
-        except LibvmiError:
+        except LibvmiError as error:
             logging.error("LinuxBackend: failed to associate_process (LibvmiError)")
-            return None
+            raise error
         if event.direction == SyscallDirection.exit:
             try:
                 name = self.syscall_stack[event.vcpu_nb].pop()
@@ -53,9 +53,9 @@ class LinuxBackend(Backend):
         else:
             try:
                 name = self.get_syscall_name(event.regs.rax)
-            except LibvmiError:
+            except LibvmiError as error:
                 logging.error("LinuxBackend: failed to get_syscall_name (LibvmiError)")
-                return None
+                raise error
             self.syscall_stack[event.vcpu_nb].append(name)
         args = LinuxArgumentMap(event, name, process)
         cleaned = clean_name(name) if name is not None else None
