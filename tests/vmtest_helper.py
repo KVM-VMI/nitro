@@ -18,13 +18,14 @@ from cdrom import WindowsCDROM, LinuxCDROM
 
 SNAPSHOT_BASE = 'base'
 
-def wait_socket(port, ip_addr, opened=True):
+def wait_socket(port, ip_addr, opened=True, sleep=1):
     logging.info("Waiting for the monitored service on port %d to %s", port,
         "become available" if opened else "shutdown")
     prev_state = None
     while True:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         state = sock.connect_ex((ip_addr, port))
+        logging.debug("Monitor state: %d", state)
         if prev_state != state:
             logging.debug("Monitor state changed to %d", state)
             prev_state = state
@@ -34,7 +35,7 @@ def wait_socket(port, ip_addr, opened=True):
         elif state != 0 and not opened:
             logging.info("Monitored service on port %d went down", port)
             break
-        time.sleep(1)
+        time.sleep(sleep)
 
 wait_winrm = partial(wait_socket, 5985)
 wait_sshd = partial(wait_socket, 22)
@@ -104,6 +105,7 @@ class VMTestHelper:
         # wait for IP address
         self.ip = self.wait_for_ip()
         self.wait = wait
+        self.sleep_amount = 1
         logging.info('IP address: %s', self.ip)
         self.wait(self.ip, True)
         self.cdrom = cdrom
@@ -154,7 +156,7 @@ class VMTestHelper:
             # the test is executed
             self.mount_cdrom(cdrom_iso)
             # wait on monitered to be closed
-            self.wait(self.ip, False)
+            self.wait(self.ip, False, self.sleep_amount)
             # wait for nitro thread to terminate properly
             nitro.stop()
             result = (nitro.events, nitro.total_time)
@@ -165,7 +167,7 @@ class VMTestHelper:
             self.mount_cdrom(cdrom_iso)
             # create threading Event
             stop_event = Event()
-            self.wait_thread = WaitThread(self.wait, False, self.ip, stop_event)
+            self.wait_thread = WaitThread(self.wait, False, self.ip, stop_event, self.sleep_amount)
             self.wait_thread.start()
             return stop_event
 
@@ -183,15 +185,17 @@ class WindowsVMTestHelper(VMTestHelper):
 class LinuxVMTestHelper(VMTestHelper):
     def __init__(self, domain):
         super().__init__(domain, wait_sshd, LinuxCDROM())
+        self.sleep_amount = 30
 
 class WaitThread(Thread):
-    def __init__(self, wait, opened, ip, stop_event):
+    def __init__(self, wait, opened, ip, stop_event, sleep=1):
         super().__init__()
         self.wait = wait
         self.opened = opened
         self.ip = ip
+        self.sleep_amount = sleep
         self.stop_event = stop_event
 
     def run(self):
-        self.wait(self.ip, self.opened)
+        self.wait(self.ip, self.opened, self.sleep_amount)
         self.stop_event.set()

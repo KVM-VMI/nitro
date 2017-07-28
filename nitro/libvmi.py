@@ -1,4 +1,3 @@
-import traceback
 import logging
 from enum import Enum
 from ctypes import *
@@ -160,7 +159,6 @@ class Libvmi:
         status = self.libvmi.vmi_read_addr_va(self.vmi, vaddr_c, pid_c, byref(value_c))
         if status == VMI_FAILURE:
             logging.debug('VMI_FAILURE trying to read %s, with %s', hex(vaddr), 'read_addr_va')
-            traceback.print_stack()
             raise LibvmiError('VMI_FAILURE')
         return value_c.value
 

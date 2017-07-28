@@ -1,1 +1,1 @@
-SUBSYSTEM=="block", ENV{ID_CDROM}=="?*", ACTION=="change", RUN+="/usr/local/sbin/cdrom_autoexec.sh"
+SUBSYSTEM=="block", ENV{ID_CDROM}=="?*", ACTION=="change", RUN+="/bin/systemctl --no-block start cdrom_autoexec.service"

@@ -54,7 +54,16 @@
       "inline": [
         "mv /tmp/cdrom.rules /etc/udev/rules.d/cdrom.rules",
         "mv /tmp/cdrom_autoexec.sh /usr/local/sbin/cdrom_autoexec.sh",
-        "chmod +x /usr/local/sbin/cdrom_autoexec.sh"
+        "mv /tmp/cdrom_autoexec.service /etc/systemd/system/cdrom_autoexec.service",
+        "mv /tmp/rc.local /etc/rc.local",
+        "mv /tmp/journald.conf /etc/systemd/journald.conf",
+        "chmod 664 /etc/systemd/system/cdrom_autoexec.service",
+        "chmod +x /usr/local/sbin/cdrom_autoexec.sh",
+        "chmod +x /etc/rc.local",
+        "sed -i 's/^\\(GRUB_CMDLINE_LINUX_DEFAULT=\\).\\+/\\1\"loglevel=8 console=ttyS0 rd.udev.event-timeout=1200 udev.event-timeout=1200\"/g' /etc/default/grub",
+        "grub-mkconfig -o /boot/grub/grub.cfg",
+        "systemctl disable systemd-timesyncd",
+        "systemctl disable apt-daily"
       ]
     }
   ],

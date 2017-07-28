@@ -33,7 +33,7 @@ class TestLinux(unittest.TestCase):
         result = next(
             e for e in events
             if e.get("process")
-            and e["process"]["name"] == "write_open"
+            and e["process"]["name"] == "test_write"
             and e["name"] == "write")
         self.assertTrue(result)
 
@@ -47,6 +47,6 @@ class TestLinux(unittest.TestCase):
             json.dump(events, f, indent=4)
 
         if exec_time is not None:
-            logging.info("Test execution time %d", exec_time)
+            logging.info("Test execution time %s", exec_time)
 
         return events

@@ -42,10 +42,10 @@ class LinuxBackend(Backend):
     def process_event(self, event):
         # Are all of these really necessary?
         # we seem to get all kinds of weird errors during shutdown if we do not flush there
-        self.libvmi.v2pcache_flush()
-        self.libvmi.pidcache_flush()
-        self.libvmi.rvacache_flush()
-        self.libvmi.symcache_flush()
+        #self.libvmi.v2pcache_flush()
+        #self.libvmi.pidcache_flush()
+        #self.libvmi.rvacache_flush()
+        #self.libvmi.symcache_flush()
         try:
             process = self.associate_process(event.sregs.cr3)
         except LibvmiError as error:

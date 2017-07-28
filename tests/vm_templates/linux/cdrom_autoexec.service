@@ -1,0 +1,6 @@
+[Unit]
+Description=Mount and execute CDROMs
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cdrom_autoexec.sh
