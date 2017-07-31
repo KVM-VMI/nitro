@@ -45,7 +45,7 @@ class TestWindows(unittest.TestCase):
             'NtOpenFile': enter_NtOpenFile,
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -81,7 +81,7 @@ class TestWindows(unittest.TestCase):
             'NtOpenKey': enter_NtOpenKey,
             'NtCreateKey': enter_NtCreateKey,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -109,7 +109,7 @@ class TestWindows(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -139,7 +139,7 @@ class TestWindows(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -169,7 +169,7 @@ class TestWindows(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -199,7 +199,7 @@ class TestWindows(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -229,7 +229,7 @@ class TestWindows(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -259,7 +259,7 @@ class TestWindows(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -289,7 +289,7 @@ class TestWindows(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -319,7 +319,7 @@ class TestWindows(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -361,7 +361,7 @@ class TestWindows(unittest.TestCase):
             'NtOpenFile': enter_NtOpenFile,
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:

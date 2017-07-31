@@ -13,6 +13,7 @@ import xml.etree.ElementTree as tree
 sys.path.insert(1, os.path.realpath('..'))
 from nitro.nitro import Nitro
 from nitro.libvmi import LibvmiError
+from nitro.event import SyscallDirection
 from nitro.backends.backend import Backend
 from cdrom import WindowsCDROM, LinuxCDROM
 
@@ -42,11 +43,12 @@ wait_sshd = partial(wait_socket, 22)
 
 class NitroThread(Thread):
 
-    def __init__(self, domain, analyze=False, hooks=None, ready_event=None):
+    def __init__(self, domain, analyze=False, enter_hooks=None, exit_hooks=None, ready_event=None):
         super().__init__()
         self.domain = domain
         self.analyze_enabled = analyze
-        self.hooks = hooks or {}
+        self.enter_hooks = enter_hooks or {}
+        self.exit_hooks = exit_hooks or {}
         self.stop_request = Event()
         self.total_time = None
         self.events = []
@@ -57,8 +59,10 @@ class NitroThread(Thread):
         start_time = datetime.datetime.now()
 
         with Nitro(self.domain, self.analyze_enabled) as nitro:
-            for name, callback in self.hooks.items():
-                nitro.backend.define_hook(name, callback)
+            for name, callback in self.enter_hooks.items():
+                nitro.backend.define_hook(name, callback, direction=SyscallDirection.enter)
+            for name, callback in self.exit_hooks.items():
+                nitro.backend.define_hook(name, callback, direction=SyscallDirection.exit)
             nitro.listener.set_traps(True)
             if self.ready_event is not None:
                 self.ready_event.set() # is this really necessary
@@ -138,7 +142,7 @@ class VMTestHelper:
         result = self.domain.updateDeviceFlags(new_xml, libvirt.VIR_DOMAIN_AFFECT_LIVE)
         logging.debug("updateDeviceFlags returned %s", result)
 
-    def run_test(self, wait=True, analyze=True, hooks=None):
+    def run_test(self, wait=True, analyze=True, enter_hooks=None, exit_hooks=None):
         """Run the test by mounting the cdrom into the guest
         if wait is True, it will run the Nitro thread and wait for the test to terminate.
         if wait is False, it will return an Event which will be set when the test will terminate"""
@@ -148,7 +152,7 @@ class VMTestHelper:
         if wait:
             # run nitro before inserting CDROM
             ready = Event()
-            nitro = NitroThread(self.domain, analyze, hooks, ready)
+            nitro = NitroThread(self.domain, analyze, enter_hooks, exit_hooks, ready)
             nitro.start()
             # wait for nitro to attach before mounting the CDROM
             ready.wait()
@@ -159,8 +163,7 @@ class VMTestHelper:
             self.wait(self.ip, False, self.sleep_amount)
             # wait for nitro thread to terminate properly
             nitro.stop()
-            result = (nitro.events, nitro.total_time)
-            return result
+            return (nitro.events, nitro.total_time)
         else:
             # mount the cdrom
             # the test is executed
