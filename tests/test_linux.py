@@ -13,29 +13,64 @@ class TestLinux(unittest.TestCase):
 
     def test_open(self):
         """Execute a program that invokes open system call and check that it appears in the event stream"""
-        events = self.run_binary_test("test_open")
-        result = next(
-            e for e in events
-            if e.get("process")
-            and e["process"]["name"] == "test_open"
-            and e["name"] == "open")
-        self.assertTrue(result)
+
+        found = False
+        needle = "/proc/cpuinfo"
+
+        def open_hook(syscall):
+            nonlocal found
+            process = syscall.process
+            if process is not None and process.name == "test_open":
+                path_addr = syscall.args[0]
+                path = process.libvmi.read_str_va(path_addr, process.pid)
+                logging.debug("open: %s", path)
+                if path == needle:
+                    found = True
+
+        hooks = {"open": open_hook}
+        self.run_binary_test("test_open", hooks)
+        self.assertTrue(found)
 
     def test_write(self):
         """Look for a write system call with a predetermined buffer"""
 
-        # TODO: look for the string
+        found = False
+        needle = b"Hello World!"
+
         def write_hook(syscall):
-            pass
+            nonlocal found
+            process = syscall.process
+            if process is not None and process.name == "test_write":
+                buf_addr = syscall.args[1]
+                buf_len = syscall.args[2]
+                buf = process.libvmi.read_va(buf_addr, process.pid, buf_len)
+                logging.debug("write (buffer size %d): \"%s\"", buf_len, buf)
+                if buf == needle:
+                    found = True
 
         hooks = {"write": write_hook}
-        events = self.run_binary_test("test_write", hooks)
-        result = next(
-            e for e in events
-            if e.get("process")
-            and e["process"]["name"] == "test_write"
-            and e["name"] == "write")
-        self.assertTrue(result)
+        self.run_binary_test("test_write", hooks)
+        self.assertTrue(found)
+    
+    def test_unlink(self):
+        """Look for unlink with predefined path name"""
+
+        found = False
+        needle = "/tmp/test_unlink.tmp"
+
+        def unlink_hook(syscall):
+            nonlocal found
+            process = syscall.process
+            if process is not None and process.name == "test_unlink":
+                path_addr = syscall.args[0]
+                path = process.libvmi.read_str_va(path_addr, process.pid)
+                logging.debug("unlink: %s", path)
+                if path == needle:
+                    found = True
+
+        hooks = {"unlink": unlink_hook}
+        self.run_binary_test("test_unlink", hooks)
+        self.assertTrue(found)
 
     def run_binary_test(self, binary, hooks=None):
         binary_path = os.path.join(self.script_dir, "linux_binaries", "build", binary)
