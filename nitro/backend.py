@@ -158,7 +158,7 @@ class Backend:
         else:
             try:
                 logging.debug('Processing hook {} - {}'.format(syscall.event.direction.name, hook.__name__))
-                hook(syscall)
+                hook(syscall, self)
             except InconsistentMemoryError:
                 self.stats['memory_access_error'] += 1
                 logging.exception('Memory access error')
@@ -189,7 +189,10 @@ class Backend:
             p = self.processes[cr3]
         except KeyError:
             p = self.find_eprocess(cr3)
+            # index by cr3 or pid
+            # a callback might want to search by pid
             self.processes[cr3] = p
+            self.processes[p.pid] = p
         return p
 
     def find_eprocess(self, cr3):

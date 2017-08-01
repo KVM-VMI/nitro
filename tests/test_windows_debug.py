@@ -16,7 +16,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'New-Item c:\\Windows\\foobar.txt -type file -force'
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'IoStatusBlock', 'AllocationSize', 'FileAttributes',
                     'ShareAccess', 'CreateDisposition', 'CreateOptions',
@@ -39,7 +39,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'New-Item \"HKCU:\\{}\" -Force | New-ItemProperty -Name foobar -Value true -PropertyType STRING -Force'.format(key_path)
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def callback(syscall):
+        def callback(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'TitleIndex', 'Class', 'CreateOptions', 'Disposition']
             for i, name in enumerate(named_args):
@@ -60,7 +60,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'New-Item \"HKCU:\\{}\" -Force | New-ItemProperty -Name foobar -Value true -PropertyType STRING -Force'.format(key_path)
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtSetValueKey(syscall):
+        def enter_NtSetValueKey(syscall, backend):
             named_args = ['KeyHandle', 'ValueName', 'TitleIndex',
                     'Type', 'Data', 'DataSize']
             for i, name in enumerate(named_args):
@@ -80,7 +80,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'Get-ChildItem C:\\Windows'
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'IoStatusBlock', 'AllocationSize', 'FileAttributes',
                     'ShareAccess', 'CreateDisposition', 'CreateOptions',
@@ -112,7 +112,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'Get-ChildItem C:\\Windows'
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'IoStatusBlock', 'AllocationSize', 'FileAttributes',
                     'ShareAccess', 'CreateDisposition', 'CreateOptions',
@@ -144,7 +144,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'Get-ChildItem C:\\Windows'
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'IoStatusBlock', 'AllocationSize', 'FileAttributes',
                     'ShareAccess', 'CreateDisposition', 'CreateOptions',
