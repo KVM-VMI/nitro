@@ -47,6 +47,8 @@ class LinuxBackend(Backend):
         #self.libvmi.pidcache_flush()
         #self.libvmi.rvacache_flush()
         #self.libvmi.symcache_flush()
+        # Maybe this is unnecessary
+        self.sys_call_table_addr = self.libvmi.translate_ksym2v("sys_call_table")
         try:
             process = self.associate_process(event.sregs.cr3)
         except LibvmiError as error:
@@ -102,3 +104,4 @@ class LinuxBackend(Backend):
 def clean_name(name):
     matches = HANDLER_NAME_REGEX.search(name)
     return matches.group("name") if matches is not None else name
+
