@@ -188,7 +188,9 @@ class WindowsVMTestHelper(VMTestHelper):
 class LinuxVMTestHelper(VMTestHelper):
     def __init__(self, domain):
         super().__init__(domain, wait_sshd, LinuxCDROM())
-        self.sleep_amount = 30
+        # This is quite long but it marginally helps with the performance
+        # problems since the VM doesn't have to deal with incoming connections
+        self.sleep_amount = 120
 
 class WaitThread(Thread):
     def __init__(self, wait, opened, ip, stop_event, sleep=1):

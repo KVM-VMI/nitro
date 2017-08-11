@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
 dmesg -n 8
-echo 1200 > /sys/block/sr0/device/timeout
+echo 12000 > /sys/block/sr0/device/timeout
 
 exit 0

@@ -17,11 +17,11 @@ class WinStruct(object):
                 f_size = struct.calcsize(f_format)
                 content = process.read_memory(addr + f_offset, f_size)
                 f_value, *rest = struct.unpack(f_format, content)
+                # logging.debug('Value: {}'.format(hex(f_value)))
             else:
                 # our struct
                 # f_format is a class
                 f_value = f_format(addr + f_offset, process)
-                # logging.debug('Value: {}'.format(hex(f_value)))
             setattr(self, f_name, f_value)
 
 

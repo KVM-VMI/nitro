@@ -3,20 +3,22 @@ import sys
 import unittest
 import logging
 import json
-from layers import WindowsVMLayer
+from layers import VMLayer
+from vmtest_helper import WindowsVMTestHelper
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from nitro.win_types import ObjectAttributes, FileAccessMask
-from nitro.backend import Backend
+from nitro.backends.windows.types import ObjectAttributes, FileAccessMask
 
 class TestWindowsDebug(unittest.TestCase):
-    layer = WindowsVMLayer
+    domain_name = "nitro_win7x64"
+    test_helper = WindowsVMTestHelper
+    layer = VMLayer
 
     def test_NtCreateFile(self):
         script = 'New-Item c:\\Windows\\foobar.txt -type file -force'
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'IoStatusBlock', 'AllocationSize', 'FileAttributes',
                     'ShareAccess', 'CreateDisposition', 'CreateOptions',
@@ -27,7 +29,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -39,7 +41,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'New-Item \"HKCU:\\{}\" -Force | New-ItemProperty -Name foobar -Value true -PropertyType STRING -Force'.format(key_path)
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def callback(syscall):
+        def callback(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'TitleIndex', 'Class', 'CreateOptions', 'Disposition']
             for i, name in enumerate(named_args):
@@ -48,7 +50,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateKey': callback,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -60,7 +62,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'New-Item \"HKCU:\\{}\" -Force | New-ItemProperty -Name foobar -Value true -PropertyType STRING -Force'.format(key_path)
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtSetValueKey(syscall):
+        def enter_NtSetValueKey(syscall, backend):
             named_args = ['KeyHandle', 'ValueName', 'TitleIndex',
                     'Type', 'Data', 'DataSize']
             for i, name in enumerate(named_args):
@@ -69,7 +71,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtSetValueKey': enter_NtSetValueKey,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -80,7 +82,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'Get-ChildItem C:\\Windows'
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'IoStatusBlock', 'AllocationSize', 'FileAttributes',
                     'ShareAccess', 'CreateDisposition', 'CreateOptions',
@@ -101,7 +103,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -112,7 +114,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'Get-ChildItem C:\\Windows'
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'IoStatusBlock', 'AllocationSize', 'FileAttributes',
                     'ShareAccess', 'CreateDisposition', 'CreateOptions',
@@ -133,7 +135,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -144,7 +146,7 @@ class TestWindowsDebug(unittest.TestCase):
         script = 'Get-ChildItem C:\\Windows'
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             named_args = ['KeyHandle', 'DesiredAccess', 'ObjectAttributes',
                     'IoStatusBlock', 'AllocationSize', 'FileAttributes',
                     'ShareAccess', 'CreateDisposition', 'CreateOptions',
@@ -164,7 +166,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:

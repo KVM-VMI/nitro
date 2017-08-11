@@ -19,7 +19,7 @@ class TestWindows(unittest.TestCase):
         script = 'Get-Content \"{}\"'.format(file_path)
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtOpenFile(syscall):
+        def enter_NtOpenFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -30,7 +30,7 @@ class TestWindows(unittest.TestCase):
                 'access': access.rights
             }
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -63,14 +63,14 @@ class TestWindows(unittest.TestCase):
         script = 'New-Item \"HKCU:\\{}\" -Force | New-ItemProperty -Name foobar -Value true -PropertyType STRING -Force'.format(key_path)
         self.vm.cdrom.set_script(script, powershell=True)
 
-        def enter_NtOpenKey(syscall):
+        def enter_NtOpenKey(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
             buffer = obj.ObjectName.Buffer
             syscall.hook = buffer
 
-        def enter_NtCreateKey(syscall):
+        def enter_NtCreateKey(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -95,7 +95,7 @@ class TestWindows(unittest.TestCase):
         binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_read.exe')
         self.vm.cdrom.set_executable(binary_path)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -125,7 +125,7 @@ class TestWindows(unittest.TestCase):
         binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_write.exe')
         self.vm.cdrom.set_executable(binary_path)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -155,7 +155,7 @@ class TestWindows(unittest.TestCase):
         binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_execute.exe')
         self.vm.cdrom.set_executable(binary_path)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -185,7 +185,7 @@ class TestWindows(unittest.TestCase):
         binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_all.exe')
         self.vm.cdrom.set_executable(binary_path)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -215,7 +215,7 @@ class TestWindows(unittest.TestCase):
         binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_append.exe')
         self.vm.cdrom.set_executable(binary_path)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -245,7 +245,7 @@ class TestWindows(unittest.TestCase):
         binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_file_execute.exe')
         self.vm.cdrom.set_executable(binary_path)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -275,7 +275,7 @@ class TestWindows(unittest.TestCase):
         binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_read_data.exe')
         self.vm.cdrom.set_executable(binary_path)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -335,7 +335,7 @@ class TestWindows(unittest.TestCase):
         binary_path = os.path.join(self.script_dir, 'binaries', 'delete_file.exe')
         self.vm.cdrom.set_executable(binary_path)
 
-        def enter_NtOpenFile(syscall):
+        def enter_NtOpenFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
@@ -346,7 +346,7 @@ class TestWindows(unittest.TestCase):
                 'access': access.rights
             }
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)

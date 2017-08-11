@@ -17,7 +17,7 @@ class TestLinux(unittest.TestCase):
         found = False
         needle = "/proc/cpuinfo"
 
-        def open_hook(syscall):
+        def open_hook(syscall, backend):
             nonlocal found
             process = syscall.process
             if process is not None and process.name == "test_open":
@@ -42,14 +42,14 @@ class TestLinux(unittest.TestCase):
         # We cannot match this system call with the entry and connect path with its fd
         # Now we just hope that the process does not open anything else between this and the write call
         # In this case, it should be fine
-        def open_hook(syscall):
+        def open_hook(syscall, backend):
             nonlocal last_handle
             process = syscall.process
             if process is not None and process.name == "test_write":
                 logging.debug("open returned: %s", syscall.event.regs.rax)
                 last_handle = syscall.event.regs.rax
 
-        def write_hook(syscall):
+        def write_hook(syscall, backend):
             nonlocal found
             process = syscall.process
             if process is not None and process.name == "test_write":
@@ -72,7 +72,7 @@ class TestLinux(unittest.TestCase):
         found = False
         needle = "/tmp/test_unlink.tmp"
 
-        def unlink_hook(syscall):
+        def unlink_hook(syscall, backend):
             nonlocal found
             process = syscall.process
             if process is not None and process.name == "test_unlink":

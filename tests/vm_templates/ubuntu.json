@@ -60,7 +60,7 @@
         "chmod 664 /etc/systemd/system/cdrom_autoexec.service",
         "chmod +x /usr/local/sbin/cdrom_autoexec.sh",
         "chmod +x /etc/rc.local",
-        "sed -i 's/^\\(GRUB_CMDLINE_LINUX_DEFAULT=\\).\\+/\\1\"loglevel=8 console=ttyS0 rd.udev.event-timeout=1200 udev.event-timeout=1200\"/g' /etc/default/grub",
+        "sed -i 's/^\\(GRUB_CMDLINE_LINUX_DEFAULT=\\).\\+/\\1\"loglevel=8 console=ttyS0 rd.udev.event-timeout=12000 udev.event-timeout=12000\"/g' /etc/default/grub",
         "grub-mkconfig -o /boot/grub/grub.cfg",
         "systemctl disable systemd-timesyncd",
         "systemctl disable apt-daily"

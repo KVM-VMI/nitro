@@ -35,7 +35,7 @@ class Backend:
         else:
             try:
                 logging.debug('Processing hook %s - %s', syscall.event.direction.name, hook.__name__)
-                hook(syscall)
+                hook(syscall, self)
             # FIXME: There should be a way for OS specific backends to report these
             # except InconsistentMemoryError: #
             #     self.stats['memory_access_error'] += 1

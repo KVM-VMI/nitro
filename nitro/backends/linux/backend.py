@@ -10,7 +10,7 @@ from nitro.backends.linux.process import LinuxProcess
 from nitro.backends.backend import Backend
 from nitro.backends.linux.arguments import LinuxArgumentMap
 
-# Technically, I do not think using this the way I do is correct
+# Technically, I do not think using this the way I do is correct since it might be different for the VM
 VOID_P_SIZE = sizeof(c_void_p)
 
 HANDLER_NAME_REGEX = re.compile(r"^(SyS|sys)_(?P<name>.+)")
@@ -40,13 +40,16 @@ class LinuxBackend(Backend):
         self.pgd_offset = self.libvmi.get_offset("linux_pgd")
 
     def process_event(self, event):
-        # Are all of these really necessary?
-        # we seem to get all kinds of weird errors during shutdown if we do not flush there
-        # However, flushing the caches slows down things so much that things start to break for other reasons
-        #self.libvmi.v2pcache_flush()
-        #self.libvmi.pidcache_flush()
-        #self.libvmi.rvacache_flush()
-        #self.libvmi.symcache_flush()
+        # Clearing these caches is really important since otherwise we will end
+        # up with incorrect memory references. Unfortunatelly, this will also
+        # make the backend slow. In my limited testing it seems that only
+        # clearing v2p cache works most of the time but I am sure issues will
+        # arise.
+        self.libvmi.v2pcache_flush()
+        # self.libvmi.pidcache_flush()
+        # self.libvmi.rvacache_flush()
+        # self.libvmi.symcache_flush()
+
         # Maybe this is unnecessary
         self.sys_call_table_addr = self.libvmi.translate_ksym2v("sys_call_table")
         try:
