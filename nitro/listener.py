@@ -153,3 +153,6 @@ class Listener:
                 time.sleep(0.1)
             # wait for threads to exit
             wait(self.futures)
+
+    def add_syscall_filter(self, syscall_nb):
+        self.vm_io.add_syscall_filter(syscall_nb)
