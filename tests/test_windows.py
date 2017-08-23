@@ -305,7 +305,7 @@ class TestWindows(unittest.TestCase):
         binary_path = os.path.join(self.script_dir, 'binaries', 'createfile_write_data.exe')
         self.vm.cdrom.set_executable(binary_path)
 
-        def enter_NtCreateFile(syscall):
+        def enter_NtCreateFile(syscall, backend):
             DesiredAccess = syscall.args[1]
             object_attributes = syscall.args[2]
             obj = ObjectAttributes(object_attributes, syscall.process)
