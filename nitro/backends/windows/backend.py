@@ -22,6 +22,7 @@ GETSYMBOLS_SCRIPT = 'get_symbols.py'
 class WindowsBackend(Backend):
     __slots__ = (
         "nb_vcpu",
+        "syscall_filtering",
         "syscall_stack",
         "sdt",
         "tasks_offset",
@@ -30,10 +31,11 @@ class WindowsBackend(Backend):
         "symbols"
     )
 
-    def __init__(self, domain, libvmi):
+    def __init__(self, domain, libvmi, syscall_filtering=True):
         super().__init__(domain, libvmi)
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
+        self.syscall_filtering = syscall_filtering
 
         # create on syscall stack per vcpu
         self.syscall_stack = tuple([] for _ in range(self.nb_vcpu))
@@ -123,6 +125,32 @@ class WindowsBackend(Backend):
         # dispatch on the hooks
         self.dispatch_hooks(syscall)
         return syscall
+
+    def define_hook(self, name, callback, direction=SyscallDirection.enter):
+        logging.info('Defining hook on {}'.format(name))
+        if self.syscall_filtering:
+            syscall_nb = self.find_syscall_nb(name)
+            if syscall_nb is None:
+                raise RuntimeError('Unable to find syscall number for %s' % name)
+            self.nitro.add_syscall_filter(syscall_nb)
+        self.hooks[direction][name] = callback
+
+    def undefine_hook(self, name, direction=SyscallDirection.enter):
+        logging.info('Removing hook on {}'.format(name))
+        if self.syscall_filtering:
+            syscall_nb = self.find_syscall_nb(name)
+            if syscall_nb is None:
+                raise RuntimeError('Unable to find syscall number for %s' % name)
+            self.nitro.remove_syscall_filter(syscall_nb)
+        self.hooks[direction].pop(name)
+
+    def find_syscall_nb(self, syscall_name):
+        pattern = re.compile(r'^.*{}$'.format(syscall_name))
+        for ssdt in self.sdt:
+            for syscall_nb, full_name in ssdt['ServiceTable'].items():
+                if pattern.match(full_name):
+                    return syscall_nb
+        return None
 
     def associate_process(self, cr3):
         if cr3 in self.processes:
