@@ -144,6 +144,7 @@ class VM(IOCTL):
     KVM_NITRO_ATTACH_VCPUS = IOR(KVMIO, 0xE2, NitroVCPUs)
     KVM_NITRO_SET_SYSCALL_TRAP = IOW(KVMIO, 0xE3, c_bool)
     KVM_NITRO_ADD_SYSCALL_FILTER = IOR(KVMIO, 0xEB, c_ulonglong)
+    KVM_NITRO_REMOVE_SYSCALL_FILTER = IOR(KVMIO, 0xEC, c_ulonglong)
 
     def __init__(self, vm_fd):
         super().__init__()
@@ -170,6 +171,15 @@ class VM(IOCTL):
         r = self.make_ioctl(self.KVM_NITRO_ADD_SYSCALL_FILTER, byref(c_syscall_nb))
         if r != 0:
             raise RuntimeError('Error: fail to add syscall filter')
+        return r
+
+    def remove_syscall_filter(self, syscall_nb):
+        logging.debug('removing syscall filter on %s' % (syscall_nb))
+        c_syscall_nb = c_ulonglong(syscall_nb)
+        r = self.make_ioctl(self.KVM_NITRO_REMOVE_SYSCALL_FILTER,
+                            byref(c_syscall_nb))
+        if r != 0:
+            raise RuntimeError('Error: fail to remove syscall filter')
         return r
 
 class VCPU(IOCTL):

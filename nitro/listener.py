@@ -156,3 +156,6 @@ class Listener:
 
     def add_syscall_filter(self, syscall_nb):
         self.vm_io.add_syscall_filter(syscall_nb)
+
+    def remove_syscall_filter(self, syscall_nb):
+        self.vm_io.remove_syscall_filter(syscall_nb)
