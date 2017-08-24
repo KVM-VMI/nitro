@@ -127,6 +127,8 @@ class WindowsBackend(Backend):
         return syscall
 
     def define_hook(self, name, callback, direction=SyscallDirection.enter):
+        if not self.analyze:
+            raise RuntimeError('Unable to define hook, introspection is disabled')
         logging.info('Defining hook on {}'.format(name))
         if self.syscall_filtering:
             syscall_nb = self.find_syscall_nb(name)
@@ -136,6 +138,8 @@ class WindowsBackend(Backend):
         self.hooks[direction][name] = callback
 
     def undefine_hook(self, name, direction=SyscallDirection.enter):
+        if not self.analyze:
+            raise RuntimeError('Unable to define hook, introspection is disabled')
         logging.info('Removing hook on {}'.format(name))
         if self.syscall_filtering:
             syscall_nb = self.find_syscall_nb(name)
