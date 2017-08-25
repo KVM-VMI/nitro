@@ -143,10 +143,9 @@ class WindowsBackend(Backend):
         self.hooks[direction].pop(name)
 
     def find_syscall_nb(self, syscall_name):
-        pattern = re.compile(r'^.*{}$'.format(syscall_name))
         for ssdt in self.sdt:
             for syscall_nb, full_name in ssdt['ServiceTable'].items():
-                if pattern.match(full_name):
+                if re.match(r'^.*{}$'.format(syscall_name), full_name):
                     return syscall_nb
         return None
 
