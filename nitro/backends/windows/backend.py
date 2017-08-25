@@ -1,6 +1,5 @@
 import logging
 import re
-import libvirt
 import stat
 import os
 import subprocess
@@ -8,6 +7,9 @@ import shutil
 import json
 
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+
+import libvirt
+
 
 from nitro.event import SyscallDirection, SyscallType
 from nitro.syscall import Syscall
@@ -113,7 +115,7 @@ class WindowsBackend(Backend):
         else:
             syscall_name = self.get_syscall_name(event.regs.rax)
             # build syscall
-            args = WindowsArgumentMap(event, syscall_name, process)
+            args = WindowsArgumentMap(event, process)
             cleaned = clean_name(syscall_name)
             syscall = Syscall(event, syscall_name, cleaned, process, args)
             # push syscall to the stack to retrieve it at exit

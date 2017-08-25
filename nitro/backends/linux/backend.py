@@ -46,39 +46,30 @@ class LinuxBackend(Backend):
         # clearing v2p cache works most of the time but I am sure issues will
         # arise.
         self.libvmi.v2pcache_flush()
-        # self.libvmi.pidcache_flush()
-        # self.libvmi.rvacache_flush()
-        # self.libvmi.symcache_flush()
+        self.libvmi.pidcache_flush()
+        self.libvmi.rvacache_flush()
+        self.libvmi.symcache_flush()
 
-        # Maybe this is unnecessary
-        self.sys_call_table_addr = self.libvmi.translate_ksym2v("sys_call_table")
-        try:
-            process = self.associate_process(event.sregs.cr3)
-        except LibvmiError as error:
-            logging.error("LinuxBackend: failed to associate_process (LibvmiError)")
-            raise error
+        process = self.associate_process(event.sregs.cr3)
         if event.direction == SyscallDirection.exit:
             try:
-                name = self.syscall_stack[event.vcpu_nb].pop()
+                syscall = self.syscall_stack[event.vcpu_nb].pop()
             except IndexError:
-                name = None
+                syscall = Syscall(event, "Unknown", "Unknown", process, None)
         else:
             try:
                 name = self.get_syscall_name(event.regs.rax)
+                args = LinuxArgumentMap(event, process)
+                cleaned = clean_name(name) if name is not None else None
+                syscall = Syscall(event, name, cleaned, process, args)
             except LibvmiError as error:
                 logging.error("LinuxBackend: failed to get_syscall_name (LibvmiError)")
                 raise error
-            self.syscall_stack[event.vcpu_nb].append(name)
-        args = LinuxArgumentMap(event, name, process)
-        cleaned = clean_name(name) if name is not None else None
-        syscall = Syscall(event, name, cleaned, process, args)
+            self.syscall_stack[event.vcpu_nb].append(syscall)
         self.dispatch_hooks(syscall)
         return syscall
 
     def get_syscall_name(self, rax):
-        assert 0 <= rax <= 1000 # This is not really necessary or even a
-                                # productive sanity check and should likely be
-                                # removed
         p_addr = self.sys_call_table_addr + (rax * VOID_P_SIZE) # address of the pointer within the sys_call_table array
         addr = self.libvmi.read_addr_va(p_addr, 0) # get the address of the procedure
         return self.libvmi.translate_v2ksym(addr) # translate the address into a name

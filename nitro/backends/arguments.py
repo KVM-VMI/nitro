@@ -17,15 +17,13 @@ class ArgumentMap:
 
     __slots__ = (
         "event",
-        "name",
         "process",
         "modified",
         "arg_size_format"
     )
 
-    def __init__(self, event, name, process):
+    def __init__(self, event, process):
         self.event = event
-        self.name = name
         self.process = process
         self.modified = {}
         self.arg_size_format = self.ARG_SIZE[self.event.type]

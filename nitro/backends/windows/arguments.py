@@ -16,9 +16,6 @@ class WindowsArgumentMap(ArgumentMap):
         ],
     }
 
-    def __init__(self, event, name, process):
-        super().__init__(event, name, process)
-
     def __getitem__(self, index):
         try:
             arg_type, opaque = self.CONVENTION[self.event.type][index]
