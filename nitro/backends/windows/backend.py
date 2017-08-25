@@ -202,4 +202,3 @@ class WindowsBackend(Backend):
 
 def clean_name(name):
     return name.split('!')[-1]
-

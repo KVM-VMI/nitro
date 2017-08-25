@@ -68,4 +68,3 @@ class NitroEvent:
         else:
             # send new register to KVM VCPU
             self.vcpu_io.set_regs(self.regs)
-

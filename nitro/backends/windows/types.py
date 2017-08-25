@@ -236,4 +236,3 @@ class FileBasicInformation(WinStruct):
 
     def __init__(self, addr, process):
         super().__init__(addr, process)
-
