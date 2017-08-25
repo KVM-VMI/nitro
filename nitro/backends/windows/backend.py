@@ -131,10 +131,7 @@ class WindowsBackend(Backend):
             raise RuntimeError('Unable to define hook, introspection is disabled')
         logging.info('Defining hook on {}'.format(name))
         if self.syscall_filtering:
-            syscall_nb = self.find_syscall_nb(name)
-            if syscall_nb is None:
-                raise RuntimeError('Unable to find syscall number for %s' % name)
-            self.nitro.add_syscall_filter(syscall_nb)
+            self.set_syscall_filter(name, True)
         self.hooks[direction][name] = callback
 
     def undefine_hook(self, name, direction=SyscallDirection.enter):
@@ -142,10 +139,7 @@ class WindowsBackend(Backend):
             raise RuntimeError('Unable to define hook, introspection is disabled')
         logging.info('Removing hook on {}'.format(name))
         if self.syscall_filtering:
-            syscall_nb = self.find_syscall_nb(name)
-            if syscall_nb is None:
-                raise RuntimeError('Unable to find syscall number for %s' % name)
-            self.nitro.remove_syscall_filter(syscall_nb)
+            self.set_syscall_filter(name, False)
         self.hooks[direction].pop(name)
 
     def find_syscall_nb(self, syscall_name):
@@ -197,5 +191,16 @@ class WindowsBackend(Backend):
             syscall_name = 'Table{}!Unknown'.format(idx)
         return syscall_name
 
+    def set_syscall_filter(self, syscall_name, defined=True):
+        syscall_nb = self.find_syscall_nb(syscall_name)
+        if syscall_nb is None:
+            raise RuntimeError('Unable to find syscall number for %s' % name)
+        if defined:
+            self.nitro.add_syscall_filter(syscall_nb)
+        else:
+            self.nitro.remove_syscall_filter(syscall_nb)
+
+
 def clean_name(name):
     return name.split('!')[-1]
+
