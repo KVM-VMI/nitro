@@ -190,14 +190,17 @@ class WindowsBackend(Backend):
             syscall_name = 'Table{}!Unknown'.format(idx)
         return syscall_name
 
-    def set_syscall_filter(self, syscall_name, defined=True):
+    def add_syscall_filter(self, syscall_name):
         syscall_nb = self.find_syscall_nb(syscall_name)
         if syscall_nb is None:
-            raise RuntimeError('Unable to find syscall number for %s' % name)
-        if defined:
-            self.nitro.add_syscall_filter(syscall_nb)
-        else:
-            self.nitro.remove_syscall_filter(syscall_nb)
+            raise RuntimeError('Unable to find syscall number for %s' % syscall_name)
+        self.nitro.add_syscall_filter(syscall_nb)
+
+    def remove_syscall_filter(self, syscall_name):
+        syscall_nb = self.find_syscall_nb(syscall_name)
+        if syscall_nb is None:
+            raise RuntimeError('Unable to find syscall number for %s' % syscall_name)
+        self.nitro.remove_syscall_filter(syscall_nb)
 
 
 def clean_name(name):
