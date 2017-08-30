@@ -1,6 +1,8 @@
 from nitro.backends.process import Process
 
 class LinuxProcess(Process):
+    """Class representing a Linux process"""
+
     __slots__ = (
         "task_struct",
         "name",

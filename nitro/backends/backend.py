@@ -1,3 +1,9 @@
+"""
+Backends process stream of ``NitroEvent`` objects and produce higher-level
+``Systemcall`` events with operating-system-specific information such as ``Process``
+that generated the event and arguments.
+"""
+
 import logging
 import json
 from collections import defaultdict
@@ -6,6 +12,11 @@ from nitro.event import SyscallDirection
 from nitro.libvmi import LibvmiError
 
 class Backend:
+    """
+    Base class for Backends. ``Backend`` provides functionality for dispatching
+    hooks and keeping statistics about processed events.
+    """
+
     __slots__ = (
         "domain",
         "libvmi",
@@ -16,6 +27,7 @@ class Backend:
     )
 
     def __init__(self, domain, libvmi, listener, syscall_filtering=True):
+        """Create a new ``Backend``"""
         self.domain = domain
         self.libvmi = libvmi
         self.listener = listener
@@ -59,10 +71,20 @@ class Backend:
                 self.stats['hooks_processed'] += 1
 
     def define_hook(self, name, callback, direction=SyscallDirection.enter):
+        """
+        Register a new system call hook with the ``Backend``.
+        
+        :param str name: Name of the system call to hook.
+        :param callable callback: Callable to call when the hook is fired.
+        :param SyscallDirection direction: Should the hook fire when system call is entered or exited.
+        """
         logging.info('Defining %s hook on %s', direction.name, name)
         self.hooks[direction][name] = callback
 
     def undefine_hook(self, name, direction=SyscallDirection.enter):
+        """
+        Unregister a hook.
+        """
         logging.info('Removing hook on %s', name)
         self.hooks[direction].pop(name)
 
@@ -73,5 +95,6 @@ class Backend:
         self.stop()
 
     def stop(self):
+        """Stop the Backend"""
         logging.info(json.dumps(self.stats, indent=4))
         self.libvmi.destroy()

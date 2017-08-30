@@ -11,10 +11,13 @@ class BackendNotFoundError(Exception):
     pass
 
 def get_backend(domain, listener, syscall_filtering):
-    """Return backend based on libvmi configuration.
-    If analyze if False, returns a dummy backend
-    that does not analyze system calls.
-    Returns None if the backend is missing
+    """
+    Return a suitable backend based on guest operating system.
+
+    :param domain: libvirt domain
+    :returns: new backend instance
+    :rtype: Backend
+    :raises: BackendNotFoundError
     """
     libvmi = Libvmi(domain.name())
     os_type = libvmi.get_ostype()

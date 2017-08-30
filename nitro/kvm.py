@@ -1,3 +1,8 @@
+"""
+Low-level interface to KVM facilities. This module enables the use of
+Nitro's enhanced KVM capabilities.
+"""
+
 import os
 import logging
 from ctypes import *
@@ -137,6 +142,12 @@ class KVM(IOCTL):
         self.fd = self.kvm_file.fileno()
 
     def attach_vm(self, pid):
+        """
+        Attach to KVM virtual machine
+        
+        :param int pid: pid of the Qemu process to attach to.
+        :raises: RuntimeError
+        """
         logging.debug('attach_vm PID = %s', pid)
         c_pid = c_int(pid)
         r = self.make_ioctl(self.KVM_NITRO_ATTACH_VM, byref(c_pid))
@@ -224,15 +235,26 @@ class VCPU(IOCTL):
         return nitro_ev
 
     def continue_vm(self):
+        """Continue VM"""
         # logging.debug('continue_vm %s', self.vcpu_nb)
         return self.make_ioctl(self.KVM_NITRO_CONTINUE, 0)
 
     def get_regs(self):
+        """
+        Get registers
+
+        :rtype: Regs
+        """
         regs = Regs()
         self.make_ioctl(self.KVM_NITRO_GET_REGS, byref(regs))
         return regs
 
     def get_sregs(self):
+        """
+        Get special registers
+
+        :rtype: SRegs
+        """
         sregs = SRegs()
         self.make_ioctl(self.KVM_NITRO_GET_SREGS, byref(sregs))
         return sregs

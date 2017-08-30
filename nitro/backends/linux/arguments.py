@@ -2,6 +2,9 @@ from nitro.event import SyscallType
 from nitro.backends.arguments import ArgumentMap, SyscallArgumentType
 
 class LinuxArgumentMap(ArgumentMap):
+    """
+    ``LinuxArgumentMap`` provides read and write access to system call arguments.
+    """
 
     CONVENTION = {
         SyscallType.syscall: [

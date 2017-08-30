@@ -13,6 +13,10 @@ class SyscallType(Enum):
 
 
 class NitroEvent:
+    """
+    ``NitroEvent`` represents a low-level system event. It contains information
+    about the state of the machine when the system was stopped.
+    """
 
     __slots__ = (
         'direction',
@@ -43,6 +47,9 @@ class NitroEvent:
         return msg
 
     def as_dict(self):
+        """
+        Return
+        """
         info = {
             'vcpu': self.vcpu_nb,
             'type': self.type.name,

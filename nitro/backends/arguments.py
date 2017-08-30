@@ -9,6 +9,9 @@ class SyscallArgumentType(Enum):
 
 
 class ArgumentMap:
+    """
+    ``ArgumentMap`` is a base class for providing access to system call arguments.
+    """
 
     ARG_SIZE = {
         SyscallType.syscall: 'P',   # x64 -> 8 bytes
@@ -23,6 +26,10 @@ class ArgumentMap:
     )
 
     def __init__(self, event, process):
+        """
+        :param NitroEvent event: event that is used to access arguments
+        :param Process process: process which address space is used for argument lookups
+        """
         self.event = event
         self.process = process
         self.modified = {}
