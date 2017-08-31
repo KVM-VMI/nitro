@@ -4,12 +4,14 @@ import unittest
 import logging
 import json
 from layers import VMLayer
+from vmtest_helper import WindowsVMTestHelper
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
-from nitro.win_types import ObjectAttributes, FileAccessMask
-from nitro.backend import Backend
+from nitro.backends.windows.types import ObjectAttributes, FileAccessMask
 
 class TestWindowsDebug(unittest.TestCase):
+    domain_name = "nitro_win7x64"
+    test_helper = WindowsVMTestHelper
     layer = VMLayer
 
     def test_NtCreateFile(self):
@@ -27,7 +29,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -48,7 +50,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateKey': callback,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -69,7 +71,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtSetValueKey': enter_NtSetValueKey,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -101,7 +103,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -133,7 +135,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:
@@ -164,7 +166,7 @@ class TestWindowsDebug(unittest.TestCase):
         hooks = {
             'NtCreateFile': enter_NtCreateFile,
         }
-        events, exec_time = self.vm.run_test(hooks=hooks)
+        events, exec_time = self.vm.run_test(enter_hooks=hooks)
         # writing events
         logging.debug('Writing events...')
         with open('events.json', 'w') as f:

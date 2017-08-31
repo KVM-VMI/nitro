@@ -31,7 +31,7 @@
         "{{ user `iso_url` }}"
       ],
       "output_directory": "output-qemu",
-      "shutdown_command": "echo '{{ user `ssh_password` }}'|sudo -S shutdown -P now",
+      "shutdown_command": "echo '{{ user `ssh_password` }}'| sudo -S shutdown -P now",
       "ssh_password": "{{ user `ssh_password` }}",
       "ssh_username": "{{ user `ssh_username` }}",
       "ssh_wait_timeout": "10000s",
@@ -42,9 +42,36 @@
       ]
     }
   ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "linux/",
+      "destination": "/tmp"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo '{{ user `ssh_password` }}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+      "inline": [
+        "mv /tmp/cdrom.rules /etc/udev/rules.d/cdrom.rules",
+        "mv /tmp/cdrom_autoexec.sh /usr/local/sbin/cdrom_autoexec.sh",
+        "mv /tmp/cdrom_autoexec.service /etc/systemd/system/cdrom_autoexec.service",
+        "mv /tmp/rc.local /etc/rc.local",
+        "mv /tmp/journald.conf /etc/systemd/journald.conf",
+        "chmod 664 /etc/systemd/system/cdrom_autoexec.service",
+        "chmod +x /usr/local/sbin/cdrom_autoexec.sh",
+        "chmod +x /etc/rc.local",
+        "sed -i 's/^\\(GRUB_CMDLINE_LINUX_DEFAULT=\\).\\+/\\1\"loglevel=8 console=ttyS0 rd.udev.event-timeout=12000 udev.event-timeout=12000\"/g' /etc/default/grub",
+        "grub-mkconfig -o /boot/grub/grub.cfg",
+        "systemctl disable systemd-timesyncd",
+        "systemctl disable apt-daily"
+      ]
+    }
+  ],
   "variables": {
     "boot_command_prefix": "<enter><wait><f6><esc><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+    "cleanup_pause": "",
     "cpus": "1",
+    "desktop": "false",
     "install_vagrant_key": "true",
     "install_dev_packages": "false",
     "disk_size": "65536",

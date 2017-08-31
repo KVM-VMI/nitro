@@ -1,76 +1,50 @@
 import logging
 import re
-import os
 import stat
-import libvirt
+import os
 import subprocess
 import shutil
 import json
-from collections import defaultdict
+
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
-from nitro.nitro import Nitro
-from nitro.event import SyscallDirection
+import libvirt
+
+
+from nitro.event import SyscallDirection, SyscallType
 from nitro.syscall import Syscall
-from nitro.libvmi import Libvmi, LibvmiError
-from nitro.process import Process
-from nitro.win_types import InconsistentMemoryError
+from nitro.backends.windows.process import WindowsProcess
+from nitro.backends.backend import Backend
+from nitro.backends.windows.arguments import WindowsArgumentMap
 
-GETSYMBOLS_SCRIPT = 'symbols.py'
+GETSYMBOLS_SCRIPT = 'get_symbols.py'
 
-
-class Backend:
-
+class WindowsBackend(Backend):
     __slots__ = (
-        'domain',
-        'nb_vcpu',
-        'syscall_stack',
-        'sdt',
-        'libvmi',
-        'processes',
-        'hooks',
-        'stats',
-        'nitro',
-        'analyze',
-        'symbols'
+        "nb_vcpu",
+        "syscall_stack",
+        "sdt",
+        "tasks_offset",
+        "pdbase_offset",
+        "processes",
+        "symbols"
     )
 
-    def __init__(self, domain, analyze=False):
-        self.domain = domain
-        self.analyze = analyze
-        # init Nitro
-        self.nitro = Nitro(self.domain)
-        if analyze:
-            vcpus_info = self.domain.vcpus()
-            self.nb_vcpu = len(vcpus_info[0])
-            # create on syscall stack per vcpu
-            self.syscall_stack = {}
-            for vcpu_nb in range(self.nb_vcpu):
-                self.syscall_stack[vcpu_nb] = []
-            self.sdt = None
-            self.load_symbols()
-            # run libvmi helper subprocess
-            self.libvmi = Libvmi(domain.name())
-            self.processes = {}
-            self.hooks = {
-                SyscallDirection.enter: {},
-                SyscallDirection.exit: {}
-            }
-            self.stats = defaultdict(int)
+    def __init__(self, domain, libvmi):
+        super().__init__(domain, libvmi)
+        vcpus_info = self.domain.vcpus()
+        self.nb_vcpu = len(vcpus_info[0])
 
-    def __enter__(self):
-        return self
+        # create on syscall stack per vcpu
+        self.syscall_stack = tuple([] for _ in range(self.nb_vcpu))
+        self.sdt = None
+        self.load_symbols()
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.stop()
+        # get offsets
+        self.tasks_offset = self.libvmi.get_offset("win_tasks")
+        self.pdbase_offset = self.libvmi.get_offset("win_pdbase")
 
-    def stop(self):
-        if self.analyze:
-            # print stats if some errors happened
-            if self.stats:
-                logging.info(json.dumps(self.stats, indent=4))
-            self.libvmi.destroy()
-        self.nitro.stop()
+        self.processes = {}
 
     def load_symbols(self):
         # we need to put the ram dump in our own directory
@@ -83,7 +57,7 @@ class Backend:
                                         stat.S_IRGRP | stat.S_IWGRP |
                                         stat.S_IROTH | stat.S_IWOTH)
                 # take a ram dump
-                logging.info('Dumping physical memory to {}'.format(ram_dump.name))
+                logging.info('Dumping physical memory to %s', ram_dump.name)
                 flags = libvirt.VIR_DUMP_MEMORY_ONLY
                 dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
                 self.domain.coreDumpWithFormat(ram_dump.name, dumpformat, flags)
@@ -115,13 +89,11 @@ class Backend:
                     full_name = e[1]["symbol"]["symbol"]
                     # add entry  to our current ssdt
                     cur_ssdt[entry] = full_name
-                    logging.debug('Add SSDT entry [{}] -> {}'.format(entry, full_name))
+                    logging.debug('Add SSDT entry [%s] -> %s', entry, full_name)
         # save rekall symbols
         self.symbols = symbols
 
     def process_event(self, event):
-        if not self.analyze:
-            raise RuntimeError('Syscall analyzing is disabled in the backend')
         # invalidate libvmi cache
         self.libvmi.v2pcache_flush()
         self.libvmi.pidcache_flush()
@@ -138,56 +110,24 @@ class Backend:
                 # replace register values
                 syscall.event = event
             except IndexError:
-                # build a new syscall object using 'Unknown' as syscall name
-                syscall = Syscall(event, 'Unknown', process, self.nitro)
+                # FIXME: This is ugly, names should be None
+                syscall = Syscall(event, 'Unknown', 'Unknown', process, None)
         else:
             syscall_name = self.get_syscall_name(event.regs.rax)
             # build syscall
-            syscall = Syscall(event, syscall_name, process, self.nitro)
+            args = WindowsArgumentMap(event, process)
+            cleaned = clean_name(syscall_name)
+            syscall = Syscall(event, syscall_name, cleaned, process, args)
             # push syscall to the stack to retrieve it at exit
             self.syscall_stack[event.vcpu_nb].append(syscall)
         # dispatch on the hooks
         self.dispatch_hooks(syscall)
         return syscall
 
-    def dispatch_hooks(self, syscall):
-        try:
-            hook = self.hooks[syscall.event.direction][syscall.name]
-        except KeyError:
-            pass
-        else:
-            try:
-                logging.debug('Processing hook {} - {}'.format(syscall.event.direction.name, hook.__name__))
-                hook(syscall, self)
-            except InconsistentMemoryError:
-                self.stats['memory_access_error'] += 1
-                logging.exception('Memory access error')
-            except LibvmiError:
-                self.stats['libvmi_failure'] += 1
-                logging.exception('VMI_FAILURE')
-            # misc failures
-            except ValueError:
-                self.stats['misc_error'] += 1
-                logging.exception('Misc error')
-            except Exception:
-                logging.exception('Unknown error while processing hook')
-            else:
-                self.stats['hooks_completed'] += 1
-            finally:
-                self.stats['hooks_processed'] += 1
-
-    def define_hook(self, name, callback, direction=SyscallDirection.enter):
-        logging.info('Defining hook on {}'.format(name))
-        self.hooks[direction][name] = callback
-
-    def undefine_hook(self, name, direction=SyscallDirection.enter):
-        logging.info('Removing hook on {}'.format(name))
-        self.hooks[direction].pop(name)
-
     def associate_process(self, cr3):
-        try:
+        if cr3 in self.processes:
             p = self.processes[cr3]
-        except KeyError:
+        else:
             p = self.find_eprocess(cr3)
             # index by cr3 or pid
             # a callback might want to search by pid
@@ -209,9 +149,7 @@ class Backend:
             directory_table_base = self.libvmi.read_addr_va(directory_table_base_off, 0)
             # compare to our cr3
             if cr3 == directory_table_base:
-                eprocess = Process(cr3, start_eproc, self.libvmi, self.symbols)
-                return eprocess
-
+                return WindowsProcess(self.libvmi, cr3, start_eproc, self.symbols)
             # read new flink
             flink = self.libvmi.read_addr_va(flink, 0)
         raise RuntimeError('Process not found')
@@ -226,3 +164,6 @@ class Backend:
             # the 2 others are NULL
             syscall_name = 'Table{}!Unknown'.format(idx)
         return syscall_name
+
+def clean_name(name):
+    return name.split('!')[-1]

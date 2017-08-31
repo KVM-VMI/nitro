@@ -21,10 +21,9 @@ from pprint import pprint
 from docopt import docopt
 
 from nitro.nitro import Nitro
-from nitro.backend import Backend
+from nitro.libvmi import LibvmiError
 
 run = True
-
 
 # def new signal for SIGINT
 def sigint_handler(signal, frame):
@@ -47,19 +46,23 @@ def main(args):
 
     events = []
 
-    analyze_enabled = True if not args['--nobackend'] else False
-    with Backend(domain, analyze_enabled) as backend:
-        backend.nitro.set_traps(True)
-        for event in backend.nitro.listen():
-            ev_info = event.as_dict()
-            if analyze_enabled:
-                syscall = backend.process_event(event)
-                ev_info = syscall.as_dict()
+    analyze_enabled = not args['--nobackend']
 
+    with Nitro(domain, analyze_enabled) as nitro:
+        nitro.listener.set_traps(True)
+        for event in nitro.listen():
+            event_info = event.as_dict()
+            if analyze_enabled:
+                try:
+                    syscall = nitro.backend.process_event(event)
+                except LibvmiError:
+                    logging.error("Backend event processing failure")
+                else:
+                    event_info = syscall.as_dict()
             if args['--stdout']:
-                pprint(ev_info, width=1)
+                pprint(event_info, width=1)
             else:
-                events.append(ev_info)
+                events.append(event_info)
 
             # stop properly by CTRL+C
             if not run:

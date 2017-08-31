@@ -127,7 +127,7 @@ class KVM(IOCTL):
         self.fd = self.kvm_file.fileno()
 
     def attach_vm(self, pid):
-        logging.debug('attach_vm PID = {}'.format(pid))
+        logging.debug('attach_vm PID = %s', pid)
         c_pid = c_int(pid)
         r = self.make_ioctl(self.KVM_NITRO_ATTACH_VM, byref(c_pid))
         if r < 0:
@@ -158,7 +158,7 @@ class VM(IOCTL):
         return vcpus
 
     def set_syscall_trap(self, enabled):
-        logging.debug('set_syscall_trap {}'.format(enabled))
+        logging.debug('set_syscall_trap %s', enabled)
         c_enabled = c_bool(enabled)
         r = self.make_ioctl(self.KVM_NITRO_SET_SYSCALL_TRAP, byref(c_enabled))
         return r
@@ -183,15 +183,16 @@ class VCPU(IOCTL):
         self.fd = vcpu_fd
 
     def get_event(self):
-        # logging.debug('get_event {}'.format(self.vcpu_nb))
+        # logging.debug('get_event %s, self.vcpu_nb)
         nitro_ev = NitroEventStr()
         ret = self.make_ioctl(self.KVM_NITRO_GET_EVENT, byref(nitro_ev))
         if ret != 0:
-            raise ValueError('get_event failed')
+            logging.error("get_event failed (vcpu: %d; returned: %d)", self.vcpu_nb, ret)
+            raise ValueError("get_event failed")
         return nitro_ev
 
     def continue_vm(self):
-        # logging.debug('continue_vm {}'.format(self.vcpu_nb))
+        # logging.debug('continue_vm %s', self.vcpu_nb)
         return self.make_ioctl(self.KVM_NITRO_CONTINUE, 0)
 
     def get_regs(self):

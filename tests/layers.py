@@ -4,9 +4,7 @@ import shutil
 import datetime
 import libvirt
 
-from vmtest_helper import VMTestHelper
-from cdrom import CDROM
-
+from vmtest_helper import WindowsVMTestHelper, LinuxVMTestHelper
 
 class LoggingLayer(object):
 
@@ -35,13 +33,11 @@ class LoggingLayer(object):
 
 
 class VMLayer(LoggingLayer):
-
     @classmethod
     def testSetUp(cls, test_class):
         con = libvirt.open('qemu:///system')
-        test_class.domain = con.lookupByName('nitro_win7x64')
-        test_class.vm = VMTestHelper(test_class.domain)
-
+        test_class.domain = con.lookupByName(test_class.domain_name)
+        test_class.vm = test_class.test_helper(test_class.domain)
 
     @classmethod
     def testTearDown(cls, test_class):

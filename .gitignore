@@ -43,8 +43,18 @@ events.json
 
 # ide
 .idea/
+.vscode/
 
 # package
 dist
 build
 *.egg-info
+libvmi_helper.log
+
+# tags
+TAGS
+GPATH
+GRTAGS
+GTAGS
+
+tests/linux_binaries/build/
