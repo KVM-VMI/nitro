@@ -25,8 +25,8 @@ class LinuxBackend(Backend):
         "pgd_offset",
     )
 
-    def __init__(self, domain, libvmi):
-        super().__init__(domain, libvmi)
+    def __init__(self, domain, libvmi, listener, syscall_filtering=True):
+        super().__init__(domain, libvmi, listener, syscall_filtering)
         self.sys_call_table_addr = self.libvmi.translate_ksym2v("sys_call_table")
         logging.debug("sys_call_table at %s", hex(self.sys_call_table_addr))
 

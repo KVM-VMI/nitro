@@ -11,12 +11,15 @@ class Backend:
         "libvmi",
         "hooks",
         "stats",
-        "listener"
+        "listener",
+        "syscall_filtering"
     )
 
-    def __init__(self, domain, libvmi):
+    def __init__(self, domain, libvmi, listener, syscall_filtering=True):
         self.domain = domain
         self.libvmi = libvmi
+        self.listener  = listener
+        self.syscall_filtering = syscall_filtering
         self.hooks = {
             SyscallDirection.enter: {},
             SyscallDirection.exit: {}

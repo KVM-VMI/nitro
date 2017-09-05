@@ -3,12 +3,12 @@ from nitro.backends import get_backend
 
 class Nitro:
 
-    def __init__(self, domain, introspection=True):
+    def __init__(self, domain, introspection=True, syscall_filtering=True):
         self.listener = Listener(domain)
         self.introspection = introspection
         self.backend = None
         if self.introspection:
-            self.backend = get_backend(domain)
+            self.backend = get_backend(domain, self.listener, syscall_filtering)
 
     def listen(self):
         yield from self.listener.listen()

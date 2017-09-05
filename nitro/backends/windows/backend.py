@@ -22,7 +22,6 @@ GETSYMBOLS_SCRIPT = 'get_symbols.py'
 class WindowsBackend(Backend):
     __slots__ = (
         "nb_vcpu",
-        "syscall_filtering",
         "syscall_stack",
         "sdt",
         "tasks_offset",
@@ -31,11 +30,10 @@ class WindowsBackend(Backend):
         "symbols"
     )
 
-    def __init__(self, domain, libvmi, syscall_filtering=True):
-        super().__init__(domain, libvmi)
+    def __init__(self, domain, libvmi, listener, syscall_filtering=True):
+        super().__init__(domain, libvmi, listener, syscall_filtering)
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
-        self.syscall_filtering = syscall_filtering
 
         # create on syscall stack per vcpu
         self.syscall_stack = tuple([] for _ in range(self.nb_vcpu))
@@ -127,20 +125,14 @@ class WindowsBackend(Backend):
         return syscall
 
     def define_hook(self, name, callback, direction=SyscallDirection.enter):
-        if not self.analyze:
-            raise RuntimeError('Unable to define hook, introspection is disabled')
-        logging.info('Defining hook on {}'.format(name))
+        super().define_hook(name, callback, direction)
         if self.syscall_filtering:
             self.add_syscall_filter(name)
-        self.hooks[direction][name] = callback
 
     def undefine_hook(self, name, direction=SyscallDirection.enter):
-        if not self.analyze:
-            raise RuntimeError('Unable to define hook, introspection is disabled')
-        logging.info('Removing hook on {}'.format(name))
+        super().undefine_hook(name, direction)
         if self.syscall_filtering:
             self.remove_syscall_filter(name)
-        self.hooks[direction].pop(name)
 
     def find_syscall_nb(self, syscall_name):
         for ssdt in self.sdt:
@@ -194,13 +186,13 @@ class WindowsBackend(Backend):
         syscall_nb = self.find_syscall_nb(syscall_name)
         if syscall_nb is None:
             raise RuntimeError('Unable to find syscall number for %s' % syscall_name)
-        self.nitro.add_syscall_filter(syscall_nb)
+        self.listener.add_syscall_filter(syscall_nb)
 
     def remove_syscall_filter(self, syscall_name):
         syscall_nb = self.find_syscall_nb(syscall_name)
         if syscall_nb is None:
             raise RuntimeError('Unable to find syscall number for %s' % syscall_name)
-        self.nitro.remove_syscall_filter(syscall_nb)
+        self.listener.remove_syscall_filter(syscall_nb)
 
 
 def clean_name(name):
