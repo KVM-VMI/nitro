@@ -17,6 +17,9 @@ class Nitro:
         return self
 
     def __exit__(self, type, value, traceback):
+        self.stop()
+
+    def stop(self):
         if self.backend is not None:
             self.backend.stop()
         self.listener.stop()
