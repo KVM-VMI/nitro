@@ -95,7 +95,23 @@ class LinuxBackend(Backend):
             if next_ == head:
                 break
 
+    def define_hook(self, name, callback, direction=SyscallDirection.enter):
+        super().define_hook(name, callback, direction)
+        if self.syscall_filtering:
+            self.add_syscall_filter(name)
+
+    def undefine_hook(self, name, direction=SyscallDirection.enter):
+        super().undefine_hook(name, direction)
+        if self.syscall_filtering:
+            self.remove_syscall_filter(name)
+
+    def add_syscall_filter(self, syscall_name):
+        raise RuntimeError('Unimplemented feature')
+
+    def remove_syscall_filter(self, syscall_name):
+        raise RuntimeError('Unimplemented feature')
+
+
 def clean_name(name):
     matches = HANDLER_NAME_REGEX.search(name)
     return matches.group("name") if matches is not None else name
-
