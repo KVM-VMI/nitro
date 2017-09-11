@@ -1,19 +1,19 @@
-import logging
 import struct
+
 
 class InconsistentMemoryError(Exception):
     pass
 
 
 class WinStruct(object):
-
     _fields_ = []
 
     def __init__(self, addr, process):
         # logging.debug('Building %s from %s', self.__class__.__name__, hex(addr))
         for f_offset, f_name, f_format in self._fields_:
             if isinstance(f_format, str):
-                # logging.debug('Field {}, {}, at {} + {}'.format(f_name, f_format, hex(addr), hex(f_offset)))
+                # logging.debug('Field {}, {}, at {} + {}'
+                #               .format(f_name, f_format, hex(addr), hex(f_offset)))
                 f_size = struct.calcsize(f_format)
                 content = process.read_memory(addr + f_offset, f_size)
                 f_value, *rest = struct.unpack(f_format, content)
@@ -26,7 +26,6 @@ class WinStruct(object):
 
 
 class ObjectAttributes(WinStruct):
-
     __slots__ = (
         'Length',
         'RootDirectory',
@@ -34,10 +33,10 @@ class ObjectAttributes(WinStruct):
     )
 
     _fields_ = [
-            (0, 'Length',  'I'),
-            (0x8, 'RootDirectory', 'P'),
-            (0x10, 'ObjectName', 'P'),
-            ]
+        (0, 'Length', 'I'),
+        (0x8, 'RootDirectory', 'P'),
+        (0x10, 'ObjectName', 'P'),
+    ]
 
     def __init__(self, addr, process):
         super().__init__(addr, process)
@@ -48,7 +47,6 @@ class ObjectAttributes(WinStruct):
 
 
 class ClientID(WinStruct):
-
     __slots__ = (
         'UniqueProcess',
         'UniqueThread'
@@ -64,7 +62,6 @@ class ClientID(WinStruct):
 
 
 class LargeInteger(WinStruct):
-
     __slots__ = (
         'LowPart',
         'HighPart'
@@ -75,14 +72,13 @@ class LargeInteger(WinStruct):
         (0, 'LowPart', 'I'),
         (4, 'HighPart', 'I'),
         (0, 'QuadPart', 'q')
-        ]
+    ]
 
     def __init__(self, addr, process):
         super().__init__(addr, process)
 
 
 class UnicodeString(WinStruct):
-
     __slots__ = (
         'Length',
         'MaximumLength',
@@ -90,10 +86,10 @@ class UnicodeString(WinStruct):
     )
 
     _fields_ = [
-            (0, 'Length', 'H'),
-            (0x2, 'MaximumLength', 'H'),
-            (0x8, 'Buffer', 'P'),
-            ]
+        (0, 'Length', 'H'),
+        (0x2, 'MaximumLength', 'H'),
+        (0x8, 'Buffer', 'P'),
+    ]
 
     def __init__(self, addr, process):
         super().__init__(addr, process)
@@ -106,7 +102,6 @@ class UnicodeString(WinStruct):
 
 
 class PEB(WinStruct):
-
     __slots__ = (
         'ProcessParameters'
     )
@@ -122,7 +117,6 @@ class PEB(WinStruct):
 
 
 class RtlUserProcessParameters(WinStruct):
-
     __slots__ = (
         'ImagePathName',
         'CommandLine'
@@ -138,7 +132,6 @@ class RtlUserProcessParameters(WinStruct):
 
 
 class AccessMask:
-
     STANDARD_RIGHTS = [
         (1 << 16, "DELETE"),
         (1 << 17, "READ_CONTROL"),
@@ -155,11 +148,11 @@ class AccessMask:
 
     def __init__(self, desired_access):
         self.rights = []
-        self.rights.extend([right for mask, right in self.STANDARD_RIGHTS if desired_access & mask])
+        self.rights.extend([right for mask, right in self.STANDARD_RIGHTS if
+                            desired_access & mask])
 
 
 class FileAccessMask(AccessMask):
-
     SPECIFIC_RIGHTS = [
         (1 << 0, "FILE_READ_DATA"),
         (1 << 1, "FILE_WRITE_DATA"),
@@ -173,10 +166,11 @@ class FileAccessMask(AccessMask):
 
     def __init__(self, desired_access):
         super().__init__(desired_access)
-        self.rights.extend([right for mask, right in self.SPECIFIC_RIGHTS if desired_access & mask])
+        self.rights.extend([right for mask, right in self.SPECIFIC_RIGHTS if
+                            desired_access & mask])
+
 
 class FileRenameInformation(WinStruct):
-
     __slots__ = (
         'ReplaceIfExists',
         'RootDirectory',
@@ -203,7 +197,6 @@ class FileRenameInformation(WinStruct):
 
 
 class FileDispositionInformation(WinStruct):
-
     __slots__ = (
         'DeleteFile'
     )
@@ -215,8 +208,8 @@ class FileDispositionInformation(WinStruct):
     def __init__(self, addr, process):
         super().__init__(addr, process)
 
-class FileBasicInformation(WinStruct):
 
+class FileBasicInformation(WinStruct):
     __slots__ = (
         'CreationTime',
         'LastAccessTime',

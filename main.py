@@ -15,8 +15,9 @@ Options:
 import logging
 import signal
 import json
-import libvirt
 from pprint import pprint
+
+import libvirt
 from docopt import docopt
 
 from nitro.nitro import Nitro
@@ -42,6 +43,7 @@ class NitroRunner:
         con = libvirt.open('qemu:///system')
         self.domain = con.lookupByName(vm_name)
         self.events = []
+        self.nitro = None
         # define new SIGINT handler, to stop nitro
         signal.signal(signal.SIGINT, self.sigint_handler)
 
@@ -73,7 +75,7 @@ class NitroRunner:
             with open('events.json', 'w') as f:
                 json.dump(self.events, f, indent=4)
 
-    def sigint_handler(self, signal, frame):
+    def sigint_handler(self, *args, **kwargs):
         logging.info('CTRL+C received, stopping Nitro')
         self.nitro.stop()
 

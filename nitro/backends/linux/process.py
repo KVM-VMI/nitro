@@ -15,6 +15,3 @@ class LinuxProcess(Process):
         self.task_struct = task_struct
         self.pid = self.libvmi.read_32(self.task_struct + pid_offset, 0)
         self.name = self.libvmi.read_str_va(self.task_struct + name_offset, 0)
-
-
-

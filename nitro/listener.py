@@ -13,7 +13,7 @@ from nitro.kvm import KVM, VM
 
 
 def find_qemu_pid(vm_name):
-    logging.info('Finding QEMU pid for domain {}'.format(vm_name))
+    logging.info('Finding QEMU pid for domain %s', vm_name)
     libvirt_vm_pid_file = '/var/run/libvirt/qemu/{}.pid'.format(vm_name)
     try:
         with open(libvirt_vm_pid_file, 'r') as f:
@@ -74,7 +74,7 @@ class Listener:
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, *args, **kwargs):
         self.stop()
 
     def stop(self):
@@ -124,7 +124,8 @@ class Listener:
             else:
                 e = NitroEvent(nitro_raw_ev, vcpu_io)
                 # put the event in the queue
-                # and wait for the event to be processed, when the main thread will set the continue_event
+                # and wait for the event to be processed,
+                # when the main thread will set the continue_event
                 item = (e, continue_event)
                 queue.put(item)
                 continue_event.wait()
@@ -147,7 +148,7 @@ class Listener:
             # ack the rest of the threads
             while [f for f in self.futures if f.running()]:
                 if self.queue.full():
-                    (event, continue_event) = self.queue.get()
+                    (*rest, continue_event) = self.queue.get()
                     continue_event.set()
                 # let the threads terminate
                 time.sleep(0.1)
