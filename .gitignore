@@ -58,3 +58,6 @@ GRTAGS
 GTAGS
 
 tests/linux_binaries/build/
+
+# cffi
+*.c
