@@ -10,7 +10,10 @@ setup(
     description=("""Hypervisor based tracing and monitoring prototype to trap
         guest syscalls and analyze them"""),
     packages=find_packages(),
+    setup_requires=["cffi>=1.0.0"],
+    cffi_modules=["nitro/build_libvmi.py:ffibuilder"],
     install_requires=[
+        'cffi>=1.0.0',
         'docopt',
         'libvirt-python',
     ],
