@@ -189,7 +189,7 @@ void vmi_rvacache_flush(
 
 
 
-ffibuilder.set_source("_libvmi",
+ffibuilder.set_source("nitro._libvmi",
     """
     #include <libvmi/libvmi.h>
     """,
