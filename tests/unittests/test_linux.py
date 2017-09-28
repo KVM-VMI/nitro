@@ -7,17 +7,16 @@ import logging
 
 from unittest.mock import Mock, patch
 
+# We do not want to import libvirt
+sys.modules["libvirt"] = Mock()
+sys.modules["nitro.backends.linux.process"] = Mock()
+
 # local
 sys.path.insert(1, os.path.realpath('../..'))
 from nitro.backends.linux import LinuxBackend
 from nitro.libvmi import Libvmi
 
 # Mock common backend objects with some defaults
-
-def translate_ksym2v(symbol):
-    return {
-        "sys_call_table": 0xc0ffee
-    }[symbol]
 
 def translate_v2ksym(symbol):
     return {
@@ -30,6 +29,7 @@ def translate_v2ksym(symbol):
 def translate_ksym2v(symbol):
     return {
         "sys_call_table": 0xc0ffee,
+        "init_task": 0x1000
     }[symbol]
 
 def get_offset(symbol):
@@ -57,7 +57,7 @@ def get_resource_path(name):
 
 class TestLinux(unittest.TestCase):
     def test_backend_creation(self):
-        """Check that LinuxBackend can be creted."""
+        """Check that LinuxBackend can be created."""
         backend = LinuxBackend(domain, libvmi)
 
         # Check that the created object gets its attributes from libvmi
@@ -75,11 +75,41 @@ class TestLinux(unittest.TestCase):
         def read_addr_va(addr, pid):
             start = addr - base
             return struct.unpack("P", memory[start:start+8])[0]
-        with patch.object(backend.libvmi, "read_addr_va", side_effect=read_addr_va) \
-             as mock_read_addr_va:
+        with patch.object(backend.libvmi, "read_addr_va", side_effect=read_addr_va):
             self.assertEqual(backend.get_syscall_name(0), "SyS_read")
             self.assertEqual(backend.get_syscall_name(1), "SyS_write")
             self.assertEqual(backend.get_syscall_name(2), "SyS_open")
             self.assertEqual(backend.get_syscall_name(3), "SyS_close")
+
+    def test_associate_process(self):
+        """Test process association."""
+
+        # This is kind of silly, but I think it codifies some of the
+        # relationships between addresses that the backend uses.
+        # Obviously a more robust test would be desirable
+
+        backend = LinuxBackend(domain, libvmi)
+        init_task = translate_ksym2v("init_task")
+        mm_offset = get_offset("linux_mm")
+        pgd_offset = get_offset("linux_pgd")
+        tasks_offset = get_offset("linux_tasks")
+        init_task_mm = 0x6060
+        init_task_mm_pgd = 0x7070
+
+        # Fake memory
+        def read_addr_va(addr, pid):
+            return {
+                init_task + mm_offset: init_task_mm, # mm for init task
+                init_task_mm + pgd_offset: init_task_mm_pgd,
+                init_task + tasks_offset: init_task + tasks_offset
+            }[addr]
+
+        def translate_kv2p(pgd):
+            return pgd + 0x100
+
+        with patch.object(backend.libvmi, "read_addr_va", side_effect=read_addr_va), \
+             patch.object(backend.libvmi, "translate_kv2p", side_effect=translate_kv2p):
+            process = backend.associate_process(init_task_mm_pgd + 0x100)
+            self.assertIsNotNone(process)
 
 
