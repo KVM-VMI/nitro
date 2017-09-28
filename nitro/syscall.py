@@ -1,6 +1,3 @@
-
-# FIXME:
-# Maybe we should subclass this for different backends
 class Syscall:
     __slots__ = (
         "event",
@@ -32,4 +29,3 @@ class Syscall:
         if self.args is not None and self.args.modified:
             info['modified'] = self.args.modified
         return info
-

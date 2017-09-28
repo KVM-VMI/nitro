@@ -15,21 +15,13 @@ Options:
 import logging
 import signal
 import json
-import libvirt
-import time
 from pprint import pprint
+
+import libvirt
 from docopt import docopt
 
 from nitro.nitro import Nitro
 from nitro.libvmi import LibvmiError
-
-run = True
-
-# def new signal for SIGINT
-def sigint_handler(signal, frame):
-    global run
-    run = False
-signal.signal(signal.SIGINT, sigint_handler)
 
 
 def init_logger():
@@ -38,40 +30,62 @@ def init_logger():
     logger.setLevel(logging.INFO)
 
 
-def main(args):
-    vm_name = args['<vm_name>']
-    # get domain from libvirt
-    con = libvirt.open('qemu:///system')
-    domain = con.lookupByName(vm_name)
+def callback(syscall, backend):
+    pass
 
-    events = []
+class NitroRunner:
 
-    analyze_enabled = not args['--nobackend']
+    def __init__(self, vm_name, analyze_enabled, stdout):
+        self.vm_name = vm_name
+        self.analyze_enabled = analyze_enabled
+        self.stdout = stdout
+        # get domain from libvirt
+        con = libvirt.open('qemu:///system')
+        self.domain = con.lookupByName(vm_name)
+        self.events = []
+        self.nitro = None
+        # define new SIGINT handler, to stop nitro
+        signal.signal(signal.SIGINT, self.sigint_handler)
 
-    with Nitro(domain, analyze_enabled) as nitro:
-        nitro.listener.set_traps(True)
-        for event in nitro.listen():
+    def run(self):
+        self.nitro = Nitro(self.domain, self.analyze_enabled)
+        if self.analyze_enabled:
+            # defining hooks
+            self.nitro.backend.define_hook('NtOpenFile', callback)
+            self.nitro.backend.define_hook('NtCreateFile', callback)
+            self.nitro.backend.define_hook('NtClose', callback)
+
+        self.nitro.listener.set_traps(True)
+        for event in self.nitro.listen():
             event_info = event.as_dict()
-            if analyze_enabled:
+            if self.analyze_enabled:
                 try:
-                    syscall = nitro.backend.process_event(event)
+                    syscall = self.nitro.backend.process_event(event)
                 except LibvmiError:
                     logging.error("Backend event processing failure")
                 else:
                     event_info = syscall.as_dict()
-            if args['--stdout']:
+            if self.stdout:
                 pprint(event_info, width=1)
             else:
-                events.append(event_info)
+                self.events.append(event_info)
 
-            # stop properly by CTRL+C
-            if not run:
-                break
+        if self.events:
+            logging.info('Writing events')
+            with open('events.json', 'w') as f:
+                json.dump(self.events, f, indent=4)
 
-    if events:
-        logging.info('Writing events')
-        with open('events.json', 'w') as f:
-            json.dump(events, f, indent=4)
+    def sigint_handler(self, *args, **kwargs):
+        logging.info('CTRL+C received, stopping Nitro')
+        self.nitro.stop()
+
+
+def main(args):
+    vm_name = args['<vm_name>']
+    analyze_enabled = False if args['--nobackend'] else True
+    stdout = args['--stdout']
+    runner = NitroRunner(vm_name, analyze_enabled, stdout)
+    runner.run()
 
 
 if __name__ == '__main__':

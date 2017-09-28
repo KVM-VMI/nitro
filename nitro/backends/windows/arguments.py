@@ -1,5 +1,3 @@
-import struct
-
 from nitro.event import SyscallType
 from nitro.backends.arguments import ArgumentMap, SyscallArgumentType
 

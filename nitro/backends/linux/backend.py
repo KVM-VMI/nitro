@@ -10,7 +10,8 @@ from nitro.backends.linux.process import LinuxProcess
 from nitro.backends.backend import Backend
 from nitro.backends.linux.arguments import LinuxArgumentMap
 
-# Technically, I do not think using this the way I do is correct since it might be different for the VM
+# Technically, I do not think using this the way
+#  I do is correct since it might be different for the VM
 VOID_P_SIZE = sizeof(c_void_p)
 
 HANDLER_NAME_REGEX = re.compile(r"^(SyS|sys)_(?P<name>.+)")
@@ -25,8 +26,8 @@ class LinuxBackend(Backend):
         "pgd_offset",
     )
 
-    def __init__(self, domain, libvmi):
-        super().__init__(domain, libvmi)
+    def __init__(self, domain, libvmi, listener, syscall_filtering=True):
+        super().__init__(domain, libvmi, listener, syscall_filtering)
         self.sys_call_table_addr = self.libvmi.translate_ksym2v("sys_call_table")
         logging.debug("sys_call_table at %s", hex(self.sys_call_table_addr))
 
@@ -70,9 +71,12 @@ class LinuxBackend(Backend):
         return syscall
 
     def get_syscall_name(self, rax):
-        p_addr = self.sys_call_table_addr + (rax * VOID_P_SIZE) # address of the pointer within the sys_call_table array
-        addr = self.libvmi.read_addr_va(p_addr, 0) # get the address of the procedure
-        return self.libvmi.translate_v2ksym(addr) # translate the address into a name
+        # address of the pointer within the sys_call_table array
+        p_addr = self.sys_call_table_addr + (rax * VOID_P_SIZE)
+        # get the address of the procedure
+        addr = self.libvmi.read_addr_va(p_addr, 0)
+        # translate the address into a name
+        return self.libvmi.translate_v2ksym(addr)
 
     def associate_process(self, cr3):
         """Get Process associated with CR3"""
@@ -95,7 +99,23 @@ class LinuxBackend(Backend):
             if next_ == head:
                 break
 
+    def define_hook(self, name, callback, direction=SyscallDirection.enter):
+        super().define_hook(name, callback, direction)
+        if self.syscall_filtering:
+            self.add_syscall_filter(name)
+
+    def undefine_hook(self, name, direction=SyscallDirection.enter):
+        super().undefine_hook(name, direction)
+        if self.syscall_filtering:
+            self.remove_syscall_filter(name)
+
+    def add_syscall_filter(self, syscall_name):
+        raise RuntimeError('Unimplemented feature')
+
+    def remove_syscall_filter(self, syscall_name):
+        raise RuntimeError('Unimplemented feature')
+
+
 def clean_name(name):
     matches = HANDLER_NAME_REGEX.search(name)
     return matches.group("name") if matches is not None else name
-

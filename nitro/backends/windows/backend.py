@@ -10,14 +10,14 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 import libvirt
 
-
-from nitro.event import SyscallDirection, SyscallType
+from nitro.event import SyscallDirection
 from nitro.syscall import Syscall
 from nitro.backends.windows.process import WindowsProcess
 from nitro.backends.backend import Backend
 from nitro.backends.windows.arguments import WindowsArgumentMap
 
 GETSYMBOLS_SCRIPT = 'get_symbols.py'
+
 
 class WindowsBackend(Backend):
     __slots__ = (
@@ -30,8 +30,8 @@ class WindowsBackend(Backend):
         "symbols"
     )
 
-    def __init__(self, domain, libvmi):
-        super().__init__(domain, libvmi)
+    def __init__(self, domain, libvmi, listener, syscall_filtering=True):
+        super().__init__(domain, libvmi, listener, syscall_filtering)
         vcpus_info = self.domain.vcpus()
         self.nb_vcpu = len(vcpus_info[0])
 
@@ -53,9 +53,10 @@ class WindowsBackend(Backend):
         with TemporaryDirectory() as tmp_dir:
             with NamedTemporaryFile(dir=tmp_dir) as ram_dump:
                 # chmod to be r/w by everyone
-                os.chmod(ram_dump.name, stat.S_IRUSR | stat.S_IWUSR |
-                                        stat.S_IRGRP | stat.S_IWGRP |
-                                        stat.S_IROTH | stat.S_IWOTH)
+                os.chmod(ram_dump.name,
+                         stat.S_IRUSR | stat.S_IWUSR |
+                         stat.S_IRGRP | stat.S_IWGRP |
+                         stat.S_IROTH | stat.S_IWOTH)
                 # take a ram dump
                 logging.info('Dumping physical memory to %s', ram_dump.name)
                 flags = libvirt.VIR_DUMP_MEMORY_ONLY
@@ -63,7 +64,8 @@ class WindowsBackend(Backend):
                 self.domain.coreDumpWithFormat(ram_dump.name, dumpformat, flags)
                 # build symbols.py absolute path
                 script_dir = os.path.dirname(os.path.realpath(__file__))
-                symbols_script_path = os.path.join(script_dir, GETSYMBOLS_SCRIPT)
+                symbols_script_path = os.path.join(script_dir,
+                                                   GETSYMBOLS_SCRIPT)
                 # call rekall on ram dump
                 logging.info('Extracting symbols with Rekall')
                 python2 = shutil.which('python2')
@@ -124,6 +126,23 @@ class WindowsBackend(Backend):
         self.dispatch_hooks(syscall)
         return syscall
 
+    def define_hook(self, name, callback, direction=SyscallDirection.enter):
+        super().define_hook(name, callback, direction)
+        if self.syscall_filtering:
+            self.add_syscall_filter(name)
+
+    def undefine_hook(self, name, direction=SyscallDirection.enter):
+        super().undefine_hook(name, direction)
+        if self.syscall_filtering:
+            self.remove_syscall_filter(name)
+
+    def find_syscall_nb(self, syscall_name):
+        for ssdt in self.sdt:
+            for syscall_nb, full_name in ssdt['ServiceTable'].items():
+                if re.match(r'^.*{}$'.format(syscall_name), full_name):
+                    return syscall_nb
+        return None
+
     def associate_process(self, cr3):
         if cr3 in self.processes:
             p = self.processes[cr3]
@@ -142,14 +161,19 @@ class WindowsBackend(Backend):
 
         while flink != ps_head:
             # get start of EProcess
-            start_eproc = flink - self.symbols['offsets']['EPROCESS']['ActiveProcessLinks']
+            start_eproc = flink - self.symbols['offsets']['EPROCESS'][
+                'ActiveProcessLinks']
             # move to start of DirectoryTableBase
-            directory_table_base_off = start_eproc + self.symbols['offsets']['KPROCESS']['DirectoryTableBase']
+            directory_table_base_off = start_eproc + \
+                                       self.symbols['offsets']['KPROCESS'][
+                                           'DirectoryTableBase']
             # read directory_table_base
-            directory_table_base = self.libvmi.read_addr_va(directory_table_base_off, 0)
+            directory_table_base = self.libvmi.read_addr_va(
+                directory_table_base_off, 0)
             # compare to our cr3
             if cr3 == directory_table_base:
-                return WindowsProcess(self.libvmi, cr3, start_eproc, self.symbols)
+                return WindowsProcess(self.libvmi, cr3, start_eproc,
+                                      self.symbols)
             # read new flink
             flink = self.libvmi.read_addr_va(flink, 0)
         raise RuntimeError('Process not found')
@@ -160,10 +184,26 @@ class WindowsBackend(Backend):
         try:
             syscall_name = self.sdt[idx]['ServiceTable'][ssn]
         except (KeyError, IndexError):
-            # this code should not be reached, because there is only 2 SSDT's defined in Windows (Nt and Win32k)
+            # this code should not be reached,
+            # because there is only 2 SSDT's defined in Windows (Nt and Win32k)
             # the 2 others are NULL
             syscall_name = 'Table{}!Unknown'.format(idx)
         return syscall_name
+
+    def add_syscall_filter(self, syscall_name):
+        syscall_nb = self.find_syscall_nb(syscall_name)
+        if syscall_nb is None:
+            raise RuntimeError(
+                'Unable to find syscall number for %s' % syscall_name)
+        self.listener.add_syscall_filter(syscall_nb)
+
+    def remove_syscall_filter(self, syscall_name):
+        syscall_nb = self.find_syscall_nb(syscall_name)
+        if syscall_nb is None:
+            raise RuntimeError(
+                'Unable to find syscall number for %s' % syscall_name)
+        self.listener.remove_syscall_filter(syscall_nb)
+
 
 def clean_name(name):
     return name.split('!')[-1]

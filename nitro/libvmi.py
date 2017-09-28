@@ -1,6 +1,7 @@
 import logging
 from enum import Enum
 
+
 from nitro._libvmi import ffi, lib
 
 VMI_SUCCESS = 0
@@ -13,6 +14,7 @@ class VMIOS(Enum):
     UNKNOWN = 0
     LINUX = 1
     WINDOWS = 2
+
 
 class Libvmi:
 
@@ -41,7 +43,6 @@ class Libvmi:
             raise LibvmiError('VMI_FAILURE')
         # store handle to real vmi_instance_t
         self.vmi = self.opaque_vmi[0]
-        self.failures = 0
 
     def destroy(self):
         status = lib.vmi_destroy(self.vmi)

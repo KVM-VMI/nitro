@@ -25,34 +25,43 @@ class WindowsProcess(Process):
         self.symbols = symbols
 
         # get name
-        image_file_name_off = self.eproc + self.symbols['offsets']['EPROCESS']['ImageFileName']
-        self.name = self.libvmi.read_str_va(image_file_name_off, 0)
+        image_file_name_off = self.symbols['offsets']['EPROCESS']['ImageFileName']
+        image_file_name_addr = self.eproc + image_file_name_off
+        self.name = self.libvmi.read_str_va(image_file_name_addr, 0)
         # get pid
-        unique_processid_off = self.eproc + self.symbols['offsets']['EPROCESS']['UniqueProcessId']
-        self.pid = self.libvmi.read_addr_va(unique_processid_off, 0)
+        unique_processid_off = self.symbols['offsets']['EPROCESS']['UniqueProcessId']
+        unique_processid_addr = self.eproc + unique_processid_off
+        self.pid = self.libvmi.read_addr_va(unique_processid_addr, 0)
         # get command line
-        peb_addr = self.libvmi.read_addr_va(self.eproc + self.symbols['offsets']['EPROCESS']['Peb'], 0)
+        peb_off = self.symbols['offsets']['EPROCESS']['Peb']
+        peb_addr = self.libvmi.read_addr_va(self.eproc + peb_off, 0)
         peb = PEB(peb_addr, self)
         self.command_line = peb.ProcessParameters.CommandLine.Buffer
         # get full path
-        seauditprocesscreationinfo_offs = self.eproc + self.symbols['offsets']['EPROCESS']['SeAuditProcessCreationInfo']
+        seauditprocess_off = self.symbols['offsets']['EPROCESS']['SeAuditProcessCreationInfo']
+        seauditprocesscreationinfo_offs = self.eproc + seauditprocess_off
+
         sapci = self.libvmi.read_addr_va(seauditprocesscreationinfo_offs, 0)
         fullpath = UnicodeString(sapci, self)
         self.path = fullpath.Buffer
         # get create time
-        create_time = self.eproc + self.symbols['offsets']['EPROCESS']['CreateTime']
-        ct = LargeInteger(create_time, self)
+        create_time_addr = self.eproc + self.symbols['offsets']['EPROCESS']['CreateTime']
+        ct = LargeInteger(create_time_addr, self)
         # Converts Windows 64-bit time to UNIX time, the below code has been taken from Volatility
         ct = ct.QuadPart / WINDOWS_TICK
         ct = ct - SEC_TO_UNIX_EPOCH
-        self.create_time = datetime.datetime.fromtimestamp(ct).strftime("%Y-%m-%d %H:%M:%S")
+        self.create_time = datetime.datetime.fromtimestamp(ct)\
+            .strftime("%Y-%m-%d %H:%M:%S")
         # get parent PID
-        parent_pid_offs = self.eproc + self.symbols['offsets']['EPROCESS']['InheritedFromUniqueProcessId']
-        ppid = self.libvmi.read_addr_va(parent_pid_offs, 0)
+        parent_pid_off = self.symbols['offsets']['EPROCESS']['InheritedFromUniqueProcessId']
+        parent_pid_addr = self.eproc + parent_pid_off
+
+        ppid = self.libvmi.read_addr_va(parent_pid_addr, 0)
         self.parent_pid = ppid
         # get iswow64, if value is non-zero then iswow64 is true
-        self.iswow64 = self.libvmi.read_addr_va(self.eproc + self.symbols['offsets']['EPROCESS']['Wow64Process'], 0) != 0
-    
+        wow64_off = self.symbols['offsets']['EPROCESS']['Wow64Process']
+        self.iswow64 = self.libvmi.read_addr_va(self.eproc + wow64_off, 0) != 0
+
     def as_dict(self):
         parent = super().as_dict()
         parent["parent_pid"] = self.parent_pid
@@ -61,4 +70,3 @@ class WindowsProcess(Process):
         parent["path"] = self.path
         parent["create_time"] = self.create_time
         return parent
-

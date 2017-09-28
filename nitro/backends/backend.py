@@ -2,7 +2,7 @@ import logging
 import json
 from collections import defaultdict
 
-from nitro.event import SyscallDirection, SyscallType
+from nitro.event import SyscallDirection
 from nitro.libvmi import LibvmiError
 
 class Backend:
@@ -11,12 +11,15 @@ class Backend:
         "libvmi",
         "hooks",
         "stats",
-        "listener"
+        "listener",
+        "syscall_filtering"
     )
 
-    def __init__(self, domain, libvmi):
+    def __init__(self, domain, libvmi, listener, syscall_filtering=True):
         self.domain = domain
         self.libvmi = libvmi
+        self.listener = listener
+        self.syscall_filtering = syscall_filtering
         self.hooks = {
             SyscallDirection.enter: {},
             SyscallDirection.exit: {}
@@ -34,7 +37,8 @@ class Backend:
             pass
         else:
             try:
-                logging.debug('Processing hook %s - %s', syscall.event.direction.name, hook.__name__)
+                logging.debug('Processing hook %s - %s',
+                              syscall.event.direction.name, hook.__name__)
                 hook(syscall, self)
             # FIXME: There should be a way for OS specific backends to report these
             # except InconsistentMemoryError: #
