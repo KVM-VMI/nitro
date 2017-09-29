@@ -7,23 +7,32 @@ import logging
 
 from unittest.mock import Mock, patch
 
+# TODO:
+# Make sure we do not end up importing anything that might cause problems
+# in CI environment.
+
 # We do not want to import libvirt
+# Could we do this in a cleaner way?
 sys.modules["libvirt"] = Mock()
 sys.modules["nitro.backends.linux.process"] = Mock()
+sys.modules["nitro.backends.linux.arguments"] = Mock()
 
 # local
 sys.path.insert(1, os.path.realpath('../..'))
 from nitro.backends.linux import LinuxBackend
+from nitro.backends.linux.backend import clean_name as linux_clean_name
 from nitro.libvmi import Libvmi
+from nitro.event import SyscallDirection
+from nitro.syscall import Syscall
 
 # Mock common backend objects with some defaults
 
 def translate_v2ksym(symbol):
     return {
-        18446744071581005472: "SyS_read",
-        18446744071581005664: "SyS_write",
-        18446744071580990032: "SyS_close",
-        18446744071580998512: "SyS_open"
+        0xffffffff8120f6a0: "SyS_read",
+        0xffffffff8120f760: "SyS_write",
+        0xffffffff8120ba50: "SyS_close",
+        0xffffffff8120db70: "SyS_open"
     }[symbol]
 
 def translate_ksym2v(symbol):
@@ -69,6 +78,7 @@ class TestLinux(unittest.TestCase):
     def test_syscall_name(self):
         """Check that syscall names can be extracted from system call table."""
         backend = LinuxBackend(domain, libvmi)
+        # The sample file is extracted from the Ubuntu image used integration tests
         with get_resource_path("syscall_table_sample.bin").open("rb") as handle:
             memory = handle.read()
         base = translate_ksym2v("sys_call_table")
@@ -111,5 +121,37 @@ class TestLinux(unittest.TestCase):
              patch.object(backend.libvmi, "translate_kv2p", side_effect=translate_kv2p):
             process = backend.associate_process(init_task_mm_pgd + 0x100)
             self.assertIsNotNone(process)
+
+    def test_check_caches_flushed(self):
+        """Check that libvmi caches are flushed."""
+        backend = LinuxBackend(domain, libvmi)
+        event = Mock(direction=SyscallDirection.exit, vcpu_nb=0)
+
+        with patch.object(LinuxBackend, "associate_process"), \
+             patch.object(LinuxBackend, "get_syscall_name", return_value="SyS_write"):
+            backend.process_event(event)
+
+        libvmi.v2pcache_flush.assert_called_once()
+        libvmi.pidcache_flush.assert_called_once()
+        libvmi.rvacache_flush.assert_called_once()
+        libvmi.symcache_flush.assert_called_once()
+
+    def test_process_event(self):
+        """Test that the event handler returns a syscall object with somewhat sensible content"""
+        backend = LinuxBackend(domain, libvmi)
+        event = Mock(direction=SyscallDirection.enter, vcpu_nb=0)
+
+        with patch.object(LinuxBackend, "associate_process"), \
+             patch.object(LinuxBackend, "get_syscall_name", return_value="SyS_write"):
+            syscall = backend.process_event(event)
+
+        self.assertEqual(syscall.name, "write")
+        self.assertEqual(syscall.full_name, "SyS_write")
+        self.assertIsInstance(syscall, Syscall)
+
+    def test_clean_name(self):
+        """Test that system call handler names are properly cleaned."""
+        self.assertEqual(linux_clean_name("SyS_foo"), "foo")
+        self.assertEqual(linux_clean_name("sys_bar"), "bar")
 
 
