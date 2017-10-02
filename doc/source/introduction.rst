@@ -49,3 +49,11 @@ your software for hardware failures or uncommon system call return values that
 almost never happen. Traditionally, bugs related to these things have been hard
 to replicate and fix. One of Nitro's goals is to make this feasible by providing
 tools for faking strange, uncommon, events.
+
+State of the Project
+--------------------
+
+Nitro is still under heavy development and things are bound to change and evolve
+as the project progresses. While the core aspects of Nitro are in place, many of
+the finer features are still shaping up. APIs are likely to change as we iterate
+the design to find the best possible form for Nitro.
