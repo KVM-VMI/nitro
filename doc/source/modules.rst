@@ -1,5 +1,5 @@
-nitro
-=====
+Project Structure
+=================
 
 .. toctree::
    :maxdepth: 4
