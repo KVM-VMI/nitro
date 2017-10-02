@@ -29,6 +29,13 @@ import os, sys
 module_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir))
 sys.path.insert(0, module_dir)
 
+# Mock some of the requirements as we do not really need them for documentation
+# generation.
+from unittest.mock import MagicMock
+
+for mod in ("libvirt", "nitro._libvmi", "ioctl_opt"):
+    sys.modules[mod] = MagicMock()
+
 # If your documentation needs a minimal Sphinx version, state it here.
 #
 # needs_sphinx = '1.0'
