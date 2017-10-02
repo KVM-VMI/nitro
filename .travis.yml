@@ -13,3 +13,5 @@ deploy:
   local_dir: doc/build/html
   github_token: $GITHUB_TOKEN
   target_branch: gh-pages
+  on:
+    branch: documentation
