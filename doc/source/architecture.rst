@@ -1,5 +1,5 @@
-Architecture
-============
+Architecture Overview
+=====================
 
 In this chapter, we take a look at how the project is structured and how the
 different components fit together.
@@ -39,6 +39,19 @@ machines.
 Nitro
 -----
 
+Framework's namesake :class:`~.Nitro` class acts as a frontend for accessing
+much of the functionality. By creating a Nitro object, the user can start
+listening for events from the virtual machine and, optionally, access an
+analysis back end associated with the guest's operating system.
+
+Throughout the framework, you will find a heavy use of Python's `context
+managers <https://docs.python.org/3/library/stdtypes.html#typecontextmanager>`__
+in the APIs to ease reasource management. For example, :class:`~.Nitro` objects
+automatically stop their associated :ref:`listeners <listeners>` and, if
+instantiated, :ref:`back ends <backends>`.
+
+.. _listeners:
+
 Event Listeners
 ---------------
 
@@ -54,6 +67,8 @@ state of the machine when the system call took place. They contain information
 about the registers and whether the machine was entering or exiting a system
 call. Additionally, the events record which of the (possibly many) virtual CPU's
 associated with the machine was responsible the event.
+
+.. _backends:
 
 Analysis Back ends
 ------------------
@@ -82,14 +97,18 @@ Process Info Objects
 --------------------
 
 As a whole, virtual machines typically produce a lot of system call events. For
-practical purposes, it is often useful to concentrate on a tiny fraction of the
-events that the system produces. Knowing which process caused the event is
-useful for separating interesting events from the rest.
+practical purposes, it is often useful to concentrate only on a tiny fraction of
+the events that the system produces. Knowing which process caused the event is
+useful for separating interesting events from the noise.
 
-Back ends associate each system call with process that originated them. The
-process information is stored in :class:`~.Process` objects. These are specific
-to each back end as they contain operating system specific information. In
-general, process info objects contain the process ID and the name of the binary.
+Back ends associate each system call with the process that originated them.
+Process information is stored in :class:`~.Process` objects. These are specific
+to each back end as they can contain operating system specific process
+information. For example, the Windows specific :class:`~.WindowsProcess` class
+knows whether or not the process is running in the 32-bit mode. What is common
+between the different implementations is the process objects all contain some
+form of process ID and the name of the program binary associated with the
+process.
 
 System Call Argument Access
 ---------------------------
