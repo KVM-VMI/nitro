@@ -17,7 +17,11 @@ might want to extract further information from the virtual machine or perform
 additional analysis that is specific to their use case or simply save the
 gathered data into a database.
 
-Why you might want to consider Nitro
+For the end user, Nitro provides a simple Python API for attaching to virtual
+machines, subscribing to different kinds of events from them and a way to react
+to those events.
+
+Why You Might Want to Consider Nitro
 ------------------------------------
 
 You might want to use Nitro when you need to have a low-level view of what your
@@ -47,8 +51,8 @@ correctly whatever happens. Nitro aims to help you there by providing you with
 the tools for simulating abnormal system behavior. For example, how do you test
 your software for hardware failures or uncommon system call return values that
 almost never happen. Traditionally, bugs related to these things have been hard
-to replicate and fix. One of Nitro's goals is to make this feasible by providing
-tools for faking strange, uncommon, events.
+to replicate and fix. One of goals for the project is to make this feasible by
+providing tools for faking strange and uncommon events.
 
 State of the Project
 --------------------
