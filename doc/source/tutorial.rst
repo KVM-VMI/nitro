@@ -39,7 +39,13 @@ Internally, Nitro will use the :class:`~.Listener` it initialized for us.
 :meth:`~.Nitro.listen` will give us a stream of :class:`~.NitroEvent` events.
 Each event describes a state of the machine when a system call entry or exit
 happened. Here, we simply print a representation of each event received. This
-should quickly print a lot of data about things happening inside the VM.
+should quickly print a lot of data about things happening inside the VM:
+
+.. literalinclude:: samples/tutorial-02-output.txt
+   :language: python
+
+Each event line shows the most important properties of the event and, if we
+wanted, we could access even more information through the ``event`` object.
 
 Understanding the Data
 ----------------------
@@ -62,6 +68,12 @@ virtual machine memory for information about events is a potentially challenging
 task that may result in an error. It is a good practice to catch those. Here, if
 everything went well, we will print the analysis result. This should result in
 something little more understandable.
+
+.. literalinclude:: samples/tutorial-03-output.txt
+   :language: python
+
+We can see that each event has been coupled with information about the process
+that caused it. We are already getting pretty close to our goal!
 
 Looking for a Notepad
 ---------------------
