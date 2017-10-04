@@ -1,5 +1,6 @@
-Architecture Overview
-=====================
+=======================
+ Architecture Overview
+=======================
 
 In this chapter, we take a look at how the project is structured and how the
 different components fit together.
@@ -17,7 +18,7 @@ different components fit together.
    arguments of the call.
 
 Virtual Machines
-----------------
+================
 
 Nitro depends on `libvirt <https://libvirt.org>`__ to manage virtual machine
 life cycle and configuration for it. Libvirt is responsible for keeping track of
@@ -37,12 +38,12 @@ instructions on how to install and use it to effectively manage virtual
 machines.
 
 Nitro
------
+=====
 
 Framework's namesake :class:`~.Nitro` class acts as a frontend for accessing
-much of the functionality. By creating a Nitro object, the user can start
-listening for events from the virtual machine and, optionally, access an
-analysis back end associated with the guest's operating system.
+much of the functionality. By creating a Nitro object, we can start listening
+for events from the virtual machine and, optionally, access an analysis back end
+associated with the guest's operating system.
 
 Throughout the framework, you will find a heavy use of Python's `context
 managers <https://docs.python.org/3/library/stdtypes.html#typecontextmanager>`__
@@ -53,7 +54,7 @@ instantiated, :ref:`back ends <backends>`.
 .. _listeners:
 
 Event Listeners
----------------
+===============
 
 Nitro's :class:`~.Listener` enables subscribing to events from the kernel
 regarding a particular virtual machine. Listener issues a set of Nitro specific
@@ -71,7 +72,7 @@ associated with the machine was responsible the event.
 .. _backends:
 
 Analysis Back ends
-------------------
+==================
 
 While knowing the register values is nice, for many real-world applications a
 higher-level view of the system if often preferred. :class:`~.Backend` classes
@@ -94,7 +95,7 @@ depends on. The current back ends make use of `libvmi <http://libvmi.com/>`__ to
 dissect virtual machine's memory.
 
 Process Info Objects
---------------------
+====================
 
 As a whole, virtual machines typically produce a lot of system call events. For
 practical purposes, it is often useful to concentrate only on a tiny fraction of
@@ -111,7 +112,29 @@ form of process ID and the name of the program binary associated with the
 process.
 
 System Call Argument Access
----------------------------
+===========================
+
+With analysis back ends, we can have a rough idea about what the system is doing
+by looking at which system calls processes are invoking. However, this is often
+not enough as we would like to also know the arguments for each call. It is much
+more useful to know which file the monitored program is trying to access than to
+simply know that it is trying to access something. For this purpose, analysis
+back ends associate an :class:`~.ArgumentMap` with each system call event.
+
+:class:`~.ArgumentMap` allows inspecting and modifying the arguments passed to
+each system call. Argument map abstracts operating system specific system call
+conventions and makes it possible to access arguments through a list-like
+object. As with :class:`~.Process` objects, argument maps are specific to each
+back end as they depend on intricate knowledge about system call conventions.
+
+By indexing argument map objects, we can get the raw values passed in through
+registers and/or memory, depending on the calling conventions. However, it is
+noteworthy that Nitro does not currently try to further analyze the content of
+these values and this is left to the user if they require such functionality.
+
+.. note:: There is ongoing work on designing mechanisms for easier extraction of
+          higher-level data structures from the raw arguments. This space is
+          likely going to change as the work progresses further.
 
 
 
