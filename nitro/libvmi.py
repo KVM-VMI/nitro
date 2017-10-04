@@ -48,6 +48,7 @@ class Libvmi:
         status = lib.vmi_destroy(self.vmi)
         if status != VMI_SUCCESS:
             raise LibvmiError('VMI_FAILURE')
+        self.vmi = None
 
     def translate_ksym2v(self, symbol):
         addr = ffi.new("addr_t *")
