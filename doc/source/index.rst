@@ -13,6 +13,7 @@ single line of code inside a virtual machine as all the work hapens on the host.
    introduction
    installation
    architecture
+   tutorial
 
 .. include:: modules.rst
 
