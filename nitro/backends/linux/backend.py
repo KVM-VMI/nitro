@@ -1,4 +1,3 @@
-import itertools
 import logging
 import re
 
@@ -16,6 +15,8 @@ from nitro.backends.linux.arguments import LinuxArgumentMap
 VOID_P_SIZE = sizeof(c_void_p)
 
 HANDLER_NAME_REGEX = re.compile(r"^(SyS|sys)_(?P<name>.+)")
+
+MAX_SYSTEM_CALL_COUNT = 512
 
 class LinuxBackend(Backend):
     __slots__ = (
@@ -85,14 +86,19 @@ class LinuxBackend(Backend):
         # do something kind of risky and read as long as translate_v2ksym
         # returns something that looks like a system call handler.
         mapping = {}
-        for i in itertools.count():
+        for i in range(0, MAX_SYSTEM_CALL_COUNT):
             p_addr = self.sys_call_table_addr + (i * VOID_P_SIZE)
-            addr = self.libvmi.read_addr_va(p_addr, 0)
-            symbol = self.libvmi.translate_v2ksym(addr)
-            if symbol is not None:
-                mapping[symbol] = i
+            try:
+                addr = self.libvmi.read_addr_va(p_addr, 0)
+                symbol = self.libvmi.translate_v2ksym(addr)
+            except LibvmiError as error:
+                logging.critical("Failed to build syscall name map")
+                raise error
             else:
-                return mapping
+                if symbol is not None:
+                    mapping[symbol] = i
+                else:
+                    return mapping
 
     def find_syscall_nb(self, syscall_name):
         # What about thos compat_* handlers?
