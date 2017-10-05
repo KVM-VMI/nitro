@@ -68,7 +68,10 @@ class Libvmi:
         ctx = ffi.new("access_context_t *")
         ctx.translate_mechanism = lib.VMI_TM_PROCESS_PID
         str = lib.vmi_translate_v2ksym(self.vmi, ctx, vaddr)
-        return ffi.string(str).decode()
+        if str != ffi.NULL:
+            return ffi.string(str).decode()
+        else:
+            return None
 
     def translate_kv2p(self, vaddr):
         paddr = ffi.new("addr_t *")
