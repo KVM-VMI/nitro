@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 import re
-import os
-import os.path
+import psutil
 import logging
 import time
 import threading
@@ -24,22 +23,12 @@ def find_qemu_pid(vm_name):
             pid = int(content)
             return pid
     except IOError:
-        qemu_regexp = re.compile('qemu.*-name.*{}'.format(vm_name))
-        pid = next(pids_matching_cmd_line(qemu_regexp), None)
-        if pid is not None:
-            return pid
-        else:
-            logging.critical('Cannot find QEMU')
-            raise QEMUNotFoundError('Cannot find QEMU')
-
-def pids_matching_cmd_line(regexp):
-    """Generator returning PIDs of processes where the command line matches the given regexp."""
-    for dir in os.listdir("/proc"):
-        if dir.isdigit():
-            with open(os.path.join("/proc", dir, "cmdline"), "r") as handle:
-                cmd_line = handle.read()
-                if regexp.search(cmd_line) is not None:
-                    yield int(dir, 10)
+        for proc in psutil.process_iter():
+            if proc.name() == "qemu-system-x86_64" and \
+               any("guest={}".format(vm_name) in p for p in proc.cmdline()[1:]):
+                return proc.pid
+        logging.critical('Cannot find QEMU')
+        raise QEMUNotFoundError('Cannot find QEMU')
 
 class Listener:
 
