@@ -1,3 +1,4 @@
+import itertools
 import logging
 import re
 
@@ -22,6 +23,7 @@ class LinuxBackend(Backend):
         "nb_vcpu",
         "syscall_stack",
         "tasks_offset",
+        "syscall_names",
         "mm_offset",
         "pgd_offset",
     )
@@ -35,6 +37,8 @@ class LinuxBackend(Backend):
         self.nb_vcpu = len(vcpus_info[0])
 
         self.syscall_stack = tuple([] for _ in range(self.nb_vcpu))
+
+        self.syscall_names = self.build_syscall_name_map()
 
         self.tasks_offset = self.libvmi.get_offset("linux_tasks")
         self.mm_offset = self.libvmi.get_offset("linux_mm")
@@ -78,6 +82,27 @@ class LinuxBackend(Backend):
         # translate the address into a name
         return self.libvmi.translate_v2ksym(addr)
 
+    def build_syscall_name_map(self):
+        # Its a bit difficult to know where the system call table ends, here we
+        # do something kind of risky and read as long as translate_v2ksym
+        # returns something that looks like a system call handler.
+        mapping = {}
+        for i in itertools.count():
+            p_addr = self.sys_call_table_addr + (i * VOID_P_SIZE)
+            addr = self.libvmi.read_addr_va(p_addr, 0)
+            symbol = self.libvmi.translate_v2ksym(addr)
+            if symbol is not None:
+                mapping[symbol] = i
+            else:
+                return mapping
+
+    def find_syscall_nb(self, syscall_name):
+        # What about thos compat_* handlers?
+        handler_regexp = re.compile(r"^(SyS|sys)_{}".format(syscall_name))
+        for full_name, ind in self.syscall_names.items():
+            if handler_regexp.match(full_name) is not None:
+                return ind
+
     def associate_process(self, cr3):
         """Get Process associated with CR3"""
         head = self.libvmi.translate_ksym2v("init_task") # get the address of swapper's task_struct
@@ -110,10 +135,18 @@ class LinuxBackend(Backend):
             self.remove_syscall_filter(name)
 
     def add_syscall_filter(self, syscall_name):
-        raise RuntimeError('Unimplemented feature')
+        syscall_nb = self.find_syscall_nb(syscall_name)
+        if syscall_nb is None:
+            raise RuntimeError(
+                'Unable to find syscall number for %s' % syscall_name)
+        self.listener.add_syscall_filter(syscall_nb)
 
     def remove_syscall_filter(self, syscall_name):
-        raise RuntimeError('Unimplemented feature')
+        syscall_nb = self.find_syscall_nb(syscall_name)
+        if syscall_nb is None:
+            raise RuntimeError(
+                'Unable to find syscall number for %s' % syscall_name)
+        self.listener.remove_syscall_filter(syscall_nb)
 
 
 def clean_name(name):
