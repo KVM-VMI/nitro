@@ -14,6 +14,7 @@ single line of code inside a virtual machine as all the work hapens on the host.
    installation
    architecture
    tutorial
+   testing
 
 .. include:: modules.rst
 

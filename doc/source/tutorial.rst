@@ -61,13 +61,13 @@ all the low-level events into something more useful.
 
 .. literalinclude:: samples/tutorial-03.py
 
-We now invoke back end's :meth:`~.WindowsBackend.process_event` method for each incoming event
-to see what they are about. The method returns us a :class:`~.Syscall` event
-with all the associated information. It is worth noting that digging around
-virtual machine memory for information about events is a potentially challenging
-task that may result in an error. It is a good practice to catch those. Here, if
-everything went well, we will print the analysis result. This should result in
-something little more understandable.
+We now invoke back end's :meth:`~.WindowsBackend.process_event` method for each
+incoming event to see what they are about. The method returns us a
+:class:`~.Syscall` event with all the associated information. It is worth noting
+that digging around virtual machine's memory for information about events is a
+potentially challenging task that may result in an error. It is a good practice
+to catch those. Here, if everything went well, we will print the analysis
+result. This should result in something little more understandable.
 
 .. literalinclude:: samples/tutorial-03-output.txt
    :language: python
