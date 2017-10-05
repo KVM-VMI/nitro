@@ -2,11 +2,12 @@
 
 """
 Usage:
-  import_libvirt.py [--qemu=<path>] <qemu_image>
+  import_libvirt.py [options] <qemu_image>
 
 Options:
   -h --help         Show this screen.
   --qemu=<path>     Path to custom QEMU binary
+  --open-vnc        Open VNC on all interfaces (0.0.0.0)
 """
 
 import os
@@ -26,9 +27,24 @@ SNAPSHOT_XML = """
 </domainsnapshot>
 """
 
+def prepare_domain_xml(domain_name, qemu_bin_path, nitro_image_path, open_vnc):
+    with open('template_domain.xml') as templ:
+        domain_xml = templ.read()
+        domain_xml = domain_xml.format(domain_name, qemu_bin_path,
+                                       nitro_image_path)
+        root = tree.fromstring(domain_xml)
+        if open_vnc:
+            # search for graphics element
+            graphics_elem = root.findall("./devices/graphics")[0]
+            graphics_elem.attrib['listen'] = '0.0.0.0'
+        domain_xml = tree.tostring(root).decode()
+        return domain_xml
+    return None
+
 def main(args):
     logging.basicConfig(level=logging.DEBUG, format='%(message)s')
     qemu_image = args['<qemu_image>']
+    open_vnc = args['--open-vnc']
     # check root
     if os.geteuid() != 0:
         logging.critical('Must be root to run this script')
@@ -73,11 +89,10 @@ def main(args):
         # move image to nitro pool
         nitro_image_path = os.path.join(storage_path, '{}.qcow2'.format(image_name))
         shutil.move(qemu_image, nitro_image_path)
-        with open('template_domain.xml') as templ:
-            domain_xml = templ.read()
-            domain_xml = domain_xml.format(domain_name, qemu_bin_path, nitro_image_path)
-            con.defineXML(domain_xml)
-            logging.info('Domain {} defined.'.format(domain_name))
+        domain_xml = prepare_domain_xml(domain_name, qemu_bin_path, nitro_image_path,
+                                        open_vnc)
+        con.defineXML(domain_xml)
+        logging.info('Domain {} defined.'.format(domain_name))
         domain = con.lookupByName(domain_name)
         # take base snapshot
         domain.snapshotCreateXML(SNAPSHOT_XML)
