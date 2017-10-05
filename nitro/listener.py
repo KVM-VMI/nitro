@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-
+import re
+import os
+import os.path
 import logging
-import subprocess
 import time
 import threading
 from queue import Queue, Empty
@@ -11,6 +12,8 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from nitro.event import NitroEvent
 from nitro.kvm import KVM, VM
 
+class QEMUNotFoundError(Exception):
+    pass
 
 def find_qemu_pid(vm_name):
     logging.info('Finding QEMU pid for domain %s', vm_name)
@@ -21,19 +24,22 @@ def find_qemu_pid(vm_name):
             pid = int(content)
             return pid
     except IOError:
-        # permission denied
-        # find the PID using pgrep
-        # pgrep --full to match the whole command line
-        cmd = ['pgrep', '--full', 'qemu.*-name.*{}'.format(vm_name)]
-        output = subprocess.check_output(cmd)
-        try:
-            pid = int(output)
+        qemu_regexp = re.compile('qemu.*-name.*{}'.format(vm_name))
+        pid = next(pids_matching_cmd_line(qemu_regexp), None)
+        if pid is not None:
             return pid
-        except ValueError as e:
-            # output issue
-            logging.critical('Cannot find PID with pgrep output: %s', output)
-            raise e
+        else:
+            logging.critical('Cannot find QEMU')
+            raise QEMUNotFoundError('Cannot find QEMU')
 
+def pids_matching_cmd_line(regexp):
+    """Generator returning PIDs of processes where the command line matches the given regexp."""
+    for dir in os.listdir("/proc"):
+        if dir.isdigit():
+            with open(os.path.join("/proc", dir, "cmdline"), "r") as handle:
+                cmd_line = handle.read()
+                if regexp.search(cmd_line) is not None:
+                    yield int(dir, 10)
 
 class Listener:
 
