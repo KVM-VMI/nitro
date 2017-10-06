@@ -42,9 +42,9 @@ Usage:
   main.py [options] <vm_name>
 
 Options:
-  -h --help     Show this screen.
+  -h --help     Show this screen
   --nobackend   Don't analyze events
-  --stdout      Display events on stdout, not in a log file
+  -o --output   Output file (stdout if not specified)
 
 """
 ~~~
@@ -59,8 +59,8 @@ Therefore you have to run Nitro with the option `--nobackend`.
 It will run until the user sends a `CTRL+C` to stop it, in which case Nitro
 will unset the traps and write the captured events in a file named `events.json`.
 
-In case the option `--stdout` is enabled, Nitro will display the events immeditely,
-and skip the log file.
+By defaults, Nitro will print events to stdout. If this is not desired `--out`
+can be used to redirect output into a file.
 
 An event should look like this output
 ~~~JSON
@@ -77,7 +77,7 @@ An event should look like this output
 A successful run should give the following output :
 
 ~~~
-$ ./main.py --nobackend --stdout nitro_win7x64
+$ ./main.py --nobackend nitro_win7x64
 Setting traps to False
 Finding QEMU pid for domain nitro_win7x64
 Detected 1 VCPUs

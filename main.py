@@ -6,9 +6,9 @@ Usage:
   nitro.py [options] <vm_name>
 
 Options:
-  -h --help     Show this screen.
-  --nobackend   Don't analyze events
-  --stdout      Display events on stdout, not in a log file
+  -h --help            Show this screen
+  --nobackend          Don't analyze events
+  -o FILE --out=FILE   Output file (stdout if not specified)
 
 """
 
@@ -33,12 +33,13 @@ def init_logger():
 def callback(syscall, backend):
     pass
 
+
 class NitroRunner:
 
-    def __init__(self, vm_name, analyze_enabled, stdout):
+    def __init__(self, vm_name, analyze_enabled, output=None):
         self.vm_name = vm_name
         self.analyze_enabled = analyze_enabled
-        self.stdout = stdout
+        self.output = output
         # get domain from libvirt
         con = libvirt.open('qemu:///system')
         self.domain = con.lookupByName(vm_name)
@@ -65,14 +66,14 @@ class NitroRunner:
                     logging.error("Backend event processing failure")
                 else:
                     event_info = syscall.as_dict()
-            if self.stdout:
+            if self.output is None:
                 pprint(event_info, width=1)
             else:
                 self.events.append(event_info)
 
-        if self.events:
+        if self.output is not None:
             logging.info('Writing events')
-            with open('events.json', 'w') as f:
+            with open(self.output, 'w') as f:
                 json.dump(self.events, f, indent=4)
 
     def sigint_handler(self, *args, **kwargs):
@@ -83,8 +84,8 @@ class NitroRunner:
 def main(args):
     vm_name = args['<vm_name>']
     analyze_enabled = False if args['--nobackend'] else True
-    stdout = args['--stdout']
-    runner = NitroRunner(vm_name, analyze_enabled, stdout)
+    output = args['--out']
+    runner = NitroRunner(vm_name, analyze_enabled, output)
     runner.run()
 
 
