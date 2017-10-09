@@ -16,6 +16,7 @@ welcome!
 
    introduction
    installation
+   commandline
    architecture
    tutorial
    testing
