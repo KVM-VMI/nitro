@@ -8,7 +8,7 @@ single line of code inside a virtual machine as all the work hapens on the host.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents
+   :caption: User Guide
 
    introduction
    installation

@@ -1,0 +1,41 @@
+tester@kvm-vmi ~/projects/nitro/tests/vm_templates $ ./packer build --var-file ubuntu_1604_x64.json ubuntu.json 
+qemu output will be in this color.
+
+==> qemu: Downloading or copying ISO
+    qemu: Downloading or copying: http://releases.ubuntu.com/16.04/ubuntu-16.04.2-server-amd64.iso
+==> qemu: Creating floppy disk...
+    qemu: Copying files flatly from floppy_files
+    qemu: Copying file: http/preseed.cfg
+    qemu: Done copying files from floppy_files
+    qemu: Collecting paths from floppy_dirs
+    qemu: Resulting paths from floppy_dirs : []
+    qemu: Done copying paths from floppy_dirs
+==> qemu: Creating hard drive...
+==> qemu: Starting HTTP server on port 8288
+==> qemu: Found port for communicator (SSH, WinRM, etc): 3679.
+==> qemu: Looking for available port between 5900 and 6000 on 127.0.0.1
+==> qemu: Starting VM, booting from CD-ROM
+    qemu: The VM will be run headless, without a GUI. If you want to
+    qemu: view the screen of the VM, connect via VNC without a password to
+    qemu: vnc://127.0.0.1:5933
+==> qemu: Overriding defaults Qemu arguments with QemuArgs...
+==> qemu: Waiting 10s for boot...
+==> qemu: Connecting to VM via VNC
+==> qemu: Typing the boot command over VNC...
+==> qemu: Waiting for SSH to become available...
+==> qemu: Connected to SSH!
+==> qemu: Uploading linux/ => /tmp
+==> qemu: Provisioning with shell script: /tmp/packer-shell277821116
+    qemu: [sudo] password for vagrant: Generating grub configuration file ...
+    qemu: Warning: Setting GRUB_TIMEOUT to a non-zero value when GRUB_HIDDEN_TIMEOUT is set is no longer supported.
+    qemu: Found linux image: /boot/vmlinuz-4.4.0-62-generic
+    qemu: Found initrd image: /boot/initrd.img-4.4.0-62-generic
+    qemu: done
+    qemu: Removed symlink /etc/systemd/system/sysinit.target.wants/systemd-timesyncd.service.
+==> qemu: Gracefully halting virtual machine...
+    qemu: [sudo] password for vagrant:
+==> qemu: Converting hard drive...
+Build 'qemu' finished.
+
+==> Builds finished. The artifacts of successful builds are:
+--> qemu: VM files in directory: output-qemu
