@@ -6,6 +6,10 @@ Python API for analyzing and altering the state of KVM-based virtual machines.
 With Nitro, you can monitor what the machines are doing without executing a
 single line of code inside a virtual machine as all the work hapens on the host.
 
+Nitro is open source and the code for the project can be found from the
+project's `GitHub page <https://github.com/KVM-VMI/nitro>`_. Pull requests
+welcome!
+
 .. toctree::
    :maxdepth: 2
    :caption: User Guide
