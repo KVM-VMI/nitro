@@ -40,6 +40,14 @@ Libvmi library offers building blocks for virtual machine introspection. Nitro
 requires a custom version of this library. You can find the sources for this
 from the projects `Github repository <https://github.com/KVM-VMI/libvmi>`__.
 
+Libvmi requires a configuration file describing the properties of virtual
+machines to be present before it can be used. This requirement applies to Nitro
+as well because it uses libvmi internally. Nitro's repository contains an
+example ``libvmi.conf`` file configuring the library for use with Windows
+guests, however, the exact configuration may vary between operating system
+releases. `Libvmi documentation <http://libvmi.com/docs/gcode-install.html>`__
+describes how to obtaining the correct configuration values in more detail.
+
 Setting up libvirt
 ------------------
 
@@ -51,34 +59,18 @@ are in the ``python3-libvirt`` package.
 Python Dependencies
 -------------------
 
-Aside from the core requirements outlined above, Nitro depends on a set of
-Python modules that can be easily installed using ``pip`` or distribution
-package manager. If you decide to install the dependencies using ``pip``,
-consider using a `virtual environment
-<https://docs.python.org/3/library/venv.html>`__ for separating them from the
-rest of your development setup.
-
-You can easily install these by running:
+After external dependencies have been installed, Nitro itself has to be
+installed, along with the python libraries it depends on. Like other Python
+projects, this can be handled using the included ``setup.py`` script.
 
 ::
 
-   pip install docopt ioctl-opt rekall cffi
+   sudo ./setup.py install
 
-Additionally, for testing, you might want to install `nose2
-<https://github.com/nose-devs/nose2>`__ test framework:
-
-::
-
-   pip install nose2
-
-For generating the documentation install Sphinx and the required theme:
+This will install the package for all users. However, for development, it might
+make more sense to install Nitro in "development" mode and only for a single
+user:
 
 ::
 
-   pip install sphinx sphinx_rtd_theme
-
-
-Setting up Nitro for Development
---------------------------------
-
-
+   ./setup.py develop --user

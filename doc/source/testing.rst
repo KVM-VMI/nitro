@@ -63,7 +63,7 @@ This can be done automatically with the included ``import_libvirt.py`` script.
 Depending on the way your ``libvirt`` installation is configured, the script
 might require superuser privileges. To import the newly constructed VM run:
 
-.. code-block:: none
+::
 
    # ./import_libvirt.py output-qemu/ubuntu1604
 
@@ -94,7 +94,7 @@ the ``tests`` directory. Running all the tests can be time consuming, and
 therefore, it is often desirable to only run some of the tests. This can be
 achieved by specifying the test case manually:
 
-.. code-block:: none
+::
 
    $ nose2 --verbose test_linux.TestLinux.test_open
 
