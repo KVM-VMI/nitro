@@ -22,7 +22,7 @@ The mainline Linux kernel does not currently support fine control of KVM virtual
 machine execution. For providing this essential functionality, Nitro depends on
 a modified version of the Linux kernel with additional functionality added to
 the KVM. The sources for this custom release of Linux can be found on the
-projects `Github repository <https://github.com/KVM-VMI/kvm-vmi>`__.
+projects `GitHub repository <https://github.com/KVM-VMI/kvm-vmi>`__.
 
 Setting up QEMU
 ---------------
@@ -30,7 +30,7 @@ Setting up QEMU
 Nitro uses QEMU as a hypervisor. Unfortunatelly, the upstream QEMU does not
 currently provide means for efficiently accessing virtual machines memory from
 the host. For this reason, Nitro requires a custom version of the QEMU
-virtualization platform. Sources can be found on the projects `Github repository
+virtualization platform. Sources can be found on the projects `GitHub repository
 <https://github.com/KVM-VMI/qemu>`__.
 
 Getting libvmi
@@ -38,7 +38,7 @@ Getting libvmi
 
 Libvmi library offers building blocks for virtual machine introspection. Nitro
 requires a custom version of this library. You can find the sources for this
-from the projects `Github repository <https://github.com/KVM-VMI/libvmi>`__.
+from the projects `GitHub repository <https://github.com/KVM-VMI/libvmi>`__.
 
 Libvmi requires a configuration file describing the properties of virtual
 machines to be present before it can be used. This requirement applies to Nitro
