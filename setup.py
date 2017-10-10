@@ -12,6 +12,7 @@ setup(
     author_email="mathieu.tarral@gmail.com",
     description="Hypervisor based tracing and monitoring prototype to trap guest syscalls and analyze them",
     long_description=long_description,
+    url="https://github.com/KVM-VMI/nitro",
     packages=find_packages(),
     setup_requires=["cffi>=1.0.0"],
     cffi_modules=["nitro/build_libvmi.py:ffibuilder"],
@@ -23,7 +24,12 @@ setup(
     install_requires=[
         'cffi>=1.0.0',
         'docopt',
-        'libvirt-python'
+        'libvirt-python',
+        'ioctl_opt'
     ],
+    extras_require={
+        "docs": ["sphinx", "sphinx_rtd_theme"],
+        "tests": ["nose2"]
+    },
     keywords=["nitro", "hyperisor", "monitoring", "tracing", "syscall"]
 )
