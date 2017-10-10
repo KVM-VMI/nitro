@@ -3,7 +3,7 @@
 """Nitro.
 
 Usage:
-  nitro.py [options] <vm_name>
+  nitro [options] <vm_name>
 
 Options:
   -h --help            Show this screen
