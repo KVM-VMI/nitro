@@ -71,7 +71,9 @@ class NitroRunner:
         self.nitro.stop()
 
 
-def main(args):
+def main():
+    init_logger()
+    args = docopt(__doc__)
     vm_name = args['<vm_name>']
     analyze_enabled = False if args['--nobackend'] else True
     output = args['--out']
@@ -80,5 +82,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    init_logger()
-    main(docopt(__doc__))
+    main()

@@ -2,20 +2,28 @@
 
 from setuptools import setup, find_packages
 
+with open("README.md", "r") as handle:
+    long_description = handle.read()
+
 setup(
     name="nitro",
     version="0.0.1",
     author="F-Secure Corporation",
     author_email="mathieu.tarral@gmail.com",
-    description=("""Hypervisor based tracing and monitoring prototype to trap
-        guest syscalls and analyze them"""),
+    description="Hypervisor based tracing and monitoring prototype to trap guest syscalls and analyze them",
+    long_description=long_description,
     packages=find_packages(),
     setup_requires=["cffi>=1.0.0"],
     cffi_modules=["nitro/build_libvmi.py:ffibuilder"],
+    entry_points={
+        "console_scripts": [
+            "nitro = main:main"
+        ]
+    },
     install_requires=[
         'cffi>=1.0.0',
         'docopt',
-        'libvirt-python',
+        'libvirt-python'
     ],
-    keywords="nitro hyperisor monitoring tracing syscall",
+    keywords=["nitro", "hyperisor", "monitoring", "tracing", "syscall"]
 )
