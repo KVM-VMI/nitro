@@ -2,16 +2,12 @@
 
 from setuptools import setup, find_packages
 
-with open("README.md", "r") as handle:
-    long_description = handle.read()
-
 setup(
     name="nitro",
     version="0.0.1",
     author="F-Secure Corporation",
     author_email="mathieu.tarral@gmail.com",
     description="Hypervisor based tracing and monitoring prototype to trap guest syscalls and analyze them",
-    long_description=long_description,
     url="https://github.com/KVM-VMI/nitro",
     packages=find_packages(),
     setup_requires=["cffi>=1.0.0"],
