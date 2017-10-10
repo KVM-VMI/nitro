@@ -30,10 +30,6 @@ def init_logger():
     logger.setLevel(logging.INFO)
 
 
-def callback(syscall, backend):
-    pass
-
-
 class NitroRunner:
 
     def __init__(self, vm_name, analyze_enabled, output=None):
@@ -50,12 +46,6 @@ class NitroRunner:
 
     def run(self):
         self.nitro = Nitro(self.domain, self.analyze_enabled)
-        if self.analyze_enabled:
-            # defining hooks
-            self.nitro.backend.define_hook('NtOpenFile', callback)
-            self.nitro.backend.define_hook('NtCreateFile', callback)
-            self.nitro.backend.define_hook('NtClose', callback)
-
         self.nitro.listener.set_traps(True)
         for event in self.nitro.listen():
             event_info = event.as_dict()
