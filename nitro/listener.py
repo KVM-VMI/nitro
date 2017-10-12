@@ -15,6 +15,12 @@ class QEMUNotFoundError(Exception):
     pass
 
 def find_qemu_pid(vm_name):
+    """
+    Find QEMU's PID that is associated with a given virtual machine
+    
+    :param str vm_name: libvirt domain name
+    :rtype: int
+    """
     logging.info('Finding QEMU pid for domain %s', vm_name)
     libvirt_vm_pid_file = '/var/run/libvirt/qemu/{}.pid'.format(vm_name)
     try:
@@ -32,6 +38,9 @@ def find_qemu_pid(vm_name):
         raise QEMUNotFoundError('Cannot find QEMU')
 
 class Listener:
+    """
+    Class for listening to events from a virtual machine.
+    """
 
     __slots__ = (
         'domain',
@@ -46,7 +55,9 @@ class Listener:
     )
 
     def __init__(self, domain):
+        #: Libvirt domain that the Listener is monitoring
         self.domain = domain
+        #: Pid of the QEMU instance that is being monitored
         self.pid = find_qemu_pid(domain.name())
         # init KVM
         self.kvm_io = KVM()
@@ -74,10 +85,12 @@ class Listener:
         self.stop()
 
     def stop(self):
+        """Stop listening for system calls"""
         self.stop_listen()
         self.kvm_io.close()
 
     def listen(self):
+        """Generator yielding NitroEvents from the virtual machine"""
         self.stop_request = threading.Event()
         pool = ThreadPoolExecutor(max_workers=len(self.vcpus_io))
         self.futures = []
@@ -109,6 +122,7 @@ class Listener:
         logging.info('Stop Nitro listening')
 
     def listen_vcpu(self, vcpu_io, queue):
+        """Listen to an individual virtual CPU"""
         logging.info('Start listening on VCPU %s', vcpu_io.vcpu_nb)
         # we need a per thread continue event
         continue_event = threading.Event()
@@ -132,6 +146,7 @@ class Listener:
         logging.debug('stop listening on VCPU %s', vcpu_io.vcpu_nb)
 
     def stop_listen(self):
+        """Stop listening for events"""
         self.set_traps(False)
         self.stop_request.set()
         nb_threads = len([f for f in self.futures if f.running()])
@@ -152,7 +167,9 @@ class Listener:
             wait(self.futures)
 
     def add_syscall_filter(self, syscall_nb):
+        """Add system call filter to a virtual machine"""
         self.vm_io.add_syscall_filter(syscall_nb)
 
     def remove_syscall_filter(self, syscall_nb):
+        """Remove system call filter form a virtual machine"""
         self.vm_io.remove_syscall_filter(syscall_nb)

@@ -28,14 +28,21 @@ class Backend:
 
     def __init__(self, domain, libvmi, listener, syscall_filtering=True):
         """Create a new ``Backend``"""
+
+        #: libvirt domain associated with the backend
         self.domain = domain
+        #: handle to libvmi
         self.libvmi = libvmi
+        #: ``Listener`` associated with the ``Backend``
         self.listener = listener
+        #: Is system call filtering enabled for the backend
         self.syscall_filtering = syscall_filtering
+        #: Event hooks
         self.hooks = {
             SyscallDirection.enter: {},
             SyscallDirection.exit: {}
         }
+        #: Statistics about the backend
         self.stats = defaultdict(int)
 
     def dispatch_hooks(self, syscall):
@@ -95,6 +102,6 @@ class Backend:
         self.stop()
 
     def stop(self):
-        """Stop the Backend"""
+        """Stop the backend"""
         logging.info(json.dumps(self.stats, indent=4))
         self.libvmi.destroy()

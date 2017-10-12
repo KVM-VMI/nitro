@@ -30,7 +30,9 @@ class ArgumentMap:
         :param NitroEvent event: event that is used to access arguments
         :param Process process: process which address space is used for argument lookups
         """
+        #: Underlying event
         self.event = event
+        #: Process associated with the ``ArgumentMap``
         self.process = process
         self.modified = {}
         self.arg_size_format = self.ARG_SIZE[self.event.type]
