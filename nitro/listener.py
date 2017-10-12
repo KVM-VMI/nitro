@@ -24,8 +24,9 @@ def find_qemu_pid(vm_name):
             return pid
     except IOError:
         for proc in psutil.process_iter():
+            cmdline = proc.cmdline()[1:]
             if proc.name() == "qemu-system-x86_64" and \
-               any("guest={}".format(vm_name) in p for p in proc.cmdline()[1:]):
+               next((True for k, v in zip(cmdline, cmdline[1:]) if k == "-name" and vm_name in v), False):
                 return proc.pid
         logging.critical('Cannot find QEMU')
         raise QEMUNotFoundError('Cannot find QEMU')
