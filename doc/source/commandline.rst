@@ -17,6 +17,10 @@ run:
 If the output file is not specified, Nitro prints the event stream to standard
 output.
 
+.. cmdoption :: -o FILE, --out FILE
+
+   Specify where the recorded events are saved.
+
 By default, Nitro tries to use a suitable backend based on the guest's operating
 system for extra information. If only low-level events are desired, the
 ``--nobackend`` option can be used to disable the extra analysis.
