@@ -17,6 +17,7 @@ Depends: ${misc:Depends},
          python3-docopt,
          python3-libvirt,
          python,
+         python3-psutil,
          python-docopt,
 Description: Syscall interception library
   Nitro allows you to monitor your virtual machines using vmi techniques to
