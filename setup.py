@@ -21,7 +21,8 @@ setup(
         'cffi>=1.0.0',
         'docopt',
         'libvirt-python',
-        'ioctl_opt'
+        'ioctl_opt',
+        'psutil'
     ],
     extras_require={
         "docs": ["sphinx", "sphinx_rtd_theme"],

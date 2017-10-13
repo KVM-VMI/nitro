@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-
+import re
+import psutil
 import logging
-import subprocess
 import time
 import threading
 from queue import Queue, Empty
@@ -11,6 +11,8 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from nitro.event import NitroEvent
 from nitro.kvm import KVM, VM
 
+class QEMUNotFoundError(Exception):
+    pass
 
 def find_qemu_pid(vm_name):
     logging.info('Finding QEMU pid for domain %s', vm_name)
@@ -21,19 +23,13 @@ def find_qemu_pid(vm_name):
             pid = int(content)
             return pid
     except IOError:
-        # permission denied
-        # find the PID using pgrep
-        # pgrep --full to match the whole command line
-        cmd = ['pgrep', '--full', 'qemu.*-name.*{}'.format(vm_name)]
-        output = subprocess.check_output(cmd)
-        try:
-            pid = int(output)
-            return pid
-        except ValueError as e:
-            # output issue
-            logging.critical('Cannot find PID with pgrep output: %s', output)
-            raise e
-
+        for proc in psutil.process_iter():
+            cmdline = proc.cmdline()[1:]
+            if proc.name() == "qemu-system-x86_64" and \
+               next((True for k, v in zip(cmdline, cmdline[1:]) if k == "-name" and vm_name in v), False):
+                return proc.pid
+        logging.critical('Cannot find QEMU')
+        raise QEMUNotFoundError('Cannot find QEMU')
 
 class Listener:
 
