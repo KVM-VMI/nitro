@@ -59,10 +59,11 @@ class NitroThread(Thread):
         start_time = datetime.datetime.now()
 
         with Nitro(self.domain, self.analyze_enabled) as nitro:
-            for name, callback in self.enter_hooks.items():
-                nitro.backend.define_hook(name, callback, direction=SyscallDirection.enter)
-            for name, callback in self.exit_hooks.items():
-                nitro.backend.define_hook(name, callback, direction=SyscallDirection.exit)
+            if self.analyze_enabled:
+                for name, callback in self.enter_hooks.items():
+                    nitro.backend.define_hook(name, callback, direction=SyscallDirection.enter)
+                for name, callback in self.exit_hooks.items():
+                    nitro.backend.define_hook(name, callback, direction=SyscallDirection.exit)
             nitro.listener.set_traps(True)
             if self.ready_event is not None:
                 self.ready_event.set() # is this really necessary
