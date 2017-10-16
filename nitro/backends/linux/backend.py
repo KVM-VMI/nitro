@@ -16,7 +16,7 @@ VOID_P_SIZE = sizeof(c_void_p)
 
 HANDLER_NAME_REGEX = re.compile(r"^(SyS|sys)_(?P<name>.+)")
 
-MAX_SYSTEM_CALL_COUNT = 512
+MAX_SYSTEM_CALL_COUNT = 1024
 
 class LinuxBackend(Backend):
     __slots__ = (
@@ -98,11 +98,12 @@ class LinuxBackend(Backend):
                 if symbol is not None:
                     mapping[symbol] = i
                 else:
-                    return mapping
+                    break
+        return mapping
 
     def find_syscall_nb(self, syscall_name):
         # What about thos compat_* handlers?
-        handler_regexp = re.compile(r"^(SyS|sys)_{}".format(syscall_name))
+        handler_regexp = re.compile(r"^(SyS|sys)_{}$".format(re.escape(syscall_name)))
         for full_name, ind in self.syscall_names.items():
             if handler_regexp.match(full_name) is not None:
                 return ind
