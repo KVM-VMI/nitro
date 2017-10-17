@@ -121,7 +121,7 @@ class Libvmi:
             raise ValueError('Nullptr')
         buffer_c = ffi.frombuffer(buffer)
         bytes_written = ffi.new("size_t *")
-        status = lib.vmi_read_va(self.vmi, vaddr, pid, len(buffer), buffer_c, bytes_written)
+        status = lib.vmi_write_va(self.vmi, vaddr, pid, len(buffer), buffer_c, bytes_written)
         if status != VMI_SUCCESS or bytes_written != len(buffer):
             logging.debug('VMI_FAILURE trying to write %s, with %s', hex(vaddr), 'write_va')
             raise LibvmiError('VMI_FAILURE')
