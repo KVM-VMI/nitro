@@ -2,7 +2,14 @@ import logging
 from enum import Enum
 
 
-from nitro._libvmi import ffi, lib
+from nitro.build_libvmi import ffi, lib
+
+# cffi 0.8.6 doesn't parse # define
+# we have to put these constants here
+VMI_INIT_DOMAINNAME = 1
+VMI_INIT_DOMAINID = 2
+VMI_INIT_EVENTS = 4
+VMI_INIT_SHM = 8
 
 VMI_SUCCESS = 0
 VMI_FAILURE = 1
@@ -33,7 +40,7 @@ class Libvmi:
         # init libvmi
         status = lib.vmi_init_complete(self.opaque_vmi,
                                        vm_name.encode(),
-                                       lib.VMI_INIT_DOMAINNAME,
+                                       VMI_INIT_DOMAINNAME,
                                        ffi.NULL,
                                        lib.VMI_CONFIG_GLOBAL_FILE_ENTRY,
                                        ffi.NULL,
