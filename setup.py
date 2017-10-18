@@ -11,7 +11,6 @@ setup(
     url="https://github.com/KVM-VMI/nitro",
     packages=find_packages(),
     setup_requires=["cffi>=0.8.6"],
-    cffi_modules=["nitro/build_libvmi.py:ffibuilder"],
     entry_points={
         "console_scripts": [
             "nitro = main:main"
