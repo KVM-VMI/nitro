@@ -59,7 +59,7 @@ class Backend:
                 self.stats['hooks_processed'] += 1
 
     def define_hook(self, name, callback, direction=SyscallDirection.enter):
-        dir_str = "entry" if SyscallDirection.enter else "exit"
+        dir_str = "entry" if direction == SyscallDirection.enter else "exit"
         logging.info('Defining %s hook on %s', dir_str, name)
         self.hooks[direction][name] = callback
 
