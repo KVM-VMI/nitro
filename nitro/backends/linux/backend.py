@@ -55,17 +55,15 @@ class LinuxBackend(Backend):
         if event.direction == SyscallDirection.exit:
             try:
                 syscall = self.syscall_stack[event.vcpu_nb].pop()
+                syscall.event = event
             except IndexError:
                 syscall = Syscall(event, "Unknown", "Unknown", process, None)
         else:
-            try:
-                name = self.get_syscall_name(event.regs.rax)
-                args = LinuxArgumentMap(event, process)
-                cleaned = clean_name(name) if name is not None else None
-                syscall = Syscall(event, name, cleaned, process, args)
-            except LibvmiError as error:
-                logging.error("LinuxBackend: failed to get_syscall_name (LibvmiError)")
-                raise error
+            # Maybe we should catch errors from associate_process
+            name = self.get_syscall_name(event.regs.rax)
+            args = LinuxArgumentMap(event, process)
+            cleaned = clean_name(name) if name is not None else None
+            syscall = Syscall(event, name, cleaned, process, args)
             self.syscall_stack[event.vcpu_nb].append(syscall)
         self.dispatch_hooks(syscall)
         return syscall
