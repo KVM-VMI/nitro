@@ -2,8 +2,6 @@ import logging
 import re
 import stat
 import os
-import subprocess
-import shutil
 import json
 from io import StringIO
 from collections import defaultdict
