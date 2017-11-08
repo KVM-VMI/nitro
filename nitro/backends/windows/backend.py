@@ -86,7 +86,7 @@ class WindowsBackend(Backend):
                     ])
 
                 symbols = {}
-                output = StringIO.StringIO()
+                output = StringIO()
                 s.RunPlugin("ssdt", output=output)
                 symbols['syscall_table'] = json.loads(output.getvalue())
                 symbols['offsets'] = self.get_offsets(s)
