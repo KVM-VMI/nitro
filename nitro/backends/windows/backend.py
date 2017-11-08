@@ -5,8 +5,12 @@ import os
 import subprocess
 import shutil
 import json
-
+from io import StringIO
+from collections import defaultdict
+from rekall import session
+from rekall import plugins
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+
 
 import libvirt
 
@@ -15,8 +19,6 @@ from nitro.syscall import Syscall
 from nitro.backends.windows.process import WindowsProcess
 from nitro.backends.backend import Backend
 from nitro.backends.windows.arguments import WindowsArgumentMap
-
-GETSYMBOLS_SCRIPT = 'get_symbols.py'
 
 
 class WindowsBackend(Backend):
@@ -38,7 +40,10 @@ class WindowsBackend(Backend):
         # create on syscall stack per vcpu
         self.syscall_stack = tuple([] for _ in range(self.nb_vcpu))
         self.sdt = None
-        self.load_symbols()
+        symbols = self.get_symbols()
+        self.load_symbols(symbols)
+        # save symbols
+        self.symbols = symbols
 
         # get offsets
         self.tasks_offset = self.libvmi.get_offset("win_tasks")
@@ -46,7 +51,7 @@ class WindowsBackend(Backend):
 
         self.processes = {}
 
-    def load_symbols(self):
+    def get_symbols(self):
         # we need to put the ram dump in our own directory
         # because otherwise it will be created in /tmp
         # and later owned by root
@@ -62,18 +67,34 @@ class WindowsBackend(Backend):
                 flags = libvirt.VIR_DUMP_MEMORY_ONLY
                 dumpformat = libvirt.VIR_DOMAIN_CORE_DUMP_FORMAT_RAW
                 self.domain.coreDumpWithFormat(ram_dump.name, dumpformat, flags)
-                # build symbols.py absolute path
-                script_dir = os.path.dirname(os.path.realpath(__file__))
-                symbols_script_path = os.path.join(script_dir,
-                                                   GETSYMBOLS_SCRIPT)
-                # call rekall on ram dump
-                logging.info('Extracting symbols with Rekall')
-                python2 = shutil.which('python2')
-                symbols_process = [python2, symbols_script_path, ram_dump.name]
-                output = subprocess.check_output(symbols_process)
-        logging.info('Loading symbols')
-        # load output as json
-        symbols = json.loads(output.decode('utf-8'))
+                home = os.getenv('HOME')
+                # we need to make sure the directory exists otherwise rekall will complain
+                # when we specify it in the profile_path
+                local_cache_path = os.path.join(home, '.rekall_cache')
+                try:
+                    os.makedirs(local_cache_path)
+                except OSError:  # already exists
+                    pass
+
+                s = session.Session(
+                    filename=ram_dump.name,
+                    autodetect=["rsds"],
+                    logger=logging.getLogger(),
+                    autodetect_build_local='none',
+                    format='data',
+                    profile_path=[
+                        local_cache_path,
+                        "http://profiles.rekall-forensic.com"
+                    ])
+
+                symbols = {}
+                output = StringIO.StringIO()
+                s.RunPlugin("ssdt", output=output)
+                symbols['syscall_table'] = json.loads(output.getvalue())
+                symbols['offsets'] = self.get_offsets(s)
+                return symbols
+
+    def load_symbols(self, symbols):
         # load ssdt entries
         nt_ssdt = {'ServiceTable': {}, 'ArgumentTable': {}}
         win32k_ssdt = {'ServiceTable': {}, 'ArgumentTable': {}}
@@ -92,8 +113,59 @@ class WindowsBackend(Backend):
                     # add entry  to our current ssdt
                     cur_ssdt[entry] = full_name
                     logging.debug('Add SSDT entry [%s] -> %s', entry, full_name)
-        # save rekall symbols
-        self.symbols = symbols
+
+
+    def get_offsets(self, session):
+        offsets = defaultdict(dict)
+
+        offsets['KPROCESS'][
+            'DirectoryTableBase'] = session.profile.get_obj_offset('_KPROCESS',
+                                                                   'DirectoryTableBase')
+
+        offsets['EPROCESS'][
+            'ActiveProcessLinks'] = session.profile.get_obj_offset('_EPROCESS',
+                                                                   'ActiveProcessLinks')
+
+        offsets['EPROCESS']['ImageFileName'] = session.profile.get_obj_offset(
+            '_EPROCESS',
+            'ImageFileName')
+
+        offsets['EPROCESS']['UniqueProcessId'] = session.profile.get_obj_offset(
+            '_EPROCESS',
+            'UniqueProcessId')
+
+        offsets['EPROCESS']['InheritedFromUniqueProcessId'] = \
+            session.profile.get_obj_offset('_EPROCESS',
+                                           'InheritedFromUniqueProcessId')
+
+        offsets['EPROCESS']['Wow64Process'] = \
+            session.profile.get_obj_offset('_EPROCESS', 'Wow64Process')
+
+        offsets['EPROCESS']['CreateTime'] = \
+            session.profile.get_obj_offset('_EPROCESS', 'CreateTime')
+
+        offsets['EPROCESS']['SeAuditProcessCreationInfo'] = \
+            session.profile.get_obj_offset('_EPROCESS',
+                                           'SeAuditProcessCreationInfo')
+
+        offsets['SE_AUDIT_PROCESS_CREATION_INFO']['ImageFileName'] = \
+            session.profile.get_obj_offset('_SE_AUDIT_PROCESS_CREATION_INFO',
+                                           'ImageFileName')
+
+        offsets['OBJECT_NAME_INFORMATION']['Name'] = \
+            session.profile.get_obj_offset('_OBJECT_NAME_INFORMATION', 'Name')
+
+        offsets['EPROCESS']['Peb'] = session.profile.get_obj_offset('_EPROCESS',
+                                                                    'Peb')
+
+        offsets['PEB']['ProcessParameters'] = \
+            session.profile.get_obj_offset('_PEB', 'ProcessParameters')
+
+        offsets['RTL_USER_PROCESS_PARAMETERS']['CommandLine'] = \
+            session.profile.get_obj_offset('_RTL_USER_PROCESS_PARAMETERS',
+                                           'CommandLine')
+
+        return offsets
 
     def process_event(self, event):
         # invalidate libvmi cache
