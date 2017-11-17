@@ -1,3 +1,4 @@
+import datetime
 from enum import Enum
 
 
@@ -20,6 +21,7 @@ class NitroEvent:
         'sregs',
         'vcpu_nb',
         'vcpu_io',
+        'time',
     )
 
     def __init__(self, nitro_event_str, vcpu_io):
@@ -29,6 +31,7 @@ class NitroEvent:
         self.sregs = nitro_event_str.sregs
         self.vcpu_io = vcpu_io
         self.vcpu_nb = self.vcpu_io.vcpu_nb
+        self.time = datetime.datetime.now().isoformat()
 
     def __str__(self):
         type_msg = self.type.name.upper()
@@ -46,6 +49,7 @@ class NitroEvent:
             'direction': self.direction.name,
             'cr3': hex(self.sregs.cr3),
             'rax': hex(self.regs.rax),
+            'time': self.time
         }
         return info
 
