@@ -53,33 +53,31 @@ class NitroThread(Thread):
         self.total_time = None
         self.events = []
         self.ready_event = ready_event
+        self.nitro = Nitro(self.domain, self.analyze_enabled)
 
     def run(self):
         # start timer
         start_time = datetime.datetime.now()
-
-        with Nitro(self.domain, self.analyze_enabled) as nitro:
+        if self.analyze_enabled:
             for name, callback in self.enter_hooks.items():
-                nitro.backend.define_hook(name, callback, direction=SyscallDirection.enter)
+                self.nitro.backend.define_hook(name, callback, direction=SyscallDirection.enter)
             for name, callback in self.exit_hooks.items():
-                nitro.backend.define_hook(name, callback, direction=SyscallDirection.exit)
-            nitro.listener.set_traps(True)
-            if self.ready_event is not None:
-                self.ready_event.set() # is this really necessary
-            for event in nitro.listen():
-                if self.analyze_enabled:
-                    try:
-                        syscall = nitro.backend.process_event(event)
-                    except LibvmiError:
-                        ev_info = event.as_dict()
-                    else:
-                        ev_info = syscall.as_dict()
-                else:
+                self.nitro.backend.define_hook(name, callback, direction=SyscallDirection.exit)
+        self.nitro.listener.set_traps(True)
+        if self.ready_event is not None:
+            self.ready_event.set() # is this really necessary
+        for event in self.nitro.listen():
+            if self.analyze_enabled:
+                try:
+                    syscall = self.nitro.backend.process_event(event)
+                except LibvmiError:
                     ev_info = event.as_dict()
-                self.events.append(ev_info)
-                if self.stop_request.isSet():
-                    logging.info("Stopping")
-                    break
+                else:
+                    ev_info = syscall.as_dict()
+            else:
+                ev_info = event.as_dict()
+            self.events.append(ev_info)
+
 
         # stop timer
         self.ready_event.clear()
@@ -87,7 +85,7 @@ class NitroThread(Thread):
         self.total_time = str(stop_time - start_time)
 
     def stop(self):
-        self.stop_request.set()
+        self.nitro.stop()
         self.join()
 
 
