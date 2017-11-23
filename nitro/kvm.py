@@ -115,7 +115,12 @@ class IOCTL:
         return self.libc.ioctl(self.fd, request, arg)
 
     def close(self):
-        os.close(self.fd)
+        try:
+            os.close(self.fd)
+        except OSError:
+            # Bad file descriptor
+            # already closed
+            pass
 
 
 class KVM(IOCTL):
