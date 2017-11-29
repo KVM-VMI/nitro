@@ -15,30 +15,31 @@ this chapter requires a certain level of technical expertise. While not
 everything is explained, hopefully this chapter still contains enough pointers
 for someone wishing to install the system.
 
-Obtaining the Kernel
---------------------
+Installing the Kernel
+---------------------
 
-The mainline Linux kernel does not currently support fine control of KVM virtual
-machine execution. For providing this essential functionality, Nitro depends on
-a modified version of the Linux kernel with additional functionality added to
-the KVM. The sources for this custom release of Linux can be found on the
-projects `GitHub repository <https://github.com/KVM-VMI/kvm-vmi>`__.
+Nitro depends on a modified version of the Linux kernel with additional
+functionality added to the KVM. The sources for this custom release of Linux can
+be found on the projects `GitHub repository
+<https://github.com/KVM-VMI/kvm-vmi>`__.
 
 Setting up QEMU
 ---------------
 
-Nitro uses QEMU as a hypervisor. Unfortunatelly, the upstream QEMU does not
-currently provide means for efficiently accessing virtual machines memory from
-the host. For this reason, Nitro requires a custom version of the QEMU
-virtualization platform. Sources can be found on the projects `GitHub repository
-<https://github.com/KVM-VMI/qemu>`__.
+Nitro uses for QEMU for executing virtual machines. Unfortunately, the upstream
+QEMU does not currently provide means for efficiently accessing virtual
+machines' memory from the host. For this reason, Nitro requires a custom version
+of the QEMU virtualization platform. Sources can be found on the projects
+`GitHub repository <https://github.com/KVM-VMI/qemu>`__.
 
 Getting libvmi
 --------------
 
-Libvmi library offers building blocks for virtual machine introspection. Nitro
-requires a custom version of this library. You can find the sources for this
-from the projects `GitHub repository <https://github.com/KVM-VMI/libvmi>`__.
+Libvmi library offers building blocks for virtual machine introspection by
+providing an unified API for accessing virtual machine state such as memory and
+registers. Nitro requires a custom version of this library. You can find the
+sources for this from the projects `GitHub repository
+<https://github.com/KVM-VMI/libvmi>`__.
 
 Libvmi requires a configuration file describing the properties of virtual
 machines to be present before it can be used. This requirement applies to Nitro
@@ -51,8 +52,8 @@ describes how to obtaining the correct configuration values in more detail.
 Setting up libvirt
 ------------------
 
-For setting up and managing virtual machines and their associated resources,
-Nitro uses the excellent `libvirt toolkit <https://libvirt.org/>`__. Be sure to
+Nitro uses the `libvirt toolkit <https://libvirt.org/>`__ for setting up and
+managing virtual machines and their associated resources. Be sure to
 additionally install the python bindings for the libvirt API. For Ubuntu, they
 are in the ``python3-libvirt`` package.
 

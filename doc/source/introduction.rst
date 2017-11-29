@@ -1,10 +1,11 @@
 Introduction
 ============
 
-Nitro is flexible framework for seeing inside virtual machines. It provides
-users with a stream of events about what the machine is doing and allows the
-user to perform arbitrary inside the virtual machine. Even better, all this is
-done in a way that is completely transparent to the virtual machine in question.
+Nitro is flexible framework for intercepting and altering system calls inside
+virtual machines. It provides users with a stream of events about what the
+machine is doing and allows the user to perform arbitrary inside the virtual
+machine. Even better, all this is done in a way that is completely transparent
+to the virtual machine in question.
 
 On a more technical level, Nitro is a virtual machine introspection system that,
 through the use of clever kernel-level functionality, allows the host system to

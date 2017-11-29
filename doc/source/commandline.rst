@@ -22,8 +22,8 @@ to the standard output.
    events to the standard output.
 
 By default, Nitro tries to use a suitable backend based on the guest's operating
-system for extra information. If only low-level events are desired, the
-``--nobackend`` option can be used to disable the extra analysis.
+system for semantic information and enrich the raw low-level events. The
+``--nobackend`` option is provided to disable this semantic translation.
 
 .. cmdoption :: --nobackend
 

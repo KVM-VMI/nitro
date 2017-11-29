@@ -1,18 +1,18 @@
 Tutorial: Finding Out What Notepad is Doing
 ===========================================
 
-In this chapter we will use Nitro to monitor what Windows Notepad. While this
-might not be super interesting in itself, it demonstrates all the essential
-techniques that will enable you to use Nitro for tackling real-world challenges.
+In this chapter we will use Nitro to monitor Windows Notepad. While this might
+not be super interesting in itself, it demonstrates all the essential techniques
+that will enable you to use Nitro for tackling real-world challenges.
 
 Getting a Connection
 --------------------
 
 The first thing to do is to initialize Nitro and attach it to a virtual machine.
 For the purposes of this tutorial, we expect the VM to be already running but we
-could of course use libvirt APIs for automating seting up the environment.
-Additionally, Nitro obviosly has to be in Python's module search path for any of
-this to work.
+could of course use libvirt APIs for automating setting up the environment.
+Additionally, Nitro obviously has to be in Python's module search path for any
+of this to work.
 
 .. literalinclude:: samples/tutorial-01.py
 

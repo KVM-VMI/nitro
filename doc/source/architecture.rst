@@ -13,7 +13,7 @@ different components fit together.
    and passes them to the user through the frameworks namesake :class:`~.Nitro`
    class. The user can then decide to request for additional analysis from one
    of Nitro's back ends. Back ends transform the low-level events into system
-   call events that contain bunch of useful information such as the process
+   call events that contain additional useful information such as the process
    where the system call originated and offer an easy way to access the
    arguments of the call.
 
@@ -21,13 +21,9 @@ Virtual Machines
 ================
 
 Nitro depends on `libvirt <https://libvirt.org>`__ to manage virtual machine
-life cycle and configuration for it. Libvirt is responsible for keeping track of
-machine definitions (what hardware is associated with the machine, what kind of
-storage backend is being used, and how is the networking setup) and managing
-QEMU instances for individual machines. Libvirt is structured as a daemon that
-manages the actual virtual machines and responds to requests from clients such
-as Nitro. Through the libvirt API, Nitro can start, stop and pause virtual
-machines without having to directly deal with the hypervisor.
+life cycle and configuration for it. Through the libvirt API, Nitro can start,
+stop and pause virtual machines without having to directly deal with the
+hypervisor.
 
 Internally, QEMU makes use of Linux's `KVM
 <https://en.wikipedia.org/wiki/Kernel-based_Virtual_Machine>`__ feature for

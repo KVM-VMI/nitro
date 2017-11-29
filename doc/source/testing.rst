@@ -9,9 +9,9 @@ Unit Tests
 ----------
 
 As a project, Nitro is highly dependent on multiple external components like the
-customized version of the Linux kernel and the extended QEMU hypervisor. While
-all this is necessary, it makes testing the project a bit more challenging than
-the average Python module.
+customized version of the Linux kernel and the extended QEMU virtual machine
+platform. While all this is necessary, it makes testing the project a bit more
+challenging than the average Python module.
 
 Unit tests try to break down this complexity by concentrating on individual
 components and features of them. We replace the real interfaces and dependencies
