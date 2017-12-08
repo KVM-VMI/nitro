@@ -1,7 +1,15 @@
 from cffi import FFI
-ffi = FFI()
+ffibuilder = FFI()
 
 c_def = """
+#define VMI_INIT_DOMAINNAME 1 /**< initialize using domain name */
+
+#define VMI_INIT_DOMAINID 2 /**< initialize using domain id */
+
+#define VMI_INIT_EVENTS 4 /**< initialize events */
+
+#define VMI_INIT_SHM 8 /**< initialize SHM mode */
+
 // vmi_instance_t
 typedef struct vmi_instance *vmi_instance_t;
 
@@ -179,6 +187,17 @@ void vmi_rvacache_flush(
     vmi_instance_t vmi);
 """
 
-ffi.cdef(c_def)
 
-lib = ffi.verify('#include <libvmi/libvmi.h>', libraries=['vmi'])
+
+ffibuilder.set_source("nitro._libvmi",
+    """
+    #include <libvmi/libvmi.h>
+    """,
+    libraries=['vmi'])   # or a list of libraries to link with
+    # (more arguments like setup.py's Extension class:
+    # include_dirs=[..], extra_objects=[..], and so on)
+
+ffibuilder.cdef(c_def)
+
+if __name__ == "__main__":
+    ffibuilder.compile(verbose=True)

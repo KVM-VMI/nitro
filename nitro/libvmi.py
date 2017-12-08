@@ -2,14 +2,7 @@ import logging
 from enum import Enum
 
 
-from nitro.build_libvmi import ffi, lib
-
-# cffi 0.8.6 doesn't parse # define
-# we have to put these constants here
-VMI_INIT_DOMAINNAME = 1
-VMI_INIT_DOMAINID = 2
-VMI_INIT_EVENTS = 4
-VMI_INIT_SHM = 8
+from nitro._libvmi import ffi, lib
 
 VMI_SUCCESS = 0
 VMI_FAILURE = 1
@@ -40,7 +33,7 @@ class Libvmi:
         # init libvmi
         status = lib.vmi_init_complete(self.opaque_vmi,
                                        vm_name.encode(),
-                                       VMI_INIT_DOMAINNAME,
+                                       lib.VMI_INIT_DOMAINNAME,
                                        ffi.NULL,
                                        lib.VMI_CONFIG_GLOBAL_FILE_ENTRY,
                                        ffi.NULL,
@@ -67,11 +60,8 @@ class Libvmi:
     def translate_v2ksym(self, vaddr):
         ctx = ffi.new("access_context_t *")
         ctx.translate_mechanism = lib.VMI_TM_PROCESS_PID
-        string = lib.vmi_translate_v2ksym(self.vmi, ctx, vaddr)
-        if string != ffi.NULL:
-            return ffi.string(string).decode()
-        else:
-            return None
+        str = lib.vmi_translate_v2ksym(self.vmi, ctx, vaddr)
+        return ffi.string(str).decode()
 
     def translate_kv2p(self, vaddr):
         paddr = ffi.new("addr_t *")
