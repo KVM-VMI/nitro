@@ -24,7 +24,7 @@ sys.path.insert(0, module_dir)
 # generation.
 from unittest.mock import MagicMock
 
-for mod in ("libvirt", "nitro._libvmi", "ioctl_opt", "docopt"):
+for mod in ("libvirt", "nitro._libvmi", "nitro.build_libvmi", "psutil", "ioctl_opt", "docopt"):
     sys.modules[mod] = MagicMock()
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -52,8 +52,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'nitro'
-copyright = '2017, F-Secure Corporation'
-author = 'F-Secure Corporation'
+copyright = ''
+author = ''
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -150,7 +150,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'nitro.tex', 'nitro Documentation',
-     'F-Secure Corporation', 'manual'),
+     '', 'manual'),
 ]
 
 
