@@ -1,3 +1,7 @@
+"""
+Backend for extracting information about system calls from Linux guests.
+"""
+
 import logging
 import re
 
@@ -19,6 +23,9 @@ HANDLER_NAME_REGEX = re.compile(r"^(SyS|sys)_(?P<name>.+)")
 MAX_SYSTEM_CALL_COUNT = 1024
 
 class LinuxBackend(Backend):
+    """Extract information about system calls produced by the guest. This backend
+    support 64-bit Linux guests."""
+
     __slots__ = (
         "sys_call_table_addr",
         "nb_vcpu",
@@ -46,6 +53,17 @@ class LinuxBackend(Backend):
         self.pgd_offset = self.libvmi.get_offset("linux_pgd")
 
     def process_event(self, event):
+        """
+        Process ``NitroEvent`` and return a matching ``Systemcall``. This function
+        analyzes system state and, based on it, produces a new ``Systemcall``
+        that contains higher-level information about the system call that is
+        being processed.
+
+        :param NitroEvent event: event to be analyzed
+        :returns: system call based on ``event``.
+        :rtype: Systemcall
+        """
+
         # Clearing these caches is really important since otherwise we will end
         # up with incorrect memory references. Unfortunatelly, this will also
         # make the backend slow. In my limited testing it seems that only
@@ -74,6 +92,13 @@ class LinuxBackend(Backend):
         return syscall
 
     def get_syscall_name(self, rax):
+        """
+        Return name of the system call handler associated with ``rax``.
+
+        :param int rax: index into system call table.
+        :returns: system call handler name
+        :rtype: str
+        """
         # address of the pointer within the sys_call_table array
         p_addr = self.sys_call_table_addr + (rax * VOID_P_SIZE)
         # get the address of the procedure
@@ -109,7 +134,12 @@ class LinuxBackend(Backend):
                 return ind
 
     def associate_process(self, cr3):
-        """Get Process associated with CR3"""
+        """
+        Get ``LinuxProcess`` associated with ``cr3``
+        :params int cr3: cr3 value
+        :returns: process associated with ``cr3``
+        :rtype: LinuxProcess
+        """
         head = self.libvmi.translate_ksym2v("init_task") # get the address of swapper's task_struct
         next_ = head
         while True: # Maybe this should have a sanity check stopping it

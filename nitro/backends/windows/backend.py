@@ -20,6 +20,9 @@ GETSYMBOLS_SCRIPT = 'get_symbols.py'
 
 
 class WindowsBackend(Backend):
+    """Extract information about system calls produced by the guest. This backend
+supports 66-bit Windows 7 guests."""
+
     __slots__ = (
         "nb_vcpu",
         "syscall_stack",

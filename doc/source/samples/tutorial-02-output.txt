@@ -1,0 +1,8 @@
+{'cr3': '0x493bb000', 'direction': 'enter', 'rax': '0x33', 'type': 'syscall', 'vcpu': 0}
+{'cr3': '0x493bb000', 'direction': 'exit', 'rax': '0x0', 'type': 'syscall', 'vcpu': 0}
+{'cr3': '0x493bb000', 'direction': 'enter', 'rax': '0x16', 'type': 'syscall', 'vcpu': 0}
+{'cr3': '0x493bb000', 'direction': 'exit', 'rax': '0x0', 'type': 'syscall', 'vcpu': 0}
+{'cr3': '0x493bb000', 'direction': 'enter', 'rax': '0x16', 'type': 'syscall', 'vcpu': 0}
+{'cr3': '0x493bb000', 'direction': 'exit', 'rax': '0x0', 'type': 'syscall', 'vcpu': 0}
+{'cr3': '0x493bb000', 'direction': 'enter', 'rax': '0x18d', 'type': 'syscall', 'vcpu': 0}
+{'cr3': '0x493bb000', 'direction': 'exit', 'rax': '0x0', 'type': 'syscall', 'vcpu': 0}

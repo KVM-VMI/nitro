@@ -57,7 +57,15 @@ GPATH
 GRTAGS
 GTAGS
 
+# Linux test binaries
 tests/linux_binaries/build/
 
 # cffi
 *.c
+
+# sphinx build dir
+doc/build/
+
+# Virtual env
+venv/
+

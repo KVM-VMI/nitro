@@ -1,0 +1,18 @@
+tester@kvm-vmi ~/projects/nitro/tests/unittests $ nose2 --verbose
+test_associate_process (test_linux.TestLinux)
+Test process association. ... ok
+test_backend_creation (test_linux.TestLinux)
+Check that LinuxBackend can be created. ... ok
+test_check_caches_flushed (test_linux.TestLinux)
+Check that libvmi caches are flushed. ... ok
+test_clean_name (test_linux.TestLinux)
+Test that system call handler names are properly cleaned. ... ok
+test_process_event (test_linux.TestLinux)
+Test that the event handler returns a syscall object with somewhat sensible content ... ok
+test_syscall_name (test_linux.TestLinux)
+Check that syscall names can be extracted from system call table. ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.007s
+
+OK

@@ -3,6 +3,9 @@ from nitro.backends.arguments import ArgumentMap, SyscallArgumentType
 
 
 class WindowsArgumentMap(ArgumentMap):
+    """
+    ``WindowsArgumentMap`` provides read and write access to system call arguments.
+    """
 
     CONVENTION = {
         SyscallType.syscall: [

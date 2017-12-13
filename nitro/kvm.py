@@ -1,3 +1,8 @@
+"""
+Low-level interface to KVM facilities. This module enables the use of
+Nitro's enhanced KVM capabilities.
+"""
+
 import os
 import logging
 from ctypes import *
@@ -98,6 +103,7 @@ class NitroVCPUs(Structure):
 
 
 class IOCTL:
+    """Class for making IOCTL calls"""
     __slots__ = (
         'libc',
         'fd'
@@ -124,6 +130,7 @@ class IOCTL:
 
 
 class KVM(IOCTL):
+    """Class for connecting to the KVM and attaching to virtual machines."""
     __slots__ = (
         'kvm_file'
     )
@@ -137,6 +144,12 @@ class KVM(IOCTL):
         self.fd = self.kvm_file.fileno()
 
     def attach_vm(self, pid):
+        """
+        Attach to KVM virtual machine
+        
+        :param int pid: pid of the Qemu process to attach to.
+        :raises: RuntimeError
+        """
         logging.debug('attach_vm PID = %s', pid)
         c_pid = c_int(pid)
         r = self.make_ioctl(self.KVM_NITRO_ATTACH_VM, byref(c_pid))
@@ -147,13 +160,23 @@ class KVM(IOCTL):
 
 
 class VM(IOCTL):
+    """Class that allows low-level control of KVM virtual machines.
+
+    VM makes it possible to attach to machine's virtual CPUs and add system call
+    filters.
+    """
+
     __slots__ = (
         'vcpus_struct'
     )
 
+    #: Reguest for attaching to a virtual CPU
     KVM_NITRO_ATTACH_VCPUS = IOR(KVMIO, 0xE2, NitroVCPUs)
+    #: Request for setting system call trap
     KVM_NITRO_SET_SYSCALL_TRAP = IOW(KVMIO, 0xE3, c_bool)
+    #: Request for adding system call filter
     KVM_NITRO_ADD_SYSCALL_FILTER = IOR(KVMIO, 0xEB, c_ulonglong)
+    #: Request for removing system call filter
     KVM_NITRO_REMOVE_SYSCALL_FILTER = IOR(KVMIO, 0xEC, c_ulonglong)
 
     def __init__(self, vm_fd):
@@ -162,6 +185,11 @@ class VM(IOCTL):
         self.vcpus_struct = NitroVCPUs()
 
     def attach_vcpus(self):
+        """
+        Attach to virtual CPUs
+
+        :rtype: List of VCPUs
+        """
         logging.debug('attach_vcpus')
         r = self.make_ioctl(self.KVM_NITRO_ATTACH_VCPUS,
                             byref(self.vcpus_struct))
@@ -197,15 +225,23 @@ class VM(IOCTL):
 
 
 class VCPU(IOCTL):
+    """Class that allows controlling and inspecting the state of an individual virtual CPU."""
+
     __slots__ = (
         'vcpu_nb',
     )
 
+    #: Request for retrieving event
     KVM_NITRO_GET_EVENT = IOR(KVMIO, 0xE5, NitroEventStr)
+    #: Request to continue
     KVM_NITRO_CONTINUE = IO(KVMIO, 0xE6)
+    #: Request to get register state
     KVM_NITRO_GET_REGS = IOR(KVMIO, 0xE7, Regs)
+    #: Request to set register state
     KVM_NITRO_SET_REGS = IOW(KVMIO, 0xE8, Regs)
+    #: Request to get special registers
     KVM_NITRO_GET_SREGS = IOR(KVMIO, 0xE9, SRegs)
+    #: Request to set special registers
     KVM_NITRO_SET_SREGS = IOW(KVMIO, 0xEA, SRegs)
 
     def __init__(self, vcpu_nb, vcpu_fd):
@@ -214,6 +250,11 @@ class VCPU(IOCTL):
         self.fd = vcpu_fd
 
     def get_event(self):
+        """
+        Retrieve event from the virtual machine
+
+        :rtype: NitroEventStr
+        """
         # logging.debug('get_event %s, self.vcpu_nb)
         nitro_ev = NitroEventStr()
         ret = self.make_ioctl(self.KVM_NITRO_GET_EVENT, byref(nitro_ev))
@@ -224,23 +265,44 @@ class VCPU(IOCTL):
         return nitro_ev
 
     def continue_vm(self):
+        """Continue virtual machine execution"""
         # logging.debug('continue_vm %s', self.vcpu_nb)
         return self.make_ioctl(self.KVM_NITRO_CONTINUE, 0)
 
     def get_regs(self):
+        """
+        Get registers from the virtual machine.
+
+        :rtype: Regs
+        """
         regs = Regs()
         self.make_ioctl(self.KVM_NITRO_GET_REGS, byref(regs))
         return regs
 
     def get_sregs(self):
+        """
+        Get special registers from the virtual machine.
+
+        :rtype: SRegs
+        """
         sregs = SRegs()
         self.make_ioctl(self.KVM_NITRO_GET_SREGS, byref(sregs))
         return sregs
 
     def set_regs(self, regs):
+        """
+        Set registers for the virtual machine.
+
+        :param Regs regs: Values for registers
+        """
         ret = self.make_ioctl(self.KVM_NITRO_SET_REGS, byref(regs))
         return ret
 
     def set_sregs(self, sregs):
+        """
+        Set special registers for the virtual machine.
+
+        :param SRegs sregs: Values for special registers
+        """
         ret = self.make_ioctl(self.KVM_NITRO_SET_SREGS, byref(sregs))
         return ret
