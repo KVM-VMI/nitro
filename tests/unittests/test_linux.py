@@ -131,10 +131,10 @@ class TestLinux(unittest.TestCase):
              patch.object(LinuxBackend, "get_syscall_name", return_value="SyS_write"):
             backend.process_event(event)
 
-        libvmi.v2pcache_flush.assert_called_once()
-        libvmi.pidcache_flush.assert_called_once()
-        libvmi.rvacache_flush.assert_called_once()
-        libvmi.symcache_flush.assert_called_once()
+        libvmi.v2pcache_flush.assert_called_once_with()
+        libvmi.pidcache_flush.assert_called_once_with()
+        libvmi.rvacache_flush.assert_called_once_with()
+        libvmi.symcache_flush.assert_called_once_with()
 
     def test_process_event(self):
         """Test that the event handler returns a syscall object with somewhat sensible content"""
