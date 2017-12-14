@@ -167,7 +167,8 @@ class VM(IOCTL):
     """
 
     __slots__ = (
-        'vcpus_struct'
+        'vcpus_struct',
+        'syscall_filters'
     )
 
     #: Reguest for attaching to a virtual CPU
@@ -183,6 +184,7 @@ class VM(IOCTL):
         super().__init__()
         self.fd = vm_fd
         self.vcpus_struct = NitroVCPUs()
+        self.syscall_filters = set()
 
     def attach_vcpus(self):
         """
@@ -212,6 +214,7 @@ class VM(IOCTL):
                             byref(c_syscall_nb))
         if r != 0:
             raise RuntimeError('Error: fail to add syscall filter')
+        self.syscall_filters.add(syscall_nb)
         return r
 
     def remove_syscall_filter(self, syscall_nb):
@@ -221,6 +224,7 @@ class VM(IOCTL):
                             byref(c_syscall_nb))
         if r != 0:
             raise RuntimeError('Error: fail to remove syscall filter')
+        self.syscall_filters.remove(syscall_nb)
         return r
 
 
@@ -259,9 +263,7 @@ class VCPU(IOCTL):
         nitro_ev = NitroEventStr()
         ret = self.make_ioctl(self.KVM_NITRO_GET_EVENT, byref(nitro_ev))
         if ret != 0:
-            logging.error("get_event failed (vcpu: %d; returned: %d)",
-                          self.vcpu_nb, ret)
-            raise ValueError("get_event failed")
+            raise ValueError("get_event failed on vcpu %d (%d)".format(self.vcpu_nb, ret))
         return nitro_ev
 
     def continue_vm(self):
