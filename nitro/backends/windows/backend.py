@@ -94,7 +94,6 @@ supports 66-bit Windows 7 guests."""
                     full_name = e[1]["symbol"]["symbol"]
                     # add entry  to our current ssdt
                     cur_ssdt[entry] = full_name
-                    logging.debug('Add SSDT entry [%s] -> %s', entry, full_name)
         # save rekall symbols
         self.symbols = symbols
 

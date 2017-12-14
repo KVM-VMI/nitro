@@ -208,7 +208,7 @@ class VM(IOCTL):
         return r
 
     def add_syscall_filter(self, syscall_nb):
-        logging.debug('adding syscall filter on %s' % (syscall_nb))
+        logging.debug('adding syscall filter on %s' % (hex(syscall_nb)))
         c_syscall_nb = c_ulonglong(syscall_nb)
         r = self.make_ioctl(self.KVM_NITRO_ADD_SYSCALL_FILTER,
                             byref(c_syscall_nb))
@@ -218,7 +218,7 @@ class VM(IOCTL):
         return r
 
     def remove_syscall_filter(self, syscall_nb):
-        logging.debug('removing syscall filter on %s' % (syscall_nb))
+        logging.debug('removing syscall filter on %s' % (hex(syscall_nb)))
         c_syscall_nb = c_ulonglong(syscall_nb)
         r = self.make_ioctl(self.KVM_NITRO_REMOVE_SYSCALL_FILTER,
                             byref(c_syscall_nb))
