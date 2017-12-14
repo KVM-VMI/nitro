@@ -130,7 +130,11 @@ class Listener:
             try:
                 nitro_raw_ev = vcpu_io.get_event()
             except ValueError as e:
-                logging.debug(str(e))
+                if not self.vm_io.syscall_filters:
+                    # if there are no filters, get_event should not timeout
+                    # since we capture all system calls
+                    # so log the error
+                    logging.debug(str(e))
             else:
                 e = NitroEvent(nitro_raw_ev, vcpu_io)
                 # put the event in the queue
