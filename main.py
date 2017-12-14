@@ -61,6 +61,11 @@ class NitroRunner:
             else:
                 self.events.append(event_info)
 
+
+        if self.analyze_enabled:
+            # we can safely stop the backend
+            self.nitro.backend.stop()
+
         if self.output is not None:
             logging.info('Writing events')
             with open(self.output, 'w') as f:

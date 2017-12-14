@@ -21,5 +21,3 @@ class Nitro:
 
     def stop(self):
         self.listener.stop()
-        if self.backend is not None:
-            self.backend.stop()
