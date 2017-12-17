@@ -33,7 +33,7 @@ you don't have one already.
 
 - Wait for the desktop to be available on the VM.
 
-- Start `Nitro` as root (go to the *Notes* section to see how to start it as a normal user)
+- Start `Nitro` with `./main.py <vm_name>`.
 
 ~~~
 """Nitro.
