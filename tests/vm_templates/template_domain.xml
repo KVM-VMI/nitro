@@ -1,7 +1,13 @@
-<domain type='kvm'>
-    <name>{}</name>
+<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  <name>{}</name>
   <memory unit='MB'>1500</memory>
   <vcpu placement='static'>1</vcpu>
+  <qemu:commandline>
+      <qemu:arg value='-chardev socket,path=/tmp/introspector,id=chardev0'/>
+      <qemu:arg value='-object secret,id=key0,data=some'/>
+      <qemu:arg value='-object introspection,id=kvmi,chardev=chardev0,key=key0'/>
+      <qemu:arg value='-accel kvm,introspection=kvmi'/>
+  </qemu:commandline>
   <os>
     <type arch='x86_64' machine='pc'>hvm</type>
     <boot dev='hd'/>
