@@ -2,8 +2,11 @@ language: python
 python:
   - "3.4"
 install:
-  - pip install sphinx sphinx_rtd_theme
-  - pip install nose2
+  - sudo apt-get update
+  - sudo apt-get install -y libvirt-dev libjson-c-dev
+  - pip install -r requirements.txt
+  - git clone https://github.com/KVM-VMI/libvmi.git
+  - pushd libvmi && autoreconf -vif && ./configure --prefix=/usr && make && sudo make install && popd
 jobs:
   include:
     - stage: test

@@ -61,13 +61,17 @@ domain = Mock(**{
                   "vcpus.return_value": [[2]]
               })
 
+listener = Mock()
+
+LinuxBackend.build_syscall_name_map = lambda _: {}
+
 def get_resource_path(name):
     return pathlib.Path(__file__).parent.joinpath("resources", name)
 
 class TestLinux(unittest.TestCase):
     def test_backend_creation(self):
         """Check that LinuxBackend can be created."""
-        backend = LinuxBackend(domain, libvmi)
+        backend = LinuxBackend(domain, libvmi, listener)
 
         # Check that the created object gets its attributes from libvmi
         # Not really that useful...
@@ -77,7 +81,7 @@ class TestLinux(unittest.TestCase):
 
     def test_syscall_name(self):
         """Check that syscall names can be extracted from system call table."""
-        backend = LinuxBackend(domain, libvmi)
+        backend = LinuxBackend(domain, libvmi, listener)
         # The sample file is extracted from the Ubuntu image used integration tests
         with get_resource_path("syscall_table_sample.bin").open("rb") as handle:
             memory = handle.read()
@@ -98,7 +102,7 @@ class TestLinux(unittest.TestCase):
         # relationships between addresses that the backend uses.
         # Obviously a more robust test would be desirable
 
-        backend = LinuxBackend(domain, libvmi)
+        backend = LinuxBackend(domain, libvmi, listener)
         init_task = translate_ksym2v("init_task")
         mm_offset = get_offset("linux_mm")
         pgd_offset = get_offset("linux_pgd")
@@ -124,7 +128,7 @@ class TestLinux(unittest.TestCase):
 
     def test_check_caches_flushed(self):
         """Check that libvmi caches are flushed."""
-        backend = LinuxBackend(domain, libvmi)
+        backend = LinuxBackend(domain, libvmi, listener)
         event = Mock(direction=SyscallDirection.exit, vcpu_nb=0)
 
         with patch.object(LinuxBackend, "associate_process"), \
@@ -138,7 +142,7 @@ class TestLinux(unittest.TestCase):
 
     def test_process_event(self):
         """Test that the event handler returns a syscall object with somewhat sensible content"""
-        backend = LinuxBackend(domain, libvmi)
+        backend = LinuxBackend(domain, libvmi, listener)
         event = Mock(direction=SyscallDirection.enter, vcpu_nb=0)
 
         with patch.object(LinuxBackend, "associate_process"), \
