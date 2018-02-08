@@ -2,16 +2,27 @@ language: python
 python:
   - "3.4"
 install:
-  - pip install sphinx sphinx_rtd_theme
-before_script:
-  - cd doc
-script:
-  - make html
-deploy:
-  provider: pages
-  skip_cleanup: true
-  local_dir: build/html
-  github_token: $GITHUB_TOKEN
-  target_branch: gh-pages
-  on:
-    branch: documentation
+  - sudo apt-get update
+  - sudo apt-get install -y libvirt-dev libjson-c-dev
+  - pip install -r requirements.txt
+  - git clone https://github.com/KVM-VMI/libvmi.git
+  - pushd libvmi && autoreconf -vif && ./configure --prefix=/usr && make && sudo make install && popd
+jobs:
+  include:
+    - stage: test
+      before_script:
+        - cd tests/unittests
+      script:
+        - nose2
+    - stage: docs
+      before_script:
+        - cd doc
+      script:
+        - make html
+      deploy:
+        provider: pages
+        skip_cleanup: true
+        local_dir: build/html
+        github_token: $GITHUB_TOKEN
+        target_branch: gh-pages
+
