@@ -13,14 +13,14 @@ setup(
     package_data={
         'nitro.libvmi': ['*_cdef.h']
     },
-    setup_requires=["cffi>=1.0.0", "pkgconfig"],
+    setup_requires=["cffi>=1.6.0", "pkgconfig"],
     entry_points={
         "console_scripts": [
             "nitro = main:main"
         ]
     },
     install_requires=[
-        'cffi>=1.0.0',
+        'cffi>=1.6.0',
         'docopt',
         'libvirt-python',
         'ioctl_opt',

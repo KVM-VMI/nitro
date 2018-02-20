@@ -226,7 +226,7 @@ class Libvmi:
         status = lib.vmi_read(self.vmi, ctx, count, buffer, bytes_read)
         check(status)
         # transform into Python bytes
-        buffer = ffi.string(buffer, bytes_read[0])
+        buffer = ffi.unpack(buffer, bytes_read[0])
         return (buffer, bytes_read[0])
 
     def read_8(self, ctx):
@@ -289,7 +289,7 @@ class Libvmi:
         status = lib.vmi_read_va(self.vmi, vaddr, pid, count, buffer, bytes_read)
         check(status)
         # transform into Python bytes
-        buffer = ffi.string(buffer, bytes_read[0])
+        buffer = ffi.unpack(buffer, bytes_read[0])
         return (buffer, bytes_read[0])
 
     def read_pa(self, paddr, pid, count):
@@ -298,7 +298,7 @@ class Libvmi:
         status = lib.vmi_read_pa(self.vmi, paddr, pid, count, buffer, bytes_read)
         check(status)
         # transform into Python bytes
-        buffer = ffi.string(buffer, bytes_read[0])
+        buffer = ffi.unpack(buffer, bytes_read[0])
         return (buffer, bytes_read[0])
 
     def read_8_ksym(self, symbol):
