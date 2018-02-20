@@ -658,7 +658,7 @@ class Libvmi:
         lib.vmi_symcache_add(self.vmi, base_addr, pid, rva, symbol.encode())
 
     def pidcache_flush(self):
-        lib.vmi_pidcache_flush()
+        lib.vmi_pidcache_flush(self.vmi)
 
     def pidcache_add(self, pid, dtb):
         lib.vmi_pidcache_add(self.vmi, pid, dtb)
