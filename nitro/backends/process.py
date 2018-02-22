@@ -39,7 +39,10 @@ class Process:
         
         :raises: LibvmiError
         """
-        return self.libvmi.read_va(addr, self.pid, count)
+        buffer, bytes_read = self.libvmi.read_va(addr, self.pid, count)
+        if bytes_read != count:
+            raise RuntimeError('Fail to read memory')
+        return buffer
 
     def write_memory(self, addr, buffer):
         """
@@ -47,4 +50,4 @@ class Process:
 
         :raises: LibvmiError
         """
-        return self.libvmi.write_va(addr, self.pid, buffer)
+        self.libvmi.write_va(addr, self.pid, buffer)
