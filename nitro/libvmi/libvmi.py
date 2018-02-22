@@ -292,10 +292,10 @@ class Libvmi:
         buffer = ffi.unpack(buffer, bytes_read[0])
         return (buffer, bytes_read[0])
 
-    def read_pa(self, paddr, pid, count):
+    def read_pa(self, paddr, count):
         buffer = ffi.new("char[]", count)
         bytes_read = ffi.new("size_t *")
-        status = lib.vmi_read_pa(self.vmi, paddr, pid, count, buffer, bytes_read)
+        status = lib.vmi_read_pa(self.vmi, paddr, count, buffer, bytes_read)
         check(status)
         # transform into Python bytes
         buffer = ffi.unpack(buffer, bytes_read[0])
@@ -418,27 +418,31 @@ class Libvmi:
         return ffi.string(value).decode()
 
     # write
-    def write(self, ctx, count, buffer):
+    def write(self, ctx, buffer):
         cffi_buffer = ffi.from_buffer(buffer)
         bytes_written = ffi.new("size_t *")
+        count = len(buffer)
         status = lib.vmi_write(self.vmi, ctx, count, cffi_buffer, bytes_written)
         check(status)
 
-    def write_ksym(self, symbol, count, buffer):
+    def write_ksym(self, symbol, buffer):
         cffi_buffer = ffi.from_buffer(buffer)
         bytes_written = ffi.new("size_t *")
+        count = len(buffer)
         status = lib.vmi_write_ksym(self.vmi, symbol, count, cffi_buffer, bytes_written)
         check(status)
 
-    def write_va(self, vaddr, pid, count, buffer):
+    def write_va(self, vaddr, pid, buffer):
         cffi_buffer = ffi.from_buffer(buffer)
         bytes_written = ffi.new("size_t *")
+        count = len(buffer)
         status = lib.vmi_write_va(self.vmi, vaddr, pid, count, cffi_buffer, bytes_written)
         check(status)
 
-    def write_pa(self, paddr, count, buffer):
+    def write_pa(self, paddr, buffer):
         cffi_buffer = ffi.from_buffer(buffer)
         bytes_written = ffi.new("size_t *")
+        count = len(buffer)
         status = lib.vmi_write_va(self.vmi, paddr, count, cffi_buffer, bytes_written)
         check(status)
 
