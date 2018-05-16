@@ -19,5 +19,5 @@ class Nitro:
     def __exit__(self, *args, **kwargs):
         self.stop()
 
-    def stop(self):
-        self.listener.stop()
+    def stop(self, synchronous=True):
+        self.listener.stop(synchronous)
