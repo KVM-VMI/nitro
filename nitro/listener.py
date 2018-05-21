@@ -84,9 +84,13 @@ class Listener:
     def __exit__(self, *args, **kwargs):
         self.stop()
 
-    def stop(self):
+    def stop(self, synchronous=True):
         """Stop listening for system calls"""
-        self.stop_listen()
+        self.set_traps(False)
+        self.stop_request.set()
+        if synchronous:
+            # wait for threads to exit
+            wait(self.futures)
         self.kvm_io.close()
 
     def listen(self):
@@ -110,9 +114,8 @@ class Listener:
                 if not self.domain.isActive():
                     self.stop_request.set()
             else:
-                # remember last continue_event for stop_listen()
-                self.current_cont_event = continue_event
-                yield event
+                if not self.stop_request.is_set():
+                    yield event
                 continue_event.set()
 
         # raise listen_vcpu exceptions if any
@@ -148,27 +151,6 @@ class Listener:
                 vcpu_io.continue_vm()
 
         logging.debug('stop listening on VCPU %s', vcpu_io.vcpu_nb)
-
-    def stop_listen(self):
-        """Stop listening for events"""
-        self.set_traps(False)
-        self.stop_request.set()
-        nb_threads = len([f for f in self.futures if f.running()])
-        if nb_threads:
-            # ack current thread
-            self.current_cont_event.set()
-            # wait for current thread to terminate
-            while [f for f in self.futures if f.running()] == nb_threads:
-                time.sleep(0.1)
-            # ack the rest of the threads
-            while [f for f in self.futures if f.running()]:
-                if self.queue.full():
-                    (*rest, continue_event) = self.queue.get()
-                    continue_event.set()
-                # let the threads terminate
-                time.sleep(0.1)
-            # wait for threads to exit
-            wait(self.futures)
 
     def add_syscall_filter(self, syscall_nb):
         """Add system call filter to a virtual machine"""
