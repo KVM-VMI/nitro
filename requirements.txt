@@ -1,12 +1,9 @@
-cffi
 psutil
 docopt
 ioctl_opt
-psutil
 sphinx
 sphinx_rtd_theme
 nose2
 libvirt-python
 six
-pkgconfig
 libvmi
