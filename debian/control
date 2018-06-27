@@ -4,7 +4,6 @@ Section: python
 Priority: optional
 Build-Depends: python3-setuptools,
                python3-all,
-               python3-cffi,
                debhelper (>= 9),
 X-Python3-Version: >= 3.4
 Standards-Version: 3.9.4
@@ -17,10 +16,8 @@ Depends: ${misc:Depends},
          ${python3:Depends},
          python3-docopt,
          python3-libvirt,
-         python3-pkgconfig,
-         python3-cffi,
-         python,
          python3-psutil,
+         python,
          python-docopt,
 Description: Syscall interception library
   Nitro allows you to monitor your virtual machines using vmi techniques to
