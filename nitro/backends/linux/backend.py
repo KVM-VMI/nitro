@@ -7,9 +7,9 @@ import re
 
 from ctypes import sizeof, c_void_p
 
+from libvmi import LibvmiError
 from nitro.syscall import Syscall
 from nitro.event import SyscallDirection
-from nitro.libvmi import LibvmiError
 from nitro.backends.linux.process import LinuxProcess
 from nitro.backends.backend import Backend
 from nitro.backends.linux.arguments import LinuxArgumentMap

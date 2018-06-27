@@ -18,16 +18,17 @@ import json
 from pprint import pprint
 
 import libvirt
+from libvmi import LibvmiError
 from docopt import docopt
 
 from nitro.nitro import Nitro
-from nitro.libvmi import LibvmiError
+
 
 
 def init_logger():
     logger = logging.getLogger()
     logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
 
 class NitroRunner:
