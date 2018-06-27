@@ -9,7 +9,7 @@ import json
 from collections import defaultdict
 
 from nitro.event import SyscallDirection
-from nitro.libvmi import LibvmiError
+from libvmi import LibvmiError
 
 class Backend:
     """

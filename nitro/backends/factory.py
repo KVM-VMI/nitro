@@ -1,4 +1,4 @@
-from nitro.libvmi import VMIOS, Libvmi
+from libvmi import VMIOS, Libvmi
 from nitro.backends.linux import LinuxBackend
 from nitro.backends.windows import WindowsBackend
 

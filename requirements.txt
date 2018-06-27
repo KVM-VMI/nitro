@@ -9,3 +9,4 @@ nose2
 libvirt-python
 six
 pkgconfig
+libvmi
