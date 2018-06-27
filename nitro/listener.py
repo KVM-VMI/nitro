@@ -5,14 +5,43 @@ import psutil
 import logging
 import time
 import threading
+import subprocess
+import json
 from queue import Queue, Empty
 from concurrent.futures import ThreadPoolExecutor, wait
+
 
 from nitro.event import NitroEvent
 from nitro.kvm import KVM, VM
 
 class QEMUNotFoundError(Exception):
     pass
+
+
+def qemu_cmd(domain, command):
+    subprocess.check_call(["virsh", "-c", "qemu:///system",
+                           "qemu-monitor-command", domain,
+                           json.dumps(command)])
+
+
+# a rare bug might be triggered when a libvirt API
+# is called while Nitro monitors the domain
+# we use virsh instead
+def domain_suspend(domain, libvirt_api=True):
+    if libvirt_api:
+        domain.suspend()
+    else:
+        cmd = {'execute': 'stop'}
+        qemu_cmd(domain.name(), cmd)
+
+
+def domain_resume(domain, libvirt_api=True):
+    if libvirt_api:
+        domain.resume()
+    else:
+        cmd = {'execute': 'cont'}
+        qemu_cmd(domain.name(), cmd)
+
 
 def find_qemu_pid(vm_name):
     """
@@ -73,10 +102,9 @@ class Listener:
         self.current_cont_event = None
 
     def set_traps(self, enabled):
-        if self.domain.isActive():
-            self.domain.suspend()
-            self.vm_io.set_syscall_trap(enabled)
-            self.domain.resume()
+        domain_suspend(self.domain, libvirt_api=False)
+        self.vm_io.set_syscall_trap(enabled)
+        domain_resume(self.domain, libvirt_api=False)
 
     def __enter__(self):
         return self
@@ -110,9 +138,7 @@ class Listener:
             try:
                 (event, continue_event) = self.queue.get(timeout=1)
             except Empty:
-                # domain has crashed or is shutdown ?
-                if not self.domain.isActive():
-                    self.stop_request.set()
+                pass
             else:
                 if not self.stop_request.is_set():
                     yield event
