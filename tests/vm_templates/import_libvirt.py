@@ -8,6 +8,7 @@ Options:
   -h --help         Show this screen.
   --qemu=<path>     Path to custom QEMU binary
   --open-vnc        Open VNC on all interfaces (0.0.0.0)
+  --kvmi            Use kvmi enabled domain template
 """
 
 import os
@@ -27,11 +28,12 @@ SNAPSHOT_XML = """
 </domainsnapshot>
 """
 
-def prepare_domain_xml(domain_name, qemu_bin_path, nitro_image_path, open_vnc):
-    with open('template_domain.xml') as templ:
+def prepare_domain_xml(template_path, domain_name, qemu_bin_path, nitro_image_path, open_vnc):
+    with open(template_path) as templ:
         domain_xml = templ.read()
-        domain_xml = domain_xml.format(domain_name, qemu_bin_path,
-                                       nitro_image_path)
+        domain_xml = domain_xml.format(domain_name=domain_name,
+                                       qemu_bin_path=qemu_bin_path,
+                                       nitro_image_path=nitro_image_path)
         root = tree.fromstring(domain_xml)
         if open_vnc:
             # search for graphics element
@@ -45,6 +47,7 @@ def main(args):
     logging.basicConfig(level=logging.DEBUG, format='%(message)s')
     qemu_image = args['<qemu_image>']
     open_vnc = args['--open-vnc']
+    kvmi_enabled = args['--kvmi']
     # check root
     if os.geteuid() != 0:
         logging.critical('Must be root to run this script')
@@ -89,7 +92,8 @@ def main(args):
         # move image to nitro pool
         nitro_image_path = os.path.join(storage_path, '{}.qcow2'.format(image_name))
         shutil.move(qemu_image, nitro_image_path)
-        domain_xml = prepare_domain_xml(domain_name, qemu_bin_path, nitro_image_path,
+        template_path = "template_domain_kvmi.xml" if kvmi_enabled else "template_domain.xml"
+        domain_xml = prepare_domain_xml(template_path, domain_name, qemu_bin_path, nitro_image_path,
                                         open_vnc)
         con.defineXML(domain_xml)
         logging.info('Domain {} defined.'.format(domain_name))

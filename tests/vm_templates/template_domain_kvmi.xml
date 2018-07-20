@@ -1,4 +1,4 @@
-<domain type='kvm'>
+<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
     <name>{domain_name}</name>
   <memory unit='MB'>1500</memory>
   <vcpu placement='static'>1</vcpu>
@@ -89,5 +89,14 @@
     <memballoon model='none'>
     </memballoon>
   </devices>
+  <qemu:commandline>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='socket,path=/tmp/{domain_name}-introspector,id=chardev0,reconnect=10'/>
+    <qemu:arg value='-object'/>
+    <qemu:arg value='secret,id=key0,data=some'/>
+    <qemu:arg value='-object'/>
+    <qemu:arg value='introspection,id=kvmi,chardev=chardev0,key=key0'/>
+    <qemu:arg value='-accel'/>
+    <qemu:arg value='kvm,introspection=kvmi'/>
+  </qemu:commandline>
 </domain>
-
