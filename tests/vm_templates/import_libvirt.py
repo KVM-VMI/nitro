@@ -28,8 +28,21 @@ SNAPSHOT_XML = """
 </domainsnapshot>
 """
 
-def prepare_domain_xml(template_path, domain_name, qemu_bin_path, nitro_image_path, open_vnc):
-    with open(template_path) as templ:
+QEMU_ARGS_XML = """
+<qemu:commandline xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+    <qemu:arg value='-chardev'/>
+    <qemu:arg value='socket,path={path},id=chardev0,reconnect=10'/>
+    <qemu:arg value='-object'/>
+    <qemu:arg value='secret,id=key0,data=some'/>
+    <qemu:arg value='-object'/>
+    <qemu:arg value='introspection,id=kvmi,chardev=chardev0,key=key0'/>
+    <qemu:arg value='-accel'/>
+    <qemu:arg value='kvm,introspection=kvmi'/>
+</qemu:commandline>
+"""
+
+def prepare_domain_xml(domain_name, qemu_bin_path, nitro_image_path, open_vnc, enable_kvmi):
+    with open("template_domain.xml") as templ:
         domain_xml = templ.read()
         domain_xml = domain_xml.format(domain_name=domain_name,
                                        qemu_bin_path=qemu_bin_path,
@@ -39,6 +52,13 @@ def prepare_domain_xml(template_path, domain_name, qemu_bin_path, nitro_image_pa
             # search for graphics element
             graphics_elem = root.findall("./devices/graphics")[0]
             graphics_elem.attrib['listen'] = '0.0.0.0'
+        if enable_kvmi:
+            tree.register_namespace("qemu", "http://libvirt.org/schemas/domain/qemu/1.0")
+            kvmi_args = tree.fromstring(QEMU_ARGS_XML)
+            argument = kvmi_args.find("./*[2]")
+            argument.attrib["value"] = argument.attrib["value"].format(
+                path="/tmp/{}-introspector".format(domain_name))
+            root.append(kvmi_args)
         domain_xml = tree.tostring(root).decode()
         return domain_xml
     return None
@@ -92,9 +112,7 @@ def main(args):
         # move image to nitro pool
         nitro_image_path = os.path.join(storage_path, '{}.qcow2'.format(image_name))
         shutil.move(qemu_image, nitro_image_path)
-        template_path = "template_domain_kvmi.xml" if kvmi_enabled else "template_domain.xml"
-        domain_xml = prepare_domain_xml(template_path, domain_name, qemu_bin_path, nitro_image_path,
-                                        open_vnc)
+        domain_xml = prepare_domain_xml(domain_name, qemu_bin_path, nitro_image_path, open_vnc, kvmi_enabled)
         con.defineXML(domain_xml)
         logging.info('Domain {} defined.'.format(domain_name))
         domain = con.lookupByName(domain_name)
