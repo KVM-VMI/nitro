@@ -1,5 +1,5 @@
 <domain type='kvm'>
-  <name>{domain_name}</name>
+    <name>{}</name>
   <memory unit='MB'>1500</memory>
   <vcpu placement='static'>1</vcpu>
   <os>
@@ -24,10 +24,10 @@
     <suspend-to-disk enabled='no'/>
   </pm>
   <devices>
-    <emulator>{qemu_bin_path}</emulator>
+      <emulator>{}</emulator>
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2'/>
-      <source file='{nitro_image_path}'/>
+      <source file='{}'/>
       <target dev='hda' bus='ide'/>
       <address type='drive' controller='0' bus='0' target='0' unit='0'/>
     </disk>
@@ -90,3 +90,4 @@
     </memballoon>
   </devices>
 </domain>
+
