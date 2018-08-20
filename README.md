@@ -140,11 +140,11 @@ informations, such as:
 the memory dump.
 
 Unfortunately, `Rekall` is not available as a Debian package.
-For now you will have to install it system-wide with `pip`.
+For now you will have to install it system-wide with `pip`. (`Python2`)
 
 ~~~
-$ sudo pip3 install --upgrade setuptools pip wheel
-$ sudo pip3 install rekall
+$ sudo pip2 install --upgrade setuptools pip wheel
+$ sudo pip2 install rekall
 ~~~
 
 ## libvmi
